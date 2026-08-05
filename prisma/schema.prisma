@@ -1,0 +1,94 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  username  String   @unique
+  avatarUrl String?
+  apiKey    String   @unique @default(uuid())
+  runs      Run[]
+  kudos     Kudos[]
+  createdAt DateTime @default(now())
+}
+
+model Agent {
+  id          String   @id @default(uuid())
+  name        String
+  framework   String   // LangChain, CrewAI, AutoGen, Custom
+  modelFamily String   // gpt-4o, claude-3-5-sonnet, llama-3.3-70b
+  runs        Run[]
+  createdAt   DateTime @default(now())
+}
+
+model Run {
+  id                  String     @id @default(uuid())
+  userId              String
+  agentId             String
+  segmentId           String?
+  title               String
+  status              String     @default("completed") // running, completed, failed
+  
+  // Telemetry Metrics
+  wallClockMs         Int
+  totalTokens         Int
+  promptTokens        Int
+  completionTokens    Int
+  actionVelocityTps   Float      // Tokens / sec (Pace)
+  totalCostUsd        Float
+  totalToolCalls      Int
+  dagDepth            Int        // Max tree depth (Reasoning Elevation)
+  
+  // Visibility & Social
+  isPublic            Boolean    @default(true)
+  kudosCount          Int        @default(0)
+  
+  user                User       @relation(fields: [userId], references: [id])
+  agent               Agent      @relation(fields: [agentId], references: [id])
+  segment             Segment?   @relation(fields: [segmentId], references: [id])
+  kudosList           Kudos[]
+  createdAt           DateTime   @default(now())
+}
+
+model Segment {
+  id          String   @id @default(uuid())
+  name        String   // e.g. "SWE-bench Lite #41", "Document RAG Extraction"
+  description String
+  maxBudgetUsd Float
+  runs        Run[]
+  createdAt   DateTime @default(now())
+}
+
+model Kudos {
+  id        String   @id @default(uuid())
+  userId    String
+  runId     String
+  user      User     @relation(fields: [userId], references: [id])
+  run       Run      @relation(fields: [runId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, runId])
+}
+
+model Span {
+  id           String   @id @default(uuid())
+  runId        String
+  spanId       String
+  parentSpanId String?
+  name         String
+  type         String
+  status       String   @default("SUCCESS")
+  latencyMs    Int
+  tokens       Int
+  cost         Float
+  rawInput     String?
+  rawOutput    String?
+  createdAt    DateTime @default(now())
+}

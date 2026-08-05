@@ -1,0 +1,100 @@
+'use client';
+
+import React from 'react';
+import { Handle, Position, NodeProps } from '@xyflow/react';
+import {
+  Terminal,
+  Search,
+  Cpu,
+  Database,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Coins
+} from 'lucide-react';
+
+export function CustomSpanNode({ data, selected }: NodeProps) {
+  const { span } = data as { span: any };
+
+  const isFailed = span.status === 'FAILED';
+
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'Prompt': return Terminal;
+      case 'WebSearch': return Search;
+      case 'VectorDB': return Database;
+      case 'LLMCall': return Cpu;
+      case 'CodeExec': return Terminal;
+      case 'Output': return CheckCircle2;
+      default: return Cpu;
+    }
+  };
+
+  const Icon = getIcon(span.type);
+
+  return (
+    <div
+      className={`min-w-[220px] rounded-xl border p-3.5 shadow-2xl transition-all ${
+        selected
+          ? 'border-strava-orange bg-zinc-900 ring-2 ring-strava-orange/50 shadow-strava-orange/20 scale-105'
+          : isFailed
+          ? 'border-red-500/80 bg-red-950/40 text-red-100 hover:border-red-400'
+          : 'border-zinc-800 bg-zinc-900/90 text-zinc-100 hover:border-zinc-700'
+      }`}
+    >
+      {/* React Flow Handles */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!bg-strava-orange !w-3 !h-3 !border-2 !border-zinc-950"
+      />
+
+      {/* Header Row */}
+      <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2 mb-2">
+        <div className="flex items-center gap-2">
+          <div className={`p-1.5 rounded-md ${isFailed ? 'bg-red-500/20 text-red-400' : 'bg-strava-orange/15 text-strava-orange'}`}>
+            <Icon className="h-4 w-4" />
+          </div>
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+            {span.type}
+          </span>
+        </div>
+
+        {/* Status Indicator */}
+        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
+          isFailed ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+        }`}>
+          {isFailed ? 'FAIL' : 'OK'}
+        </span>
+      </div>
+
+      {/* Span Name */}
+      <div className="font-bold text-xs text-white truncate mb-2">
+        {span.name}
+      </div>
+
+      {/* Metrics Row */}
+      <div className="flex items-center justify-between gap-2 text-[11px] font-telemetry pt-1 border-t border-zinc-800/50">
+        
+        {/* Latency Badge */}
+        <div className="flex items-center gap-1 text-zinc-400">
+          <Clock className="h-3 w-3 text-zinc-500" />
+          <span>{span.latencyMs < 1000 ? `${span.latencyMs}ms` : `${(span.latencyMs/1000).toFixed(1)}s`}</span>
+        </div>
+
+        {/* Cost & Tokens Badge */}
+        <div className="flex items-center gap-1 text-strava-orange font-semibold">
+          <Coins className="h-3 w-3" />
+          <span>${span.cost.toFixed(4)}</span>
+        </div>
+
+      </div>
+
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!bg-strava-orange !w-3 !h-3 !border-2 !border-zinc-950"
+      />
+    </div>
+  );
+}
