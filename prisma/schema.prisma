@@ -8,73 +8,53 @@ generator client {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  username  String   @unique
-  avatarUrl String?
-  apiKey    String   @unique @default(uuid())
-  runs      Run[]
-  kudos     Kudos[]
-  createdAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  username     String   @unique
+  passwordHash String   @default("hashed_password")
+  apiKey       String   @unique @default(uuid())
+  runs         Run[]
+  agents       Agent[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Agent {
   id          String   @id @default(uuid())
+  userId      String?
   name        String
-  framework   String   // LangChain, CrewAI, AutoGen, Custom
+  framework   String   @default("Custom") // LangChain, CrewAI, AutoGen, Custom
   modelFamily String   // gpt-4o, claude-3-5-sonnet, llama-3.3-70b
   runs        Run[]
+  user        User?    @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
 }
 
 model Run {
-  id                  String     @id @default(uuid())
-  userId              String
-  agentId             String
-  segmentId           String?
-  title               String
-  status              String     @default("completed") // running, completed, failed
+  id                String   @id @default(uuid())
+  userId            String
+  agentId           String?
+  title             String
+  description       String?
+  status            String   @default("completed") // completed, failed, running
+  modelFamily       String   @default("Claude 3.5 Sonnet")
   
   // Telemetry Metrics
-  wallClockMs         Int
-  totalTokens         Int
-  promptTokens        Int
-  completionTokens    Int
-  actionVelocityTps   Float      // Tokens / sec (Pace)
-  totalCostUsd        Float
-  totalToolCalls      Int
-  dagDepth            Int        // Max tree depth (Reasoning Elevation)
+  wallClockMs       Int
+  totalTokens       Int
+  promptTokens      Int      @default(0)
+  completionTokens  Int      @default(0)
+  actionVelocityTps Float    // Tokens / sec
+  totalCostUsd      Float
+  totalToolCalls    Int      @default(0)
+  dagDepth          Int      @default(1) // Max tree depth
   
-  // Visibility & Social
-  isPublic            Boolean    @default(true)
-  kudosCount          Int        @default(0)
-  
-  user                User       @relation(fields: [userId], references: [id])
-  agent               Agent      @relation(fields: [agentId], references: [id])
-  segment             Segment?   @relation(fields: [segmentId], references: [id])
-  kudosList           Kudos[]
-  createdAt           DateTime   @default(now())
-}
-
-model Segment {
-  id          String   @id @default(uuid())
-  name        String   // e.g. "SWE-bench Lite #41", "Document RAG Extraction"
-  description String
-  maxBudgetUsd Float
-  runs        Run[]
-  createdAt   DateTime @default(now())
-}
-
-model Kudos {
-  id        String   @id @default(uuid())
-  userId    String
-  runId     String
-  user      User     @relation(fields: [userId], references: [id])
-  run       Run      @relation(fields: [runId], references: [id])
-  createdAt DateTime @default(now())
-
-  @@unique([userId, runId])
+  user              User     @relation(fields: [userId], references: [id])
+  agent             Agent?   @relation(fields: [agentId], references: [id])
+  spans             Span[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model Span {
@@ -83,12 +63,13 @@ model Span {
   spanId       String
   parentSpanId String?
   name         String
-  type         String
+  type         String   // Prompt, WebSearch, Reflection, Browser, Memory, LLMCall, CodeExec, Output
   status       String   @default("SUCCESS")
   latencyMs    Int
-  tokens       Int
-  cost         Float
+  tokens       Int      @default(0)
+  cost         Float    @default(0.0)
   rawInput     String?
   rawOutput    String?
+  run          Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
 }

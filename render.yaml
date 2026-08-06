@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: pathflow
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: npm install && npx prisma db push --accept-data-loss && npx tsx prisma/seed.ts && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:/var/data/dev.db
+      - key: PATHFLOW_API_KEY
+        value: pf_live_suyash_secret_9942
+    disk:
+      name: pathflow_data
+      mountPath: /var/data
+      sizeGB: 1

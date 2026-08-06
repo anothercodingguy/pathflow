@@ -8,7 +8,6 @@ import {
   Cpu,
   Database,
   CheckCircle2,
-  AlertTriangle,
   Clock,
   Coins
 } from 'lucide-react';
@@ -36,32 +35,32 @@ export function CustomSpanNode({ data, selected }: NodeProps) {
     <div
       className={`min-w-[220px] rounded-xl border p-3.5 shadow-2xl transition-all ${
         selected
-          ? 'border-strava-orange bg-zinc-900 ring-2 ring-strava-orange/50 shadow-strava-orange/20 scale-105'
+          ? 'border-blue-500 bg-zinc-900 ring-2 ring-blue-500/50 shadow-blue-500/20 scale-105'
           : isFailed
           ? 'border-red-500/80 bg-red-950/40 text-red-100 hover:border-red-400'
-          : 'border-zinc-800 bg-zinc-900/90 text-zinc-100 hover:border-zinc-700'
+          : 'border-zinc-800 bg-[#111115] text-zinc-100 hover:border-zinc-700'
       }`}
     >
       {/* React Flow Handles */}
       <Handle
         type="target"
         position={Position.Top}
-        className="!bg-strava-orange !w-3 !h-3 !border-2 !border-zinc-950"
+        className="!bg-blue-500 !w-3 !h-3 !border-2 !border-zinc-950"
       />
 
       {/* Header Row */}
       <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2 mb-2">
         <div className="flex items-center gap-2">
-          <div className={`p-1.5 rounded-md ${isFailed ? 'bg-red-500/20 text-red-400' : 'bg-strava-orange/15 text-strava-orange'}`}>
+          <div className={`p-1.5 rounded-md ${isFailed ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/15 text-blue-400'}`}>
             <Icon className="h-4 w-4" />
           </div>
-          <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 font-mono">
             {span.type}
           </span>
         </div>
 
         {/* Status Indicator */}
-        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
+        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase font-mono ${
           isFailed ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
         }`}>
           {isFailed ? 'FAIL' : 'OK'}
@@ -69,7 +68,7 @@ export function CustomSpanNode({ data, selected }: NodeProps) {
       </div>
 
       {/* Span Name */}
-      <div className="font-bold text-xs text-white truncate mb-2">
+      <div className="font-semibold text-xs text-white truncate mb-2">
         {span.name}
       </div>
 
@@ -83,7 +82,7 @@ export function CustomSpanNode({ data, selected }: NodeProps) {
         </div>
 
         {/* Cost & Tokens Badge */}
-        <div className="flex items-center gap-1 text-strava-orange font-semibold">
+        <div className="flex items-center gap-1 text-blue-400 font-semibold">
           <Coins className="h-3 w-3" />
           <span>${span.cost.toFixed(4)}</span>
         </div>
@@ -93,7 +92,7 @@ export function CustomSpanNode({ data, selected }: NodeProps) {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!bg-strava-orange !w-3 !h-3 !border-2 !border-zinc-950"
+        className="!bg-blue-500 !w-3 !h-3 !border-2 !border-zinc-950"
       />
     </div>
   );

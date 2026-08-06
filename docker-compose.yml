@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  pathflow-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pathflow_app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:./dev.db
+      - PATHFLOW_API_KEY=pf_live_suyash_secret_9942
+    volumes:
+      - pathflow_db_data:/app/prisma
+    restart: unless-stopped
+
+volumes:
+  pathflow_db_data:
+    driver: local
