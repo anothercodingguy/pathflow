@@ -68,14 +68,18 @@ export default function SettingsPage() {
 
   const pythonSnippet = `from pathflow import PathFlow
 
-pf = PathFlow(api_key="${apiKey}")
+pf = PathFlow()
 
-@pf.trace("Customer Support Agent", project="${defaultProject}", env="${defaultEnv}")
-def run():
+@pf.trace(
+    name="Support Ticket Agent",
+    project="${defaultProject}",
+    environment="${defaultEnv}"
+)
+def run_agent():
     # Your LLM / Tool execution code here
     pass
 
-run()`;
+run_agent()`;
 
   return (
     <div className="w-full min-h-[calc(100vh-2.5rem)] bg-[#08080A] px-4 py-3 space-y-4 font-mono text-xs">

@@ -1,21 +1,21 @@
 """
 PathFlow Telemetry SDK - OpenTelemetry-Compatible AI Agent Observability
 
-Invisible instrumentation for capturing AI Agent execution traces, bottlenecks, cost attribution,
-and performance insights automatically.
+Zero-config, invisible observation SDK for capturing AI Agent execution traces,
+bottlenecks, cost attribution, and performance insights automatically.
 
 Standard Usage:
-    from lib.sdk.pathflow import PathFlow
+    from pathflow import PathFlow
 
     pf = PathFlow()
 
     @pf.trace(
-        run_title="Resolved Pytest async timeout bug in 12s",
-        project="backend-agents",
-        env="production"
+        name="Support Ticket Agent",
+        project="backend-service",
+        environment="production"
     )
-    def run_agent(task: str):
-        # Your agent execution logic here
+    def run_agent():
+        # Agent execution logic here
         pass
 """
 
@@ -42,17 +42,21 @@ class PathFlow:
 
     def trace(
         self,
-        run_title: str,
+        name: Optional[str] = None,
+        run_title: Optional[str] = None,
+        title: Optional[str] = None,
         model_family: str = "Claude 3.5 Sonnet",
         project: Optional[str] = None,
+        environment: Optional[str] = None,
         env: Optional[str] = None
     ):
         """
         Zero-friction decorator for automatic observation of agent execution runs.
-        Automatically captures start/end time, duration, exceptions, spans, model, tokens, and costs.
+        Supports named arguments: name="...", project="...", environment="..."
         """
+        trace_name = name or run_title or title or "AI Agent Execution"
         target_project = project or self.default_project
-        target_env = env or self.default_env
+        target_env = environment or env or self.default_env
 
         def decorator(func: Callable):
             @functools.wraps(func)
@@ -60,10 +64,10 @@ class PathFlow:
                 start_time = time.time()
                 run_id = f"run_{int(start_time * 1000)}"
                 
-                # Step 1: Initialize trace session on local PathFlow server
+                # Step 1: Initialize trace session on PathFlow server
                 try:
                     res = self._post("/runs/start", {
-                        "title": run_title,
+                        "title": trace_name,
                         "model_family": model_family,
                         "project": target_project,
                         "env": target_env
@@ -87,13 +91,13 @@ class PathFlow:
                 finally:
                     duration_ms = int((time.time() - start_time) * 1000)
                     log_icon = "🔥" if status == "completed" else "💥"
-                    print(f"{log_icon} [PathFlow Telemetry] Trace Finalized: '{run_title}' | Latency: {duration_ms}ms | Project: {target_project} | Status: {status.upper()}")
+                    print(f"{log_icon} [PathFlow Telemetry] Trace Finalized: '{trace_name}' | Latency: {duration_ms}ms | Project: {target_project} | Status: {status.upper()}")
                     
                     # Step 2: Flush telemetry payload to PathFlow server
                     try:
                         self._post("/runs/finish", {
                             "run_id": run_id, 
-                            "title": run_title,
+                            "title": trace_name,
                             "wall_clock_ms": duration_ms, 
                             "status": status,
                             "model_family": model_family,
@@ -104,18 +108,18 @@ class PathFlow:
                             "spans": [
                                 {
                                     "spanId": f"sp_{run_id}_01",
-                                    "name": "Prompt Ingestion & AST Parsing",
+                                    "name": "Prompt Ingestion & Context Parsing",
                                     "type": "Prompt",
                                     "status": "SUCCESS",
                                     "latencyMs": int(duration_ms * 0.15),
                                     "tokens": 2400,
                                     "cost": 0.0048,
-                                    "rawInput": {"prompt": run_title, "args": [str(a) for a in args]}
+                                    "rawInput": {"name": trace_name, "args": [str(a) for a in args]}
                                 },
                                 {
                                     "spanId": f"sp_{run_id}_02",
                                     "parentSpanId": f"sp_{run_id}_01",
-                                    "name": "Agent LLM Execution Loop",
+                                    "name": "Agent Execution Loop",
                                     "type": "LLMCall",
                                     "status": "FAILED" if status == "failed" else "SUCCESS",
                                     "latencyMs": int(duration_ms * 0.85),
@@ -150,16 +154,15 @@ class PathFlow:
 if __name__ == "__main__":
     pf = PathFlow(api_key="pf_live_suyash_secret_9942")
 
-    print("--- Testing PathFlow Pure Telemetry SDK ---")
+    print("--- Testing PathFlow SDK Named Arguments ---")
     @pf.trace(
-        run_title="Resolved Pytest async timeout bug in 12s",
-        model_family="Claude 3.5 Sonnet",
-        project="backend-agents",
-        env="production"
+        name="Support Ticket Agent",
+        project="backend-service",
+        environment="production"
     )
     def sample_agent_runner(query: str):
         time.sleep(0.1)
-        return f"Fixed async deadlock for: {query}"
+        return f"Fixed issue for: {query}"
 
-    output = sample_agent_runner("tests/test_auth.py")
+    output = sample_agent_runner("test_auth.py")
     print("Execution output:", output)
