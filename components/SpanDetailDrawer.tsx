@@ -106,15 +106,9 @@ export default function SpanDetailDrawer({ span, onClose }: SpanDetailDrawerProp
 
       {/* Pain-Specific Diagnostic Highlight Box */}
       {(span.diagnosticTag || span.diagnosticSummary) && (
-        <div className={`m-4 p-4 rounded-xl border font-sans text-xs ${
-          span.diagnosticTag === 'CIRCUIT_BREAKER_KILL'
-            ? 'bg-amber-950/40 border-amber-500/50 text-amber-200'
-            : 'bg-red-950/40 border-red-500/50 text-red-200'
-        }`}>
+        <div className="m-4 p-4 rounded-xl border font-sans text-xs bg-red-950/40 border-red-500/50 text-red-200">
           <div className="flex items-center gap-2 font-bold mb-1 font-mono uppercase tracking-wider text-[11px]">
-            <span className={`px-2 py-0.5 rounded font-mono ${
-              span.diagnosticTag === 'CIRCUIT_BREAKER_KILL' ? 'bg-amber-500/30 text-amber-300' : 'bg-red-500/30 text-red-300'
-            }`}>
+            <span className="px-2 py-0.5 rounded font-mono bg-red-500/30 text-red-300">
               {span.diagnosticTag || 'ROOT_CAUSE_DIAGNOSTIC'}
             </span>
             <span>Automated Failure Analysis</span>

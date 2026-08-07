@@ -18,7 +18,7 @@ export interface PathData {
   id: string;
   title: string;
   description: string;
-  status: 'COMPLETED' | 'FAILED' | 'RUNNING' | 'BREAKER_TRIPPED' | string;
+  status: 'COMPLETED' | 'FAILED' | 'RUNNING' | string;
   durationMs: number;
   tokens: number;
   cost: number;
@@ -26,10 +26,8 @@ export interface PathData {
   elevationDepth: number;
   modelFamily: string;
   createdAt: string;
-  breakerTriggered?: boolean;
-  breakerReason?: string;
-  maxBudgetUsd?: number;
-  maxSteps?: number;
+  project?: string;
+  env?: string;
   agent: {
     id?: string;
     name: string;

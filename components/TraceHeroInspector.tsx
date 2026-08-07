@@ -16,6 +16,13 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+import {
+  generateAutomaticInsights,
+  generateOptimizationSuggestions,
+  computeCostAttribution,
+  computeCriticalPath
+} from '@/lib/analytics';
+
 interface TraceHeroInspectorProps {
   run: PathData;
 }
@@ -59,43 +66,10 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
     return [...run.spans].sort((a, b) => b.cost - a.cost)[0];
   }, [run.spans]);
 
-  const criticalSpanIds = useMemo(() => {
-    if (!run.spans || run.spans.length === 0) return new Set<string>();
-
-    const criticalSet = new Set<string>();
-    let maxSpan = run.spans[0];
-    run.spans.forEach(s => {
-      if (s.latencyMs > maxSpan.latencyMs) {
-        maxSpan = s;
-      }
-    });
-
-    let currentId: string | null = maxSpan.spanId;
-    while (currentId) {
-      criticalSet.add(currentId);
-      const spanObj = run.spans.find(s => s.spanId === currentId);
-      currentId = (spanObj?.parentSpanId) || null;
-    }
-
-    return criticalSet;
-  }, [run.spans]);
-
-  const recommendations = useMemo(() => {
-    const recs: string[] = [];
-    if (slowestSpan && run.durationMs > 0) {
-      const pct = Math.round((slowestSpan.latencyMs / totalDuration) * 100);
-      recs.push(`• ${slowestSpan.name} (${slowestSpan.type}) dominated ${pct}% of total execution time.`);
-    }
-    if (highestCostSpan && highestCostSpan.cost > 0) {
-      recs.push(`• ${highestCostSpan.name} step accounted for highest cost (${formatCurrency(highestCostSpan.cost, currency)}).`);
-    }
-    if (run.spans.some(s => s.status === 'FAILED' || s.name.toLowerCase().includes('retry'))) {
-      recs.push(`• Step retry / failure detected during execution pipeline.`);
-    } else {
-      recs.push(`• Clean execution pipeline with zero step retries.`);
-    }
-    return recs;
-  }, [run, slowestSpan, highestCostSpan, totalDuration, currency]);
+  const criticalSpanIds = useMemo(() => computeCriticalPath(run.spans), [run.spans]);
+  const autoInsights = useMemo(() => generateAutomaticInsights(run), [run]);
+  const costAttribution = useMemo(() => computeCostAttribution(run.spans, run.cost), [run]);
+  const suggestions = useMemo(() => generateOptimizationSuggestions(run), [run]);
 
   const exportTraceJson = () => {
     const tracePayload = {
@@ -131,7 +105,6 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
     }
   };
 
-  const isBreakerTripped = Boolean(run.breakerTriggered || run.status.toUpperCase() === 'BREAKER_TRIPPED');
   const isFailed = run.status.toUpperCase() === 'FAILED';
 
   return (
@@ -152,11 +125,10 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
 
           <div className="flex items-center gap-2">
             <h1 className="text-sm font-bold text-white font-sans">{run.title}</h1>
-            {isBreakerTripped ? (
-              <span className="inline-flex items-center gap-1 bg-amber-500/20 border border-amber-500/40 text-amber-300 px-2 py-0.5 rounded text-[11px] font-bold animate-pulse">
-                <Zap className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> BREAKER TRIPPED
-              </span>
-            ) : isFailed ? (
+            <span className="px-2 py-0.5 rounded border border-blue-500/40 bg-blue-500/10 text-blue-400 text-[10px] font-mono">
+              {run.project || 'default'} • {run.env || 'production'}
+            </span>
+            {isFailed ? (
               <span className="inline-flex items-center gap-1 text-red-400 text-[11px] font-bold">
                 <AlertTriangle className="h-3.5 w-3.5" /> FAILED
               </span>
@@ -177,38 +149,59 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
           <span>Cost: <strong className="text-emerald-400">{formatCurrency(run.cost, currency)}</strong></span>
           <span className="text-zinc-700">•</span>
           <span>Velocity: <strong className="text-blue-400">{run.tps} tok/s</strong></span>
-
-          <button onClick={exportTraceJson} className="linear-btn ml-2">
-            <Download className="h-3 w-3" />
-            Export Trace JSON
-          </button>
         </div>
       </div>
 
-      {/* Real-Time Circuit Breaker Active Interruption Banner */}
-      {isBreakerTripped && (
-        <div className="bg-gradient-to-r from-amber-950/80 via-amber-900/40 to-amber-950/80 border-b border-amber-500/40 px-6 py-2.5 flex items-center justify-between text-xs shrink-0 font-sans">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 animate-bounce">
-              <Zap className="h-4 w-4 fill-amber-300" />
-            </div>
-            <div>
-              <div className="font-bold text-amber-200 text-xs flex items-center gap-2">
-                <span>PATHFLOW REAL-TIME CIRCUIT BREAKER INTERRUPTED THIS RUN</span>
-                <span className="bg-amber-400 text-black px-1.5 py-0.2 rounded font-mono font-extrabold text-[10px]">ACTIVE SHIELD</span>
-              </div>
-              <p className="text-[#D4D4D8] text-[11px] font-mono mt-0.5">
-                {run.breakerReason || 'Hard per-task dollar cap enforced. Execution terminated in real-time before additional token spend.'}
-              </p>
-            </div>
+      {/* 2. Automatic Insights & Performance Optimization Panel */}
+      <div className="bg-[#0D0D11] border-b border-[#1E1E24] px-4 py-2.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs shrink-0 font-sans">
+        
+        {/* Insights Alert List */}
+        <div className="flex flex-col gap-1.5 flex-1">
+          <div className="flex items-center gap-2 font-mono font-bold text-[11px] uppercase tracking-wider text-amber-400">
+            <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+            <span>AUTOMATIC INSIGHTS & CRITICAL PATH</span>
           </div>
-          <div className="hidden md:flex items-center gap-4 font-mono text-[11px] bg-black/40 px-3 py-1.5 rounded-lg border border-amber-500/30 text-amber-200">
-            <div>Max Budget Cap: <strong className="text-white">${(run.maxBudgetUsd || 2.00).toFixed(2)} USD</strong></div>
-            <div className="text-amber-500">•</div>
-            <div>Estimated Savings: <strong className="text-emerald-400">+$198.00 USD</strong></div>
+          <div className="flex flex-wrap gap-2 text-xs">
+            {autoInsights.length > 0 ? (
+              autoInsights.map(ins => (
+                <div
+                  key={ins.id}
+                  className={`px-2.5 py-1 rounded border flex items-center gap-1.5 font-mono text-[11px] ${
+                    ins.severity === 'CRITICAL'
+                      ? 'border-red-500/50 bg-red-950/40 text-red-300'
+                      : ins.severity === 'WARNING'
+                      ? 'border-amber-500/50 bg-amber-950/40 text-amber-300'
+                      : 'border-blue-500/40 bg-blue-950/30 text-blue-300'
+                  }`}
+                >
+                  <AlertTriangle className="h-3 w-3 shrink-0" />
+                  <span>{ins.title}</span>
+                </div>
+              ))
+            ) : (
+              <span className="text-zinc-400 text-xs font-mono">Clean execution path • 0 bottlenecks detected.</span>
+            )}
           </div>
         </div>
-      )}
+
+        {/* Cost Attribution & Optimization Savings Badge */}
+        <div className="flex items-center gap-3 shrink-0 font-mono text-[11px]">
+          {costAttribution.length > 0 && (
+            <div className="flex items-center gap-1 bg-[#16161C] border border-zinc-800 px-2.5 py-1 rounded text-zinc-300">
+              <span className="text-zinc-500">Cost Dominance:</span>
+              <strong className="text-emerald-400 font-bold">{costAttribution[0].category} ({costAttribution[0].percentage}%)</strong>
+            </div>
+          )}
+
+          {suggestions.length > 0 && (
+            <div className="flex items-center gap-1.5 bg-emerald-950/40 border border-emerald-500/40 px-2.5 py-1 rounded text-emerald-300">
+              <Lightbulb className="h-3.5 w-3.5 text-emerald-400" />
+              <span>Optimizable: <strong className="text-white">-${(suggestions[0].projectedSavings.costUsd || 0.03).toFixed(2)}</strong></span>
+            </div>
+          )}
+        </div>
+
+      </div>
 
       {/* 2. Split Screen Workspace */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 divide-x divide-[#1E1E24] overflow-hidden">
@@ -381,16 +374,36 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
               </div>
             </div>
 
-            {/* Recommendations List */}
-            <div className="border border-[#1E1E24] bg-[#08080A] p-2.5 rounded text-[11px] space-y-1">
+            {/* Recommendations & Optimization Insights List */}
+            <div className="border border-[#1E1E24] bg-[#08080A] p-2.5 rounded text-[11px] space-y-1.5 font-mono">
               <div className="flex items-center gap-1.5 text-zinc-400 font-bold text-[10px] uppercase mb-1">
-                <Lightbulb className="h-3 w-3 text-amber-400" /> Recommendations & Optimization Insights
+                <Lightbulb className="h-3 w-3 text-amber-400" /> Performance Optimization Suggestions
               </div>
-              {recommendations.map((rec, i) => (
-                <div key={i} className="text-zinc-300 leading-relaxed font-mono">
-                  {rec}
+              {suggestions.length > 0 ? (
+                suggestions.map((sug) => (
+                  <div key={sug.id} className="flex items-center justify-between text-zinc-300 leading-relaxed font-mono border-t border-[#1E1E24]/60 pt-1">
+                    <div>
+                      <strong className="text-white">• {sug.action}:</strong> <span className="text-zinc-400">{sug.reason}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] shrink-0 ml-2">
+                      {sug.projectedSavings.latencyMs > 0 && (
+                        <span className="text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-1.5 py-0.2 rounded font-bold">
+                          -{(sug.projectedSavings.latencyMs / 1000).toFixed(1)}s latency
+                        </span>
+                      )}
+                      {sug.projectedSavings.costUsd > 0 && (
+                        <span className="text-blue-400 bg-blue-950/40 border border-blue-500/30 px-1.5 py-0.2 rounded font-bold">
+                          -${sug.projectedSavings.costUsd.toFixed(3)} cost
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-zinc-400 text-[11px]">
+                  • Clean pipeline execution: Zero optimization bottlenecks found.
                 </div>
-              ))}
+              )}
             </div>
           </div>
 

@@ -29,8 +29,8 @@ export async function POST(request: Request) {
       });
     }
 
-    const maxBudgetUsd = body.max_budget_usd ? parseFloat(body.max_budget_usd) : null;
-    const maxSteps = body.max_steps ? parseInt(body.max_steps, 10) : null;
+    const project = body.project || 'default';
+    const env = body.env || 'production';
 
     // Initialize pending Run record in database
     const run = await prisma.run.create({
@@ -46,8 +46,8 @@ export async function POST(request: Request) {
         actionVelocityTps: 0.0,
         totalCostUsd: 0.0,
         dagDepth: 1,
-        maxBudgetUsd: maxBudgetUsd,
-        maxSteps: maxSteps,
+        project: project,
+        env: env,
       }
     });
 

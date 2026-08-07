@@ -48,10 +48,8 @@ export async function GET(request: Request) {
       elevationDepth: run.dagDepth,
       modelFamily: run.modelFamily,
       createdAt: new Date(run.createdAt).toLocaleString(),
-      breakerTriggered: run.breakerTriggered,
-      breakerReason: run.breakerReason || undefined,
-      maxBudgetUsd: run.maxBudgetUsd || undefined,
-      maxSteps: run.maxSteps || undefined,
+      project: run.project || 'default',
+      env: run.env || 'production',
       spans: run.spans.map(s => ({
         id: s.id,
         spanId: s.spanId,

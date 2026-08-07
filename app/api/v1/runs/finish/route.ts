@@ -21,9 +21,9 @@ export async function POST(request: Request) {
     const durationSeconds = Math.max(0.1, durationMs / 1000);
     const actionVelocityTps = parseFloat((totalTokens / durationSeconds).toFixed(1));
 
-    const breakerTriggered = Boolean(body.breaker_triggered || body.breakerTriggered || status === 'breaker_tripped');
-    const breakerReason = body.breaker_reason || body.breakerReason || (breakerTriggered ? 'Hard per-task limit enforced by PathFlow Circuit Breaker' : null);
-    const runStatus = breakerTriggered ? 'breaker_tripped' : (status === 'failed' ? 'failed' : 'completed');
+    const project = body.project || 'default';
+    const env = body.env || 'production';
+    const runStatus = status === 'failed' ? 'failed' : 'completed';
 
     // Try finding existing run by ID or create one if missing
     let existingRun = runId ? await prisma.run.findUnique({ where: { id: runId } }) : null;
@@ -38,8 +38,8 @@ export async function POST(request: Request) {
           totalCostUsd: totalCostUsd,
           actionVelocityTps: actionVelocityTps,
           status: runStatus,
-          breakerTriggered: breakerTriggered,
-          breakerReason: breakerReason,
+          project: project,
+          env: env,
           dagDepth: spansData.length > 0 ? spansData.length : 3,
         }
       });
@@ -59,8 +59,8 @@ export async function POST(request: Request) {
           totalTokens: totalTokens,
           totalCostUsd: totalCostUsd,
           actionVelocityTps: actionVelocityTps,
-          breakerTriggered: breakerTriggered,
-          breakerReason: breakerReason,
+          project: project,
+          env: env,
           dagDepth: spansData.length > 0 ? spansData.length : 3,
         }
       });
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
           parentSpanId: s.parentSpanId || (idx > 0 ? spansData[idx - 1].spanId || `span_${idx}` : null),
           name: s.name || `Step ${idx + 1}: ${s.type || 'LLMCall'}`,
           type: s.type || 'LLMCall',
-          status: s.status || (runStatus === 'breaker_tripped' && idx === spansData.length - 1 ? 'KILLED' : (status === 'failed' && idx === spansData.length - 1 ? 'FAILED' : 'SUCCESS')),
+          status: s.status || (status === 'failed' && idx === spansData.length - 1 ? 'FAILED' : 'SUCCESS'),
           latencyMs: s.latencyMs || Math.round(durationMs / Math.max(1, spansData.length)),
           tokens: s.tokens || 1500,
           cost: s.cost || 0.003,

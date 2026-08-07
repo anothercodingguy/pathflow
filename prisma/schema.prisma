@@ -50,11 +50,9 @@ model Run {
   totalToolCalls    Int      @default(0)
   dagDepth          Int      @default(1) // Max tree depth
   
-  // Real-Time Circuit Breaker Metrics
-  breakerTriggered  Boolean  @default(false)
-  breakerReason     String?  // e.g. "HARD_BUDGET_CAP_EXCEEDED", "MAX_STEPS_LOOP_DETECTED", "ROGUE_TOOL_CALL_KILLED"
-  maxBudgetUsd      Float?   // Hard cap enforced
-  maxSteps          Int?     // Loop limit enforced
+  // Organization Metadata
+  project           String   @default("default")
+  env               String   @default("production") // production, staging, development
 
   user              User     @relation(fields: [userId], references: [id])
   agent             Agent?   @relation(fields: [agentId], references: [id])

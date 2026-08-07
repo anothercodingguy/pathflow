@@ -126,23 +126,16 @@ export default function RunsPage() {
 
               <tbody className="divide-y divide-[#1E1E24] text-xs">
                 {runs.map((run) => {
-                  const isBreakerTripped = Boolean(run.breakerTriggered || run.status.toUpperCase() === 'BREAKER_TRIPPED');
                   const isFailed = run.status.toUpperCase() === 'FAILED';
 
                   return (
                     <tr
                       key={run.id}
-                      className={`group transition-colors ${
-                        isBreakerTripped ? 'bg-amber-950/20 hover:bg-amber-950/40' : 'hover:bg-[#121215]'
-                      }`}
+                      className="group hover:bg-[#121215] transition-colors"
                     >
                       <td className="py-3 px-3 align-top text-center">
                         <div className="flex justify-center pt-0.5">
-                          {isBreakerTripped ? (
-                            <span className="text-amber-400 font-bold" title="Circuit Breaker Interrupted Run">
-                              ⚡
-                            </span>
-                          ) : isFailed ? (
+                          {isFailed ? (
                             <span className="text-red-400" title="Execution Failed">
                               <AlertTriangle className="h-4 w-4" />
                             </span>
@@ -162,11 +155,9 @@ export default function RunsPage() {
                           >
                             {run.title}
                           </Link>
-                          {isBreakerTripped && (
-                            <span className="bg-amber-500/20 border border-amber-500/50 text-amber-300 text-[10px] font-mono font-bold px-1.5 py-0.2 rounded uppercase shrink-0">
-                              ⚡ BREAKER TRIPPED
-                            </span>
-                          )}
+                          <span className="bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[10px] font-mono font-bold px-1.5 py-0.2 rounded uppercase shrink-0">
+                            {run.project || 'default'} • {run.env || 'production'}
+                          </span>
                         </div>
 
                         <div className="flex items-center gap-1 mt-1 text-[11px] text-zinc-400 overflow-x-auto scrollbar-none">
