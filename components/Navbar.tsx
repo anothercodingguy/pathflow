@@ -70,11 +70,11 @@ export default function Navbar() {
     router.push('/login');
   };
 
-  // Nav Items (Settings inside Profile)
+  // Information Architecture Navigation
   const navItems = [
     { label: 'Runs', href: '/runs', icon: Play },
-    { label: 'Trace', href: '/runs/path-1', icon: GitBranch },
     { label: 'Compare', href: '/compare', icon: ArrowLeftRight },
+    { label: 'Settings', href: '/settings', icon: Settings },
   ];
 
   const userInitial = userEmail.charAt(0).toUpperCase() || 'P';
