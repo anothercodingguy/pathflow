@@ -4,19 +4,21 @@ export interface SpanData {
   parentSpanId?: string | null;
   name: string;
   type: 'Prompt' | 'WebSearch' | 'CodeExec' | 'LLMCall' | 'VectorDB' | 'Reflection' | 'Browser' | 'Memory' | 'Output' | string;
-  status: 'SUCCESS' | 'FAILED' | 'RETRY' | string;
+  status: 'SUCCESS' | 'FAILED' | 'RETRY' | 'KILLED' | string;
   latencyMs: number;
   tokens: number;
   cost: number;
   rawInput?: string;
   rawOutput?: string;
+  diagnosticTag?: 'BAD_TOOL_SCHEMA' | 'VECTOR_RETRIEVAL_EMPTY' | 'PROMPT_DRIFT' | 'CIRCUIT_BREAKER_KILL' | string;
+  diagnosticSummary?: string;
 }
 
 export interface PathData {
   id: string;
   title: string;
   description: string;
-  status: 'COMPLETED' | 'FAILED' | 'RUNNING' | string;
+  status: 'COMPLETED' | 'FAILED' | 'RUNNING' | 'BREAKER_TRIPPED' | string;
   durationMs: number;
   tokens: number;
   cost: number;
@@ -24,6 +26,10 @@ export interface PathData {
   elevationDepth: number;
   modelFamily: string;
   createdAt: string;
+  breakerTriggered?: boolean;
+  breakerReason?: string;
+  maxBudgetUsd?: number;
+  maxSteps?: number;
   agent: {
     id?: string;
     name: string;

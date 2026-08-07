@@ -126,16 +126,23 @@ export default function RunsPage() {
 
               <tbody className="divide-y divide-[#1E1E24] text-xs">
                 {runs.map((run) => {
+                  const isBreakerTripped = Boolean(run.breakerTriggered || run.status.toUpperCase() === 'BREAKER_TRIPPED');
                   const isFailed = run.status.toUpperCase() === 'FAILED';
 
                   return (
                     <tr
                       key={run.id}
-                      className="group hover:bg-[#121215] transition-colors"
+                      className={`group transition-colors ${
+                        isBreakerTripped ? 'bg-amber-950/20 hover:bg-amber-950/40' : 'hover:bg-[#121215]'
+                      }`}
                     >
                       <td className="py-3 px-3 align-top text-center">
                         <div className="flex justify-center pt-0.5">
-                          {isFailed ? (
+                          {isBreakerTripped ? (
+                            <span className="text-amber-400 font-bold" title="Circuit Breaker Interrupted Run">
+                              ⚡
+                            </span>
+                          ) : isFailed ? (
                             <span className="text-red-400" title="Execution Failed">
                               <AlertTriangle className="h-4 w-4" />
                             </span>
@@ -148,12 +155,19 @@ export default function RunsPage() {
                       </td>
 
                       <td className="py-3 px-3 align-top">
-                        <Link
-                          href={`/runs/${run.id}`}
-                          className="font-semibold text-white group-hover:text-blue-400 transition-colors text-sm font-sans block truncate max-w-md"
-                        >
-                          {run.title}
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/runs/${run.id}`}
+                            className="font-semibold text-white group-hover:text-blue-400 transition-colors text-sm font-sans block truncate max-w-md"
+                          >
+                            {run.title}
+                          </Link>
+                          {isBreakerTripped && (
+                            <span className="bg-amber-500/20 border border-amber-500/50 text-amber-300 text-[10px] font-mono font-bold px-1.5 py-0.2 rounded uppercase shrink-0">
+                              ⚡ BREAKER TRIPPED
+                            </span>
+                          )}
+                        </div>
 
                         <div className="flex items-center gap-1 mt-1 text-[11px] text-zinc-400 overflow-x-auto scrollbar-none">
                           <span className="text-zinc-600 font-mono">├─</span>
@@ -161,11 +175,15 @@ export default function RunsPage() {
                             run.spans.map((span, idx) => (
                               <React.Fragment key={span.id || span.spanId}>
                                 <span className={`px-1.5 py-0.2 rounded border text-[10px] font-mono whitespace-nowrap ${
-                                  span.status === 'FAILED'
+                                  span.diagnosticTag === 'CIRCUIT_BREAKER_KILL' || span.status === 'KILLED'
+                                    ? 'border-amber-500/60 bg-amber-500/20 text-amber-300 font-bold animate-pulse'
+                                    : span.diagnosticTag
+                                    ? 'border-red-500/60 bg-red-500/20 text-red-300 font-bold'
+                                    : span.status === 'FAILED'
                                     ? 'border-red-500/40 bg-red-500/10 text-red-400 font-bold'
                                     : 'border-[#1E1E24] bg-[#08080A] text-zinc-300'
                                 }`}>
-                                  [{span.type}]
+                                  [{span.diagnosticTag || span.type}]
                                 </span>
                                 {idx < run.spans.length - 1 && (
                                   <span className="text-zinc-600 text-[10px] shrink-0">──</span>

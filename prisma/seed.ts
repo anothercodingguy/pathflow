@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding PathFlow Production Database...');
+  console.log('🌱 Seeding PathFlow Production Database with Real-Time Circuit Breaker Traces...');
 
   // Clean existing database records
   await prisma.span.deleteMany();
@@ -17,7 +17,7 @@ async function main() {
       email: 'admin@pathflow.dev',
       name: 'Suyash Developer',
       username: 'suyash',
-      passwordHash: 'admin_secret_hash_9942', // Simple production hash
+      passwordHash: 'admin_secret_hash_9942',
       apiKey: 'pf_live_suyash_secret_9942',
     },
   });
@@ -43,7 +43,174 @@ async function main() {
     },
   });
 
-  // Seed Initial Traces
+  // 1. RUN WITH REAL-TIME CIRCUIT BREAKER TRIPPED ($2.00 Budget Cap Enforcement)
+  const breakerRun = await prisma.run.create({
+    data: {
+      id: 'path-breaker-1',
+      userId: user.id,
+      agentId: codeAgent.id,
+      title: 'Rogue Recursive Refactoring Agent (Interrupted by Circuit Breaker)',
+      description: 'Agent entered an infinite loop repeatedly attempting to re-parse AST. PathFlow Real-Time Circuit Breaker killed rogue tool call loop at hard $2.00 cap, saving $198.00 USD.',
+      status: 'breaker_tripped',
+      modelFamily: 'Claude 3.5 Sonnet',
+      wallClockMs: 8400,
+      totalTokens: 68400,
+      promptTokens: 20000,
+      completionTokens: 48400,
+      actionVelocityTps: 182.4,
+      totalCostUsd: 2.00,
+      totalToolCalls: 12,
+      dagDepth: 6,
+      breakerTriggered: true,
+      breakerReason: 'HARD_BUDGET_CAP_EXCEEDED: Hard per-task limit capped at $2.00 USD (Current spend attempted: $2.04 USD). Interrupted runaway loop at iteration #10.',
+      maxBudgetUsd: 2.00,
+      maxSteps: 10,
+      spans: {
+        create: [
+          {
+            spanId: 'br_span_01',
+            name: 'Prompt Ingestion & Target Selection',
+            type: 'Prompt',
+            status: 'SUCCESS',
+            latencyMs: 140,
+            tokens: 1200,
+            cost: 0.0024,
+            rawInput: JSON.stringify({ prompt: "Refactor all async handlers in legacy monolith codebase", max_budget: "$2.00" }, null, 2)
+          },
+          {
+            spanId: 'br_span_02',
+            parentSpanId: 'br_span_01',
+            name: 'AST Recursive Analysis (Iteration #1)',
+            type: 'LLMCall',
+            status: 'SUCCESS',
+            latencyMs: 820,
+            tokens: 12400,
+            cost: 0.24,
+            rawOutput: JSON.stringify({ status: "incomplete", next_action: "re-parse" }, null, 2)
+          },
+          {
+            spanId: 'br_span_03',
+            parentSpanId: 'br_span_02',
+            name: 'Rogue Loop Execution (Iterations #2-#9)',
+            type: 'LLMCall',
+            status: 'SUCCESS',
+            latencyMs: 5800,
+            tokens: 48000,
+            cost: 1.56,
+            rawOutput: JSON.stringify({ status: "repeating_loop_detected", tool_invocations: 8 }, null, 2)
+          },
+          {
+            spanId: 'br_span_04',
+            parentSpanId: 'br_span_03',
+            name: 'PathFlow Circuit Breaker Hard Kill Interception',
+            type: 'LLMCall',
+            status: 'KILLED',
+            latencyMs: 1640,
+            tokens: 6800,
+            cost: 0.20,
+            rawInput: JSON.stringify({ event: "CIRCUIT_BREAKER_INTERRUPT", current_spend: "$2.00", limit: "$2.00" }, null, 2),
+            rawOutput: JSON.stringify({ error: "PathFlowCircuitBreakerError: HARD_BUDGET_CAP_EXCEEDED. Execution terminated immediately before further token burn." }, null, 2),
+            diagnosticTag: 'CIRCUIT_BREAKER_KILL',
+            diagnosticSummary: 'HARD_BUDGET_CAP_EXCEEDED: PathFlow active circuit breaker interrupted execution at $2.00 limit. Saved an estimated $198.00 in runaway LLM API costs.'
+          }
+        ]
+      }
+    }
+  });
+
+  // 2. RUN WITH PAIN-SPECIFIC DIAGNOSTIC (Bad Tool Schema Failure)
+  const schemaDiagRun = await prisma.run.create({
+    data: {
+      id: 'path-schema-fail',
+      userId: user.id,
+      agentId: codeAgent.id,
+      title: 'PostgreSQL DB Migration Tool Execution',
+      description: 'Agent failed when calling database schema generator due to malformed JSON tool parameters.',
+      status: 'failed',
+      modelFamily: 'Claude 3.5 Sonnet',
+      wallClockMs: 4100,
+      totalTokens: 14200,
+      actionVelocityTps: 110.0,
+      totalCostUsd: 0.028,
+      totalToolCalls: 2,
+      dagDepth: 3,
+      spans: {
+        create: [
+          {
+            spanId: 'sc_span_01',
+            name: 'Ingest Migration Request',
+            type: 'Prompt',
+            status: 'SUCCESS',
+            latencyMs: 200,
+            tokens: 1200,
+            cost: 0.0024
+          },
+          {
+            spanId: 'sc_span_02',
+            parentSpanId: 'sc_span_01',
+            name: 'Execute PostgreSQL Schema Tool Call',
+            type: 'CodeExec',
+            status: 'FAILED',
+            latencyMs: 3900,
+            tokens: 13000,
+            cost: 0.0256,
+            rawInput: JSON.stringify({ tool: "apply_prisma_migration", args: { migration_name: null } }, null, 2),
+            rawOutput: JSON.stringify({ error: "ValidationError: Field 'migration_name' expected string, received null." }, null, 2),
+            diagnosticTag: 'BAD_TOOL_SCHEMA',
+            diagnosticSummary: 'BAD_TOOL_SCHEMA: Agent generated invalid tool invocation payload. Required field "migration_name" was null.'
+          }
+        ]
+      }
+    }
+  });
+
+  // 3. RUN WITH PAIN-SPECIFIC DIAGNOSTIC (Vector DB Retrieval Miss)
+  const vectorDiagRun = await prisma.run.create({
+    data: {
+      id: 'path-vector-miss',
+      userId: user.id,
+      agentId: browserAgent.id,
+      title: 'Customer Support Knowledge Base RAG Search',
+      description: 'Agent returned empty response due to zero vector embeddings matching customer query threshold.',
+      status: 'failed',
+      modelFamily: 'GPT-4o',
+      wallClockMs: 3200,
+      totalTokens: 9800,
+      actionVelocityTps: 95.0,
+      totalCostUsd: 0.019,
+      totalToolCalls: 1,
+      dagDepth: 3,
+      spans: {
+        create: [
+          {
+            spanId: 'vc_span_01',
+            name: 'Customer Support Query',
+            type: 'Prompt',
+            status: 'SUCCESS',
+            latencyMs: 180,
+            tokens: 800,
+            cost: 0.0016
+          },
+          {
+            spanId: 'vc_span_02',
+            parentSpanId: 'vc_span_01',
+            name: 'Pinecone Vector DB Retrieval',
+            type: 'Memory',
+            status: 'FAILED',
+            latencyMs: 3020,
+            tokens: 9000,
+            cost: 0.0174,
+            rawInput: JSON.stringify({ query_vector: [0.012, -0.045, 0.89], min_similarity: 0.85 }, null, 2),
+            rawOutput: JSON.stringify({ matches: [], top_k: 0 }, null, 2),
+            diagnosticTag: 'VECTOR_RETRIEVAL_EMPTY',
+            diagnosticSummary: 'VECTOR_RETRIEVAL_EMPTY: Similarity search in namespace "kb_support" returned 0 context documents above similarity score 0.85.'
+          }
+        ]
+      }
+    }
+  });
+
+  // 4. Standard Successful Traces
   const run1 = await prisma.run.create({
     data: {
       id: 'path-1',
@@ -61,6 +228,7 @@ async function main() {
       totalCostUsd: 0.038,
       totalToolCalls: 4,
       dagDepth: 5,
+      maxBudgetUsd: 5.00,
       spans: {
         create: [
           {
@@ -93,8 +261,7 @@ async function main() {
             status: 'SUCCESS',
             latencyMs: 310,
             tokens: 1800,
-            cost: 0.0036,
-            rawInput: JSON.stringify({ hypothesis: "Event loop scope mismatch between function fixture and session pool" }, null, 2)
+            cost: 0.0036
           },
           {
             spanId: 'span_04',
@@ -141,135 +308,8 @@ async function main() {
     }
   });
 
-  const run2 = await prisma.run.create({
-    data: {
-      id: 'path-2',
-      userId: user.id,
-      agentId: browserAgent.id,
-      title: 'Autonomous E-Commerce Checkout Pipeline',
-      description: 'Extracted product specs, navigated checkout steps via headless browser, filled shipping forms, and executed payment authorization.',
-      status: 'completed',
-      modelFamily: 'GPT-4o',
-      wallClockMs: 18200,
-      totalTokens: 32100,
-      promptTokens: 10000,
-      completionTokens: 22100,
-      actionVelocityTps: 145.2,
-      totalCostUsd: 0.031,
-      totalToolCalls: 5,
-      dagDepth: 6,
-      spans: {
-        create: [
-          {
-            spanId: 'span_01',
-            name: 'User Intent Parser',
-            type: 'Prompt',
-            status: 'SUCCESS',
-            latencyMs: 210,
-            tokens: 1200,
-            cost: 0.0024
-          },
-          {
-            spanId: 'span_02',
-            parentSpanId: 'span_01',
-            name: 'Playwright DOM Selector Agent',
-            type: 'Browser',
-            status: 'SUCCESS',
-            latencyMs: 1850,
-            tokens: 9400,
-            cost: 0.0094
-          },
-          {
-            spanId: 'span_03',
-            parentSpanId: 'span_02',
-            name: 'Checkout Form Auto-Fill',
-            type: 'LLMCall',
-            status: 'SUCCESS',
-            latencyMs: 4200,
-            tokens: 12800,
-            cost: 0.0128
-          },
-          {
-            spanId: 'span_04',
-            parentSpanId: 'span_03',
-            name: 'Stripe Sandbox Payment Exec',
-            type: 'CodeExec',
-            status: 'SUCCESS',
-            latencyMs: 8900,
-            tokens: 5200,
-            cost: 0.0036
-          },
-          {
-            spanId: 'span_05',
-            parentSpanId: 'span_04',
-            name: 'Confirmation Receipt Generator',
-            type: 'Output',
-            status: 'SUCCESS',
-            latencyMs: 1040,
-            tokens: 3500,
-            cost: 0.0028
-          }
-        ]
-      }
-    }
-  });
-
-  const run3 = await prisma.run.create({
-    data: {
-      id: 'path-3',
-      userId: user.id,
-      agentId: codeAgent.id,
-      title: 'Deep Research: Market Analysis Breakdown',
-      description: 'Multi-step web search, reflection loops, memory retrieval, and document synthesis.',
-      status: 'failed',
-      modelFamily: 'Claude 3.5 Sonnet',
-      wallClockMs: 42100,
-      totalTokens: 94200,
-      promptTokens: 30000,
-      completionTokens: 64200,
-      actionVelocityTps: 168.0,
-      totalCostUsd: 0.142,
-      totalToolCalls: 3,
-      dagDepth: 8,
-      spans: {
-        create: [
-          {
-            spanId: 'span_01',
-            name: 'Initial Research Prompt',
-            type: 'Prompt',
-            status: 'SUCCESS',
-            latencyMs: 340,
-            tokens: 14200,
-            cost: 0.0284
-          },
-          {
-            spanId: 'span_02',
-            parentSpanId: 'span_01',
-            name: 'ArXiv Paper Scraper',
-            type: 'WebSearch',
-            status: 'SUCCESS',
-            latencyMs: 1200,
-            tokens: 18400,
-            cost: 0.0268
-          },
-          {
-            spanId: 'span_03',
-            parentSpanId: 'span_02',
-            name: 'Hypothesis Verification Loop',
-            type: 'Reflection',
-            status: 'FAILED',
-            latencyMs: 4200,
-            tokens: 24000,
-            cost: 0.0380,
-            rawOutput: JSON.stringify({ error: "RateLimitError: 429 Too Many Requests from SerpAPI endpoint" }, null, 2)
-          }
-        ]
-      }
-    }
-  });
-
-  console.log('✅ Seeded initial runs:', run1.id, run2.id, run3.id);
-  console.log('🎉 Production database seeding completed successfully!');
+  console.log('✅ Seeded runs:', breakerRun.id, schemaDiagRun.id, vectorDiagRun.id, run1.id);
+  console.log('🎉 Database seeding with PathFlow Circuit Breakers completed successfully!');
 }
 
 main()

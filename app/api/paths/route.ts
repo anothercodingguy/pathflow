@@ -48,6 +48,10 @@ export async function GET(request: Request) {
       elevationDepth: run.dagDepth,
       modelFamily: run.modelFamily,
       createdAt: new Date(run.createdAt).toLocaleString(),
+      breakerTriggered: run.breakerTriggered,
+      breakerReason: run.breakerReason || undefined,
+      maxBudgetUsd: run.maxBudgetUsd || undefined,
+      maxSteps: run.maxSteps || undefined,
       spans: run.spans.map(s => ({
         id: s.id,
         spanId: s.spanId,
@@ -59,6 +63,8 @@ export async function GET(request: Request) {
         cost: s.cost,
         rawInput: s.rawInput,
         rawOutput: s.rawOutput,
+        diagnosticTag: s.diagnosticTag || undefined,
+        diagnosticSummary: s.diagnosticSummary || undefined,
         parentSpanId: s.parentSpanId || undefined
       }))
     }));

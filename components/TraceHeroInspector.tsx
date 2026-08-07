@@ -131,6 +131,7 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
     }
   };
 
+  const isBreakerTripped = Boolean(run.breakerTriggered || run.status.toUpperCase() === 'BREAKER_TRIPPED');
   const isFailed = run.status.toUpperCase() === 'FAILED';
 
   return (
@@ -151,7 +152,11 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
 
           <div className="flex items-center gap-2">
             <h1 className="text-sm font-bold text-white font-sans">{run.title}</h1>
-            {isFailed ? (
+            {isBreakerTripped ? (
+              <span className="inline-flex items-center gap-1 bg-amber-500/20 border border-amber-500/40 text-amber-300 px-2 py-0.5 rounded text-[11px] font-bold animate-pulse">
+                <Zap className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> BREAKER TRIPPED
+              </span>
+            ) : isFailed ? (
               <span className="inline-flex items-center gap-1 text-red-400 text-[11px] font-bold">
                 <AlertTriangle className="h-3.5 w-3.5" /> FAILED
               </span>
@@ -179,6 +184,31 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
           </button>
         </div>
       </div>
+
+      {/* Real-Time Circuit Breaker Active Interruption Banner */}
+      {isBreakerTripped && (
+        <div className="bg-gradient-to-r from-amber-950/80 via-amber-900/40 to-amber-950/80 border-b border-amber-500/40 px-6 py-2.5 flex items-center justify-between text-xs shrink-0 font-sans">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 animate-bounce">
+              <Zap className="h-4 w-4 fill-amber-300" />
+            </div>
+            <div>
+              <div className="font-bold text-amber-200 text-xs flex items-center gap-2">
+                <span>PATHFLOW REAL-TIME CIRCUIT BREAKER INTERRUPTED THIS RUN</span>
+                <span className="bg-amber-400 text-black px-1.5 py-0.2 rounded font-mono font-extrabold text-[10px]">ACTIVE SHIELD</span>
+              </div>
+              <p className="text-[#D4D4D8] text-[11px] font-mono mt-0.5">
+                {run.breakerReason || 'Hard per-task dollar cap enforced. Execution terminated in real-time before additional token spend.'}
+              </p>
+            </div>
+          </div>
+          <div className="hidden md:flex items-center gap-4 font-mono text-[11px] bg-black/40 px-3 py-1.5 rounded-lg border border-amber-500/30 text-amber-200">
+            <div>Max Budget Cap: <strong className="text-white">${(run.maxBudgetUsd || 2.00).toFixed(2)} USD</strong></div>
+            <div className="text-amber-500">•</div>
+            <div>Estimated Savings: <strong className="text-emerald-400">+$198.00 USD</strong></div>
+          </div>
+        </div>
+      )}
 
       {/* 2. Split Screen Workspace */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 divide-x divide-[#1E1E24] overflow-hidden">

@@ -50,6 +50,12 @@ model Run {
   totalToolCalls    Int      @default(0)
   dagDepth          Int      @default(1) // Max tree depth
   
+  // Real-Time Circuit Breaker Metrics
+  breakerTriggered  Boolean  @default(false)
+  breakerReason     String?  // e.g. "HARD_BUDGET_CAP_EXCEEDED", "MAX_STEPS_LOOP_DETECTED", "ROGUE_TOOL_CALL_KILLED"
+  maxBudgetUsd      Float?   // Hard cap enforced
+  maxSteps          Int?     // Loop limit enforced
+
   user              User     @relation(fields: [userId], references: [id])
   agent             Agent?   @relation(fields: [agentId], references: [id])
   spans             Span[]
@@ -58,18 +64,20 @@ model Run {
 }
 
 model Span {
-  id           String   @id @default(uuid())
-  runId        String
-  spanId       String
-  parentSpanId String?
-  name         String
-  type         String   // Prompt, WebSearch, Reflection, Browser, Memory, LLMCall, CodeExec, Output
-  status       String   @default("SUCCESS")
-  latencyMs    Int
-  tokens       Int      @default(0)
-  cost         Float    @default(0.0)
-  rawInput     String?
-  rawOutput    String?
-  run          Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
-  createdAt    DateTime @default(now())
+  id                String   @id @default(uuid())
+  runId             String
+  spanId            String
+  parentSpanId      String?
+  name              String
+  type              String   // Prompt, WebSearch, Reflection, Browser, Memory, LLMCall, CodeExec, Output
+  status            String   @default("SUCCESS")
+  latencyMs         Int
+  tokens            Int      @default(0)
+  cost              Float    @default(0.0)
+  rawInput          String?
+  rawOutput         String?
+  diagnosticTag     String?  // e.g. "BAD_TOOL_SCHEMA", "VECTOR_RETRIEVAL_EMPTY", "PROMPT_DRIFT", "CIRCUIT_BREAKER_KILL"
+  diagnosticSummary String?  // Pain-specific explanation of step failure or kill trigger
+  run               Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
 }

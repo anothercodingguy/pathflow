@@ -16,6 +16,7 @@ export function CustomSpanNode({ data, selected }: NodeProps) {
   const { span } = data as { span: any };
 
   const isFailed = span.status === 'FAILED';
+  const isKilled = span.status === 'KILLED' || span.diagnosticTag === 'CIRCUIT_BREAKER_KILL';
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -33,9 +34,11 @@ export function CustomSpanNode({ data, selected }: NodeProps) {
 
   return (
     <div
-      className={`min-w-[220px] rounded-xl border p-3.5 shadow-2xl transition-all ${
+      className={`min-w-[230px] rounded-xl border p-3.5 shadow-2xl transition-all ${
         selected
           ? 'border-blue-500 bg-zinc-900 ring-2 ring-blue-500/50 shadow-blue-500/20 scale-105'
+          : isKilled
+          ? 'border-amber-500/80 bg-amber-950/40 text-amber-100 ring-1 ring-amber-500/40'
           : isFailed
           ? 'border-red-500/80 bg-red-950/40 text-red-100 hover:border-red-400'
           : 'border-zinc-800 bg-[#111115] text-zinc-100 hover:border-zinc-700'
@@ -51,7 +54,7 @@ export function CustomSpanNode({ data, selected }: NodeProps) {
       {/* Header Row */}
       <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2 mb-2">
         <div className="flex items-center gap-2">
-          <div className={`p-1.5 rounded-md ${isFailed ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/15 text-blue-400'}`}>
+          <div className={`p-1.5 rounded-md ${isKilled ? 'bg-amber-500/20 text-amber-400' : isFailed ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/15 text-blue-400'}`}>
             <Icon className="h-4 w-4" />
           </div>
           <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 font-mono">
@@ -61,9 +64,13 @@ export function CustomSpanNode({ data, selected }: NodeProps) {
 
         {/* Status Indicator */}
         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase font-mono ${
-          isFailed ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+          isKilled
+            ? 'bg-amber-500/30 text-amber-300 border border-amber-500/50 animate-pulse'
+            : isFailed
+            ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+            : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
         }`}>
-          {isFailed ? 'FAIL' : 'OK'}
+          {isKilled ? '⚡ KILLED' : isFailed ? 'FAIL' : 'OK'}
         </span>
       </div>
 
