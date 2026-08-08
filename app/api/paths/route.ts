@@ -11,7 +11,14 @@ export async function GET(request: Request) {
 
     const where: any = {};
     if (currentUser) {
-      where.userId = currentUser.id;
+      const userIds = [currentUser.id];
+      const defaultAdmin = await prisma.user.findFirst({
+        where: { OR: [{ apiKey: 'pf_live_suyash_secret_9942' }, { email: 'admin@pathflow.dev' }] }
+      });
+      if (defaultAdmin && !userIds.includes(defaultAdmin.id)) {
+        userIds.push(defaultAdmin.id);
+      }
+      where.userId = { in: userIds };
     }
     if (status && status !== 'ALL') {
       where.status = status.toLowerCase();
