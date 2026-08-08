@@ -35,62 +35,110 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Light Theme Overrides for DevTools Layout */
+/* Comprehensive Light Theme Overrides */
 html.light body {
   background-color: #F4F4F5;
   color: #09090B;
 }
 
-html.light .bg-\[\#08080A\] {
+/* Backgrounds */
+html.light .bg-\[\#08080A\],
+html.light .bg-\[\#09090B\],
+html.light .bg-\[\#0C0C0F\],
+html.light .bg-\[\#0D0D11\],
+html.light .bg-\[\#09090C\] {
   background-color: #F4F4F5 !important;
 }
 
-html.light .bg-\[\#0F0F12\] {
+html.light .bg-\[\#0F0F12\],
+html.light .bg-\[\#121217\],
+html.light .bg-\[\#131318\],
+html.light .bg-\[\#14141A\],
+html.light .bg-\[\#14141B\],
+html.light .bg-\[\#111113\],
+html.light .bg-\[\#111115\] {
   background-color: #FFFFFF !important;
 }
 
-html.light .bg-\[\#121215\], html.light .bg-\[\#16161A\], html.light .bg-\[\#09090C\], html.light .bg-\[\#09090B\] {
+html.light .bg-\[\#121215\],
+html.light .bg-\[\#16161A\],
+html.light .bg-\[\#16161F\],
+html.light .bg-\[\#18181B\],
+html.light .bg-\[\#1C1C26\],
+html.light .bg-\[\#1A1A22\] {
   background-color: #E4E4E7 !important;
 }
 
-html.light .border-\[\#1E1E24\] {
+/* Borders */
+html.light .border-\[\#1E1E24\],
+html.light .border-white\/\[0\.05\],
+html.light .border-white\/\[0\.06\],
+html.light .border-white\/\[0\.07\],
+html.light .border-white\/\[0\.08\],
+html.light .border-white\/10,
+html.light .border-white\/15,
+html.light .divide-white\/\[0\.05\],
+html.light .divide-white\/\[0\.07\] {
   border-color: #D4D4D8 !important;
 }
 
-html.light .text-white {
+/* Typography & Colors */
+html.light .text-white,
+html.light .text-zinc-100 {
   color: #09090B !important;
 }
 
-html.light .text-zinc-300, html.light .text-zinc-400 {
+html.light .text-zinc-200,
+html.light .text-zinc-300 {
+  color: #18181B !important;
+}
+
+html.light .text-zinc-400 {
   color: #3F3F46 !important;
 }
 
-html.light .text-zinc-500, html.light .text-zinc-600 {
+html.light .text-zinc-500,
+html.light .text-zinc-600 {
   color: #71717A !important;
 }
 
-/* Light Theme Hover Fixes for Visibility */
-html.light .hover\:bg-\[\#121215\]:hover,
-html.light tr.group:hover,
-html.light .hover\:bg-\[\#16161A\]:hover,
-html.light .hover\:bg-zinc-900:hover,
-html.light .hover\:bg-\[\#0F0F12\]:hover {
-  background-color: #E4E4E7 !important;
+/* Form Controls (Inputs & Select Dropdowns) */
+html.light input,
+html.light select,
+html.light textarea {
+  background-color: #FFFFFF !important;
+  color: #09090B !important;
+  border-color: #D4D4D8 !important;
 }
 
-html.light .hover\:text-white:hover {
+html.light input::placeholder {
+  color: #A1A1AA !important;
+}
+
+html.light select option {
+  background-color: #FFFFFF !important;
   color: #09090B !important;
 }
 
-html.light .group-hover\:text-blue-400:hover,
+/* Table Row Hovers */
+html.light tr.group:hover,
+html.light .hover\:bg-\[\#16161F\]:hover,
+html.light .hover\:bg-\[\#121215\]:hover,
+html.light .hover\:bg-\[\#18181B\]:hover {
+  background-color: #F4F4F5 !important;
+}
+
 html.light tr.group:hover .group-hover\:text-blue-400 {
   color: #2563EB !important;
 }
 
-html.light .linear-btn:hover {
-  background-color: #E4E4E7 !important;
-  border-color: #2563EB !important;
-  color: #2563EB !important;
+/* React Flow Nodes in Light Mode */
+html.light .react-flow {
+  background-color: #F4F4F5 !important;
+}
+
+html.light .react-flow__node {
+  color: #09090B !important;
 }
 
 /* Linear & LangSmith Typography Hierarchy */
