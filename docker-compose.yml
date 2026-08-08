@@ -11,7 +11,7 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=file:./dev.db
-      - PATHFLOW_API_KEY=pf_live_suyash_secret_9942
+      - PATHFLOW_API_KEY=pf_live_secret_key
     volumes:
       - pathflow_db_data:/app/prisma
     restart: unless-stopped
