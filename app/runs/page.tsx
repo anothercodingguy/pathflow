@@ -301,7 +301,7 @@ export default function RunsPage() {
                       </td>
 
                       <td className="py-2.5 px-3 align-middle text-right font-telemetry font-bold text-emerald-400">
-                        {formatCurrency(run.cost, currency)}
+                        {run.cost > 0 ? formatCurrency(run.cost, currency) : <span className="text-zinc-500 font-normal">—</span>}
                       </td>
 
                       <td className="py-2.5 px-3 align-middle text-right text-zinc-500 pr-4">

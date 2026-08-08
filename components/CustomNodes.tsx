@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 export function CustomSpanNode({ data, selected }: NodeProps) {
-  const { span, isCritical } = data as { span: any; isCritical?: boolean };
+  const { span, isCritical, isBottleneck } = data as { span: any; isCritical?: boolean; isBottleneck?: boolean };
 
   const isFailed = span.status === 'FAILED';
 
@@ -63,13 +63,15 @@ export function CustomSpanNode({ data, selected }: NodeProps) {
 
         {/* Status Indicator */}
         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase font-mono ${
-          isCritical
+          isBottleneck
             ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+            : isCritical
+            ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
             : isFailed
             ? 'bg-red-500/20 text-red-400 border border-red-500/30'
             : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
         }`}>
-          {isCritical ? 'BOTTLENECK' : isFailed ? 'FAIL' : 'OK'}
+          {isBottleneck ? 'BOTTLENECK' : isCritical ? 'CRITICAL' : isFailed ? 'FAIL' : 'OK'}
         </span>
       </div>
 
@@ -90,7 +92,7 @@ export function CustomSpanNode({ data, selected }: NodeProps) {
         {/* Cost & Tokens Badge */}
         <div className="flex items-center gap-1 text-blue-400 font-semibold">
           <Coins className="h-3 w-3" />
-          <span>${span.cost.toFixed(4)}</span>
+          <span>{span.cost > 0 ? `$${span.cost.toFixed(4)}` : span.tokens > 0 ? `${span.tokens} tok` : '—'}</span>
         </div>
 
       </div>

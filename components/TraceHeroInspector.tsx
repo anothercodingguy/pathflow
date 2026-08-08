@@ -200,11 +200,11 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
         <div className="flex items-center gap-4 text-xs font-telemetry">
           <span>Duration: <strong className="text-white">{(run.durationMs / 1000).toFixed(1)}s</strong></span>
           <span className="text-zinc-700">•</span>
-          <span>Cost: <strong className="text-emerald-400">{formatCurrency(run.cost, currency)}</strong></span>
-          <span className="text-zinc-700">•</span>
-          <span>In Tokens: <strong className="text-white">{Math.round(run.tokens * 0.35).toLocaleString()}</strong></span>
-          <span className="text-zinc-700">•</span>
-          <span>Out Tokens: <strong className="text-white">{Math.round(run.tokens * 0.65).toLocaleString()}</strong></span>
+          <span>Cost: {run.cost > 0 ? (
+            <strong className="text-emerald-400">{formatCurrency(run.cost, currency)}</strong>
+          ) : (
+            <span className="text-zinc-400 font-mono">— <span className="text-[10px] text-zinc-500 font-sans">(Pricing unavailable)</span></span>
+          )}</span>
           <span className="text-zinc-700">•</span>
           <span>Total Tokens: <strong className="text-white">{run.tokens.toLocaleString()}</strong></span>
           <span className="text-zinc-700">•</span>
@@ -219,55 +219,57 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
         </div>
       </div>
 
-      {/* 2. Automatic Insights & Critical Path Panel */}
-      <div className="bg-[#0D0D11] border-b border-[#1E1E24] px-4 py-2.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs shrink-0 font-sans">
+      {/* 2. Automatic Execution Insights & Diagnosis Panel */}
+      <div className="bg-[#0D0D11] border-b border-[#1E1E24] px-4 py-3 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs shrink-0 font-sans">
         
         {/* Insights Alert List */}
         <div className="flex flex-col gap-1 flex-1">
           <div className="flex items-center gap-2 font-mono font-bold text-[11px] uppercase tracking-wider text-amber-400">
             <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-            <span>AUTOMATIC EXECUTION INSIGHTS</span>
+            <span>EXECUTION DIAGNOSIS & BOTTLENECK ANALYSIS</span>
           </div>
           <div className="flex flex-wrap gap-2 text-xs">
-            {autoInsights.length > 0 ? (
-              autoInsights.map(ins => (
-                <div
-                  key={ins.id}
-                  className={`px-2.5 py-0.5 rounded border flex items-center gap-1.5 font-mono text-[11px] ${
-                    ins.severity === 'CRITICAL'
-                      ? 'border-red-500/50 bg-red-950/40 text-red-300'
-                      : ins.severity === 'WARNING'
-                      ? 'border-amber-500/50 bg-amber-950/40 text-amber-300'
-                      : 'border-blue-500/40 bg-blue-950/30 text-blue-300'
-                  }`}
-                >
-                  <AlertTriangle className="h-3 w-3 shrink-0" />
-                  <span>{ins.title}</span>
-                </div>
-              ))
+            {slowestSpan && (slowestSpan.latencyMs / (totalDuration || 1)) >= 0.35 ? (
+              <div className="px-3 py-1 rounded border border-amber-500/50 bg-amber-950/40 text-amber-300 font-mono text-[11px] flex items-center gap-2">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+                <span>
+                  <strong>⚠ Bottleneck detected:</strong> {slowestSpan.name} consumed {Math.round((slowestSpan.latencyMs / totalDuration) * 100)}% of total execution time ({slowestSpan.latencyMs < 1000 ? `${slowestSpan.latencyMs}ms` : `${(slowestSpan.latencyMs/1000).toFixed(1)}s`}).
+                </span>
+              </div>
             ) : (
-              <span className="text-zinc-400 text-xs font-mono">Clean execution path • 0 bottlenecks detected.</span>
+              <div className="px-3 py-1 rounded border border-emerald-500/40 bg-emerald-950/30 text-emerald-300 font-mono text-[11px] flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                <span>
+                  <strong>✓ No significant bottlenecks detected:</strong> Execution is evenly distributed across {run.spans.length} spans.
+                </span>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Cost Attribution & Optimization Savings Badge */}
-        <div className="flex items-center gap-3 shrink-0 font-mono text-[11px]">
-          {costAttribution.length > 0 && (
-            <div className="flex items-center gap-1 bg-[#16161C] border border-zinc-800 px-2.5 py-1 rounded text-zinc-300">
-              <span className="text-zinc-500">Cost Dominance:</span>
-              <strong className="text-emerald-400 font-bold">{costAttribution[0].category} ({costAttribution[0].percentage}%)</strong>
-            </div>
-          )}
-
-          {suggestions.length > 0 && (
-            <div className="flex items-center gap-1.5 bg-emerald-950/40 border border-emerald-500/40 px-2.5 py-1 rounded text-emerald-300">
-              <Lightbulb className="h-3.5 w-3.5 text-emerald-400" />
-              <span>Optimizable: <strong className="text-white">Save ${(suggestions[0].projectedSavings.costUsd || 0.03).toFixed(2)} / {(suggestions[0].projectedSavings.latencyMs/1000).toFixed(1)}s</strong></span>
-            </div>
-          )}
+        {/* Performance Breakdown Table */}
+        <div className="flex items-center gap-4 bg-[#14141A] border border-zinc-800 px-3.5 py-1.5 rounded font-mono text-[11px] shrink-0">
+          <div>
+            <span className="text-zinc-500 text-[10px] block">TOTAL TIME</span>
+            <strong className="text-white">{(run.durationMs / 1000).toFixed(1)}s</strong>
+          </div>
+          <div className="border-l border-zinc-800 pl-3">
+            <span className="text-zinc-500 text-[10px] block">LLM TIME</span>
+            <strong className="text-blue-400">
+              {run.spans ? (run.spans.filter(s => s.type === 'LLMCall').reduce((a, b) => a + b.latencyMs, 0) < 1000 ? `${run.spans.filter(s => s.type === 'LLMCall').reduce((a, b) => a + b.latencyMs, 0)}ms` : `${(run.spans.filter(s => s.type === 'LLMCall').reduce((a, b) => a + b.latencyMs, 0)/1000).toFixed(1)}s`) : '0s'}
+            </strong>
+          </div>
+          <div className="border-l border-zinc-800 pl-3">
+            <span className="text-zinc-500 text-[10px] block">TOOLS TIME</span>
+            <strong className="text-amber-400">
+              {run.spans ? (run.spans.filter(s => s.type !== 'LLMCall').reduce((a, b) => a + b.latencyMs, 0) < 1000 ? `${run.spans.filter(s => s.type !== 'LLMCall').reduce((a, b) => a + b.latencyMs, 0)}ms` : `${(run.spans.filter(s => s.type !== 'LLMCall').reduce((a, b) => a + b.latencyMs, 0)/1000).toFixed(1)}s`) : '0s'}
+            </strong>
+          </div>
+          <div className="border-l border-zinc-800 pl-3">
+            <span className="text-zinc-500 text-[10px] block">TOKENS</span>
+            <strong className="text-emerald-400">{run.tokens.toLocaleString()}</strong>
+          </div>
         </div>
-
       </div>
 
       {/* 3. DevTools Split-Screen Workspace (40% Left Pane / 60% Right Pane) */}

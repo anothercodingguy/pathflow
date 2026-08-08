@@ -13,17 +13,19 @@ export async function POST(request: Request) {
     const title = body.title || 'Automated AI Agent Execution Trace';
     const modelFamily = body.model_family || body.modelFamily || 'Claude 3.5 Sonnet';
 
-    // Find default agent or create one
+    const framework = body.framework || body.agent_framework || 'Custom';
+
+    // Find default agent or create one matching framework
     let agent = await prisma.agent.findFirst({
-      where: { userId: user.id }
+      where: { userId: user.id, framework }
     });
 
     if (!agent) {
       agent = await prisma.agent.create({
         data: {
           userId: user.id,
-          name: 'Python SDK Runner',
-          framework: 'LangChain',
+          name: `${framework} Runner`,
+          framework: framework,
           modelFamily: modelFamily,
         }
       });

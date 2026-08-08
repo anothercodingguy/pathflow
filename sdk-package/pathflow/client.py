@@ -27,7 +27,8 @@ class PathFlow:
         api_key: Optional[str] = None,
         endpoint: Optional[str] = None,
         default_project: str = "default",
-        default_environment: str = "production"
+        default_environment: str = "production",
+        default_framework: str = "Custom"
     ):
         self.api_key = api_key or os.getenv("PATHFLOW_API_KEY")
         
@@ -37,6 +38,7 @@ class PathFlow:
         
         self.default_project = os.getenv("PATHFLOW_PROJECT", default_project)
         self.default_env = os.getenv("PATHFLOW_ENV", default_environment)
+        self.default_framework = os.getenv("PATHFLOW_FRAMEWORK", default_framework)
 
         if not self.api_key:
             print("[PathFlow Warning] PATHFLOW_API_KEY is not configured. Telemetry dispatch will be skipped.", file=sys.stderr)
@@ -71,7 +73,8 @@ class PathFlow:
         model_family: str = "Claude 3.5 Sonnet",
         project: Optional[str] = None,
         environment: Optional[str] = None,
-        env: Optional[str] = None
+        env: Optional[str] = None,
+        framework: Optional[str] = None
     ):
         """
         Zero-friction decorator for observing AI agent execution runs.
@@ -79,6 +82,7 @@ class PathFlow:
         trace_name = name or run_title or title or "AI Agent Execution"
         target_project = project or self.default_project
         target_env = environment or env or self.default_env
+        target_framework = framework or self.default_framework
 
         def decorator(func: Callable):
             @functools.wraps(func)
@@ -97,7 +101,8 @@ class PathFlow:
                             "title": trace_name,
                             "model_family": model_family,
                             "project": target_project,
-                            "env": target_env
+                            "env": target_env,
+                            "framework": target_framework
                         })
                         if res and isinstance(res, dict) and "run_id" in res:
                             run_id = res["run_id"]

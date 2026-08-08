@@ -212,71 +212,81 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
             </div>
           )}
 
-          {/* 4. Metric Diff Table */}
-          <div className="space-y-1.5">
-            <h2 className="text-[11px] font-mono font-bold text-zinc-400 uppercase tracking-wider">
-              Metrics Comparison Table
-            </h2>
+          {/* 4. BEFORE vs AFTER Metrics Comparison Cards */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h2 className="text-[11px] font-mono font-bold text-zinc-400 uppercase tracking-wider">
+                Performance Comparison (Before vs After)
+              </h2>
+              <span className={`px-2.5 py-0.5 rounded text-[11px] font-mono font-bold border ${
+                latencyPct <= 0
+                  ? 'bg-emerald-950/40 text-emerald-300 border-emerald-500/40'
+                  : 'bg-amber-950/40 text-amber-300 border-amber-500/40'
+              }`}>
+                {latencyPct <= 0 ? '✓ Performance Improved' : '⚠ Performance Regression'}
+              </span>
+            </div>
 
-            <div className="border border-[#1E1E24] rounded divide-y divide-[#1E1E24] bg-[#0F0F12]">
-              
-              <div className="flex items-center justify-between p-2.5">
-                <span className="text-zinc-400 font-bold w-32">Latency</span>
-                <div className="flex items-center gap-3 font-telemetry">
-                  <span className="text-zinc-300">{leftLatencySec.toFixed(1)}s</span>
-                  <span className="text-zinc-600">→</span>
-                  <span className="text-white font-bold">{rightLatencySec.toFixed(1)}s</span>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {/* Latency Card */}
+              <div className="border border-[#1E1E24] rounded bg-[#0F0F12] p-3 space-y-1">
+                <span className="text-[10px] text-zinc-500 font-mono uppercase block">Latency</span>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-zinc-400 font-mono text-xs">{(leftTrace.durationMs / 1000).toFixed(1)}s</span>
+                  <span className="text-zinc-600 font-mono">→</span>
+                  <span className="text-white font-bold font-mono text-sm">{(rightTrace.durationMs / 1000).toFixed(1)}s</span>
                 </div>
-                <div className="flex items-center gap-1 font-telemetry w-28 justify-end">
-                  <span className={`font-bold ${latencyPct <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {latencyPct > 0 ? `+${latencyPct.toFixed(0)}%` : `${latencyPct.toFixed(0)}%`}
-                  </span>
-                  {latencyPct > 0 ? <TrendingUp className="h-3.5 w-3.5 text-amber-400" /> : <TrendingDown className="h-3.5 w-3.5 text-emerald-400" />}
+                <div className={`text-[11px] font-mono font-bold flex items-center justify-end gap-1 ${latencyPct <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {latencyPct <= 0 ? `↓ ${Math.abs(Math.round(latencyPct))}%` : `↑ ${Math.round(latencyPct)}%`}
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-2.5">
-                <span className="text-zinc-400 font-bold w-32">Cost</span>
-                <div className="flex items-center gap-3 font-telemetry">
-                  <span className="text-zinc-300">${leftTrace.cost.toFixed(3)}</span>
-                  <span className="text-zinc-600">→</span>
-                  <span className="text-white font-bold">${rightTrace.cost.toFixed(3)}</span>
+              {/* Tokens Card */}
+              <div className="border border-[#1E1E24] rounded bg-[#0F0F12] p-3 space-y-1">
+                <span className="text-[10px] text-zinc-500 font-mono uppercase block">Tokens</span>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-zinc-400 font-mono text-xs">{leftTrace.tokens.toLocaleString()}</span>
+                  <span className="text-zinc-600 font-mono">→</span>
+                  <span className="text-white font-bold font-mono text-sm">{rightTrace.tokens.toLocaleString()}</span>
                 </div>
-                <div className="flex items-center gap-1 font-telemetry w-28 justify-end">
-                  <span className={`font-bold ${costPct <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {costPct > 0 ? `+${costPct.toFixed(0)}%` : `${costPct.toFixed(0)}%`}
-                  </span>
-                  {costPct > 0 ? <TrendingUp className="h-3.5 w-3.5 text-amber-400" /> : <TrendingDown className="h-3.5 w-3.5 text-emerald-400" />}
+                <div className={`text-[11px] font-mono font-bold flex items-center justify-end gap-1 ${tokenPct <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {tokenPct <= 0 ? `↓ ${Math.abs(Math.round(tokenPct))}%` : `↑ ${Math.round(tokenPct)}%`}
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-2.5">
-                <span className="text-zinc-400 font-bold w-32">Total Tokens</span>
-                <div className="flex items-center gap-3 font-telemetry">
-                  <span className="text-zinc-300">{(leftTrace.tokens / 1000).toFixed(1)}k</span>
-                  <span className="text-zinc-600">→</span>
-                  <span className="text-white font-bold">{(rightTrace.tokens / 1000).toFixed(1)}k</span>
+              {/* Cost Card */}
+              <div className="border border-[#1E1E24] rounded bg-[#0F0F12] p-3 space-y-1">
+                <span className="text-[10px] text-zinc-500 font-mono uppercase block">Cost</span>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-zinc-400 font-mono text-xs">{leftTrace.cost > 0 ? `$${leftTrace.cost.toFixed(3)}` : '—'}</span>
+                  <span className="text-zinc-600 font-mono">→</span>
+                  <span className="text-white font-bold font-mono text-sm">{rightTrace.cost > 0 ? `$${rightTrace.cost.toFixed(3)}` : '—'}</span>
                 </div>
-                <div className="flex items-center gap-1 font-telemetry w-28 justify-end">
-                  <span className={`font-bold ${tokenPct <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {tokenPct > 0 ? `+${tokenPct.toFixed(0)}%` : `${tokenPct.toFixed(0)}%`}
-                  </span>
-                  {tokenPct > 0 ? <TrendingUp className="h-3.5 w-3.5 text-amber-400" /> : <TrendingDown className="h-3.5 w-3.5 text-emerald-400" />}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5">
-                <span className="text-zinc-400 font-bold w-32">Reasoning Depth</span>
-                <div className="flex items-center gap-3 font-telemetry">
-                  <span className="text-zinc-300">Depth {leftTrace.elevationDepth}</span>
-                  <span className="text-zinc-600">→</span>
-                  <span className="text-white font-bold">Depth {rightTrace.elevationDepth}</span>
-                </div>
-                <div className="w-28 text-right text-zinc-500 font-telemetry">
-                  Δ {rightTrace.elevationDepth - leftTrace.elevationDepth} steps
+                <div className="text-[10px] font-mono text-zinc-500 text-right">
+                  {leftTrace.cost > 0 && rightTrace.cost > 0 ? (
+                    <span className={costPct <= 0 ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
+                      {costPct <= 0 ? `↓ ${Math.abs(Math.round(costPct))}%` : `↑ ${Math.round(costPct)}%`}
+                    </span>
+                  ) : (
+                    'Pricing unavailable'
+                  )}
                 </div>
               </div>
 
+              {/* Tool Calls Card */}
+              <div className="border border-[#1E1E24] rounded bg-[#0F0F12] p-3 space-y-1">
+                <span className="text-[10px] text-zinc-500 font-mono uppercase block">Tool Calls / Spans</span>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-zinc-400 font-mono text-xs">{leftTrace.spans.length}</span>
+                  <span className="text-zinc-600 font-mono">→</span>
+                  <span className="text-white font-bold font-mono text-sm">{rightTrace.spans.length}</span>
+                </div>
+                <div className={`text-[11px] font-mono font-bold flex items-center justify-end gap-1 ${
+                  rightTrace.spans.length <= leftTrace.spans.length ? 'text-emerald-400' : 'text-amber-400'
+                }`}>
+                  {rightTrace.spans.length <= leftTrace.spans.length ? `↓ ${leftTrace.spans.length - rightTrace.spans.length} spans` : `↑ ${rightTrace.spans.length - leftTrace.spans.length} spans`}
+                </div>
+              </div>
             </div>
           </div>
 

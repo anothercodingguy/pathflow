@@ -44,15 +44,20 @@ export const USD_TO_INR_RATE = 85.0;
  * Currency Formatting Helper (USD $ vs INR ₹ Rupees)
  */
 export function formatCurrency(costUsd: number, currency: CurrencyMode = 'USD'): string {
+  if (!costUsd || costUsd === 0) return '—';
   if (currency === 'INR') {
     const costInr = costUsd * USD_TO_INR_RATE;
-    if (costInr === 0) return '₹0.00';
     return `₹${costInr.toFixed(2)}`;
   }
-
-  if (costUsd === 0) return '$0.000';
   if (costUsd < 0.001) return `<$0.001`;
   return `$${costUsd.toFixed(3)}`;
+}
+
+export function formatCostDisplay(costUsd: number, currency: CurrencyMode = 'USD'): { text: string; label: string; isUnavailable: boolean } {
+  if (!costUsd || costUsd === 0) {
+    return { text: '—', label: 'Pricing unavailable', isUnavailable: true };
+  }
+  return { text: formatCurrency(costUsd, currency), label: currency, isUnavailable: false };
 }
 
 /**
