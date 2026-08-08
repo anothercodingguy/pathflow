@@ -167,25 +167,52 @@ export default function RunsPage() {
       </div>
 
       {/* 2. Filter Row Bar */}
-      <div className="flex flex-wrap items-center gap-3 bg-[#0F0F12] border border-[#1E1E24] p-2 rounded text-xs font-mono">
-        <div className="flex items-center gap-1 text-zinc-400 font-bold uppercase text-[10px]">
-          <Filter className="h-3 w-3 text-blue-400" />
-          <span>Filters:</span>
+      <div className="flex items-baseline justify-between border-b border-white/[0.07] pb-3">
+        <div>
+          <h1 className="text-xl font-bold text-white font-sans tracking-tight">Execution Traces</h1>
+          <p className="text-xs text-zinc-400 font-sans mt-0.5">
+            Real-time observability and profiler runs captured across agent pipelines.
+          </p>
         </div>
 
-        {/* Status Toggle */}
-        <div className="flex items-center gap-1 border border-[#1E1E24] rounded bg-[#08080A] p-0.5 text-[11px]">
+        <button
+          onClick={loadRuns}
+          disabled={isLoading}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#16161F] hover:bg-[#1C1C26] border border-white/[0.08] text-zinc-300 text-xs font-mono transition-colors cursor-pointer"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin text-blue-400' : 'text-zinc-400'}`} />
+          <span>Refresh</span>
+        </button>
+      </div>
+
+      {/* 2. DevTools Density Filter Controls */}
+      <div className="flex flex-wrap items-center gap-3 bg-[#121217] border border-white/[0.07] rounded-lg p-2.5 font-mono text-xs">
+        
+        {/* Search Bar */}
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+          <input
+            type="text"
+            placeholder="Search by run title, model, or description..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#0C0C0F] border border-white/[0.08] rounded-md pl-8 pr-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+          />
+        </div>
+
+        {/* Status Filter */}
+        <div className="flex items-center gap-1 bg-[#0C0C0F] border border-white/[0.08] rounded-md p-1">
           {(['ALL', 'COMPLETED', 'FAILED'] as const).map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`px-2 py-0.5 rounded transition-colors ${
+              className={`px-2.5 py-1 rounded text-[11px] font-mono transition-colors ${
                 statusFilter === st
-                  ? 'bg-[#16161A] text-white font-bold border border-[#1E1E24]'
+                  ? 'bg-[#1C1C26] text-white font-semibold border border-white/10'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
-              {st === 'ALL' ? 'All Status' : st}
+              {st === 'ALL' ? 'All' : st}
             </button>
           ))}
         </div>
@@ -194,88 +221,78 @@ export default function RunsPage() {
         <select
           value={modelFilter}
           onChange={(e) => setModelFilter(e.target.value)}
-          className="bg-[#08080A] border border-[#1E1E24] text-zinc-300 rounded px-2 py-1 text-[11px] focus:outline-none focus:border-blue-500"
+          className="bg-[#0C0C0F] border border-white/[0.08] text-zinc-300 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500"
         >
           <option value="ALL">All Models</option>
           <option value="Claude 3.5 Sonnet">Claude 3.5 Sonnet</option>
           <option value="GPT-4o">GPT-4o</option>
+          <option value="Llama 3.3 70B">Llama 3.3 70B</option>
         </select>
 
         {/* Framework Filter */}
         <select
           value={frameworkFilter}
           onChange={(e) => setFrameworkFilter(e.target.value)}
-          className="bg-[#08080A] border border-[#1E1E24] text-zinc-300 rounded px-2 py-1 text-[11px] focus:outline-none focus:border-blue-500"
+          className="bg-[#0C0C0F] border border-white/[0.08] text-zinc-300 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500"
         >
           <option value="ALL">All Frameworks</option>
+          <option value="Groq">Groq</option>
+          <option value="Custom">Custom</option>
           <option value="LangChain">LangChain</option>
           <option value="CrewAI">CrewAI</option>
-          <option value="Custom">Custom</option>
-        </select>
-
-        {/* Min Cost Filter */}
-        <select
-          value={minCostFilter}
-          onChange={(e) => setMinCostFilter(parseFloat(e.target.value))}
-          className="bg-[#08080A] border border-[#1E1E24] text-zinc-300 rounded px-2 py-1 text-[11px] focus:outline-none focus:border-blue-500"
-        >
-          <option value="0">All Costs</option>
-          <option value="0.01">Cost &gt; $0.01</option>
-          <option value="0.03">Cost &gt; $0.03</option>
-          <option value="0.10">Cost &gt; $0.10</option>
         </select>
 
         {/* Min Duration Filter */}
         <select
           value={minDurationFilter}
           onChange={(e) => setMinDurationFilter(parseInt(e.target.value, 10))}
-          className="bg-[#08080A] border border-[#1E1E24] text-zinc-300 rounded px-2 py-1 text-[11px] focus:outline-none focus:border-blue-500"
+          className="bg-[#0C0C0F] border border-white/[0.08] text-zinc-300 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500"
         >
           <option value="0">All Durations</option>
+          <option value="1000">Duration &gt; 1s</option>
           <option value="5000">Duration &gt; 5s</option>
           <option value="15000">Duration &gt; 15s</option>
-          <option value="30000">Duration &gt; 30s</option>
         </select>
       </div>
 
-      {/* 3. DevTools Dense Execution Table */}
-      <div className="w-full border border-[#1E1E24] rounded overflow-hidden bg-[#08080A]">
+      {/* 3. DevTools High-Density Execution Table */}
+      <div className="w-full border border-white/[0.07] rounded-lg overflow-hidden bg-[#121217]">
         {filteredRuns.length > 0 ? (
           <div className="w-full overflow-x-auto scrollbar-none">
             <table className="w-full text-left border-collapse min-w-[950px]">
               <thead>
-                <tr className="border-b border-[#1E1E24] bg-[#0F0F12] text-[10px] uppercase font-bold text-zinc-500 tracking-wider font-mono">
-                  <th className="py-2 px-3 w-16 text-center">Status</th>
-                  <th className="py-2 px-3 min-w-[220px]">Run Name</th>
-                  <th className="py-2 px-3 w-32">Model</th>
-                  <th className="py-2 px-3 w-28">Framework</th>
-                  <th className="py-2 px-3 w-24 text-right">Duration</th>
-                  <th className="py-2 px-3 w-24 text-right">Total Tokens</th>
-                  <th className="py-2 px-3 w-24 text-right">Cost ({currency})</th>
-                  <th className="py-2 px-3 w-24 text-right pr-4">Started At</th>
+                <tr className="border-b border-white/[0.07] bg-[#0C0C0F] text-[10px] uppercase font-bold text-zinc-500 tracking-wider font-mono">
+                  <th className="py-2.5 px-4 w-16 text-center">Status</th>
+                  <th className="py-2.5 px-4 min-w-[220px]">Trace Name</th>
+                  <th className="py-2.5 px-4 w-36">Model</th>
+                  <th className="py-2.5 px-4 w-28">Framework</th>
+                  <th className="py-2.5 px-4 w-28 text-right">Duration</th>
+                  <th className="py-2.5 px-4 w-28 text-right">Total Tokens</th>
+                  <th className="py-2.5 px-4 w-28 text-right">Cost ({currency})</th>
+                  <th className="py-2.5 px-4 w-28 text-right pr-5">Started</th>
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-[#1E1E24]/60 text-xs font-mono">
+              <tbody className="divide-y divide-white/[0.05] text-xs">
                 {filteredRuns.map((run) => {
                   const isFailed = run.status.toUpperCase() === 'FAILED';
 
                   return (
                     <tr
                       key={run.id}
-                      className="group hover:bg-[#121215] cursor-pointer transition-colors"
+                      className="group hover:bg-[#16161F] cursor-pointer transition-colors"
                     >
-                      <td className="py-2.5 px-3 text-center align-middle">
-                        <span className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase font-mono ${
+                      <td className="py-3 px-4 text-center align-middle font-mono">
+                        <span className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase ${
                           isFailed
-                            ? 'bg-red-500/20 text-red-400 border-red-500/30'
-                            : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                            ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                         }`}>
                           {isFailed ? 'FAIL' : 'OK'}
                         </span>
                       </td>
 
-                      <td className="py-2.5 px-3 align-middle">
+                      <td className="py-3 px-4 align-middle">
                         <Link
                           href={`/runs/${run.id}`}
                           className="font-semibold text-white group-hover:text-blue-400 transition-colors text-xs font-sans block truncate max-w-md"

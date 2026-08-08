@@ -4,16 +4,17 @@
 
 @layer base {
   :root {
-    --dev-bg: #08080A;
-    --dev-surface: #0F0F12;
-    --dev-border: #1E1E24;
+    --dev-bg: #0C0C0F;
+    --dev-surface: #121217;
+    --dev-border: rgba(255, 255, 255, 0.07);
     --dev-blue: #3B82F6;
     --dev-emerald: #10B981;
     --dev-red: #EF4444;
+    --dev-amber: #F59E0B;
 
-    --text-primary: #FAFAFA;
-    --text-secondary: #8E8E93;
-    --text-muted: #545458;
+    --text-primary: #F4F4F5;
+    --text-secondary: #A1A1AA;
+    --text-muted: #71717A;
   }
 
   html.light {
