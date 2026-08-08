@@ -9,7 +9,7 @@ import { CurrencyMode } from '@/lib/data';
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [apiKey, setApiKey] = useState('pf_live_suyash_secret_9942');
+  const [apiKey, setApiKey] = useState('pf_live_secret_key');
   const [userEmail, setUserEmail] = useState('admin@pathflow.dev');
   const [provider, setProvider] = useState<string>('email');
   const [currency, setCurrency] = useState<CurrencyMode>('USD');

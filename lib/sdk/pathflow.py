@@ -1,158 +1,27 @@
 """
-PathFlow Telemetry SDK - OpenTelemetry-Compatible AI Agent Observability
-
-Zero-config, invisible observation SDK for capturing AI Agent execution traces,
-bottlenecks, cost attribution, and performance insights automatically.
-
-Standard Usage:
-    from pathflow import PathFlow
-
-    pf = PathFlow()
-
-    @pf.trace(
-        name="Support Ticket Agent",
-        project="backend-service",
-        environment="production"
-    )
-    def run_agent():
-        # Agent execution logic here
-        pass
+PathFlow Python Telemetry SDK Bridge Module.
 """
 
-import time
-import functools
-import json
-import urllib.request
-import urllib.parse
+import sys
 import os
-from typing import Callable, Any, Dict, Optional, List
 
-class PathFlow:
-    def __init__(
-        self,
-        api_key: Optional[str] = None,
-        endpoint: Optional[str] = None,
-        default_project: str = "default",
-        default_env: str = "production"
-    ):
-        self.api_key = api_key or os.getenv("PATHFLOW_API_KEY", "pf_live_suyash_secret_9942")
-        self.endpoint = (endpoint or os.getenv("PATHFLOW_ENDPOINT", "http://localhost:3000/api/v1")).rstrip('/')
-        self.default_project = os.getenv("PATHFLOW_PROJECT", default_project)
-        self.default_env = os.getenv("PATHFLOW_ENV", default_env)
+# Include sdk-package directory in Python path for repository imports
+sdk_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "sdk-package"))
+if sdk_dir not in sys.path:
+    sys.path.insert(0, sdk_dir)
 
-    def trace(
-        self,
-        name: Optional[str] = None,
-        run_title: Optional[str] = None,
-        title: Optional[str] = None,
-        model_family: str = "Claude 3.5 Sonnet",
-        project: Optional[str] = None,
-        environment: Optional[str] = None,
-        env: Optional[str] = None
-    ):
-        """
-        Zero-friction decorator for automatic observation of agent execution runs.
-        Supports named arguments: name="...", project="...", environment="..."
-        """
-        trace_name = name or run_title or title or "AI Agent Execution"
-        target_project = project or self.default_project
-        target_env = environment or env or self.default_env
+from pathflow import PathFlow, Span, PathFlowError, ConfigurationError, TelemetryError
 
-        def decorator(func: Callable):
-            @functools.wraps(func)
-            def wrapper(*args, **kwargs):
-                start_time = time.time()
-                run_id = f"run_{int(start_time * 1000)}"
-                
-                # Step 1: Initialize trace session on PathFlow server
-                try:
-                    res = self._post("/runs/start", {
-                        "title": trace_name,
-                        "model_family": model_family,
-                        "project": target_project,
-                        "env": target_env
-                    })
-                    run_id = res.get("run_id", run_id)
-                except Exception as err:
-                    print(f"[PathFlow Telemetry] Trace session init offline ({err})")
-
-                status = "completed"
-                result = None
-                exception_msg = None
-
-                try:
-                    # Execute wrapped function
-                    result = func(*args, **kwargs)
-                    return result
-                except Exception as e:
-                    status = "failed"
-                    exception_msg = str(e)
-                    raise e
-                finally:
-                    duration_ms = int((time.time() - start_time) * 1000)
-                    log_icon = "🔥" if status == "completed" else "💥"
-                    print(f"{log_icon} [PathFlow Telemetry] Trace Finalized: '{trace_name}' | Latency: {duration_ms}ms | Project: {target_project} | Status: {status.upper()}")
-                    
-                    # Step 2: Flush telemetry payload to PathFlow server
-                    try:
-                        self._post("/runs/finish", {
-                            "run_id": run_id, 
-                            "title": trace_name,
-                            "wall_clock_ms": duration_ms, 
-                            "status": status,
-                            "model_family": model_family,
-                            "project": target_project,
-                            "env": target_env,
-                            "total_tokens": 18400,
-                            "total_cost_usd": 0.038,
-                            "spans": [
-                                {
-                                    "spanId": f"sp_{run_id}_01",
-                                    "name": "Prompt Ingestion & Context Parsing",
-                                    "type": "Prompt",
-                                    "status": "SUCCESS",
-                                    "latencyMs": int(duration_ms * 0.15),
-                                    "tokens": 2400,
-                                    "cost": 0.0048,
-                                    "rawInput": {"name": trace_name, "args": [str(a) for a in args]}
-                                },
-                                {
-                                    "spanId": f"sp_{run_id}_02",
-                                    "parentSpanId": f"sp_{run_id}_01",
-                                    "name": "Agent Execution Loop",
-                                    "type": "LLMCall",
-                                    "status": "FAILED" if status == "failed" else "SUCCESS",
-                                    "latencyMs": int(duration_ms * 0.85),
-                                    "tokens": 16000,
-                                    "cost": 0.0332,
-                                    "rawOutput": {"result": str(result) if result else f"Exception: {exception_msg}"}
-                                }
-                            ]
-                        })
-                    except Exception as err:
-                        print(f"[PathFlow Telemetry Warning] Flush failed ({err})")
-
-            return wrapper
-        return decorator
-
-    def _post(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-        url = f"{self.endpoint}{path}"
-        data = json.dumps(payload).encode('utf-8')
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
-        try:
-            with urllib.request.urlopen(req, timeout=2.0) as response:
-                body = response.read().decode('utf-8')
-                return json.loads(body)
-        except Exception:
-            return {"success": True, "run_id": f"run_{int(time.time())}"}
-
+__all__ = [
+    "PathFlow",
+    "Span",
+    "PathFlowError",
+    "ConfigurationError",
+    "TelemetryError",
+]
 
 if __name__ == "__main__":
-    pf = PathFlow(api_key="pf_live_suyash_secret_9942")
+    pf = PathFlow()
 
     print("--- Testing PathFlow SDK Named Arguments ---")
     @pf.trace(
@@ -161,7 +30,12 @@ if __name__ == "__main__":
         environment="production"
     )
     def sample_agent_runner(query: str):
-        time.sleep(0.1)
+        with pf.span(name="Groq Llama 3.3 Completion", type="LLMCall") as s:
+            s.set_input({"query": query})
+            s.set_tokens(input_tokens=1200, output_tokens=300)
+            s.set_cost(0.0025)
+            s.set_output({"res": "Resolved"})
+
         return f"Fixed issue for: {query}"
 
     output = sample_agent_runner("test_auth.py")

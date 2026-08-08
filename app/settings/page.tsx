@@ -7,7 +7,7 @@ import { CurrencyMode } from '@/lib/data';
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'api_keys' | 'sdk' | 'endpoints' | 'workspace' | 'theme'>('api_keys');
   const [sdkCommand] = useState('pip install pathflow');
-  const [apiKey, setApiKey] = useState('pf_live_suyash_secret_9942');
+  const [apiKey, setApiKey] = useState('pf_live_secret_key');
   const [endpoint] = useState('http://localhost:3000/api/v1');
   const [defaultProject, setDefaultProject] = useState('backend-agents');
   const [defaultEnv, setDefaultEnv] = useState('production');

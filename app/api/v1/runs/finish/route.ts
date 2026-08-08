@@ -15,11 +15,14 @@ export async function POST(request: Request) {
     const status = (body.status || 'completed').toLowerCase();
     const spansData = body.spans || [];
 
-    const totalTokens = body.total_tokens || body.totalTokens || (spansData.length > 0 ? spansData.reduce((acc: number, s: any) => acc + (s.tokens || 1000), 0) : 14200);
-    const totalCostUsd = body.total_cost_usd || body.totalCostUsd || (spansData.length > 0 ? spansData.reduce((acc: number, s: any) => acc + (s.cost || 0.002), 0) : 0.024);
+    const spansTokensSum = spansData.reduce((acc: number, s: any) => acc + (s.tokens || 0), 0);
+    const spansCostSum = spansData.reduce((acc: number, s: any) => acc + (s.cost || 0), 0);
+
+    const totalTokens = typeof body.total_tokens === 'number' ? body.total_tokens : (typeof body.totalTokens === 'number' ? body.totalTokens : spansTokensSum);
+    const totalCostUsd = typeof body.total_cost_usd === 'number' ? body.total_cost_usd : (typeof body.totalCostUsd === 'number' ? body.totalCostUsd : spansCostSum);
     
     const durationSeconds = Math.max(0.1, durationMs / 1000);
-    const actionVelocityTps = parseFloat((totalTokens / durationSeconds).toFixed(1));
+    const actionVelocityTps = totalTokens > 0 ? parseFloat((totalTokens / durationSeconds).toFixed(1)) : 0.0;
 
     const project = body.project || 'default';
     const env = body.env || 'production';
@@ -78,8 +81,8 @@ export async function POST(request: Request) {
           type: s.type || 'LLMCall',
           status: s.status || (status === 'failed' && idx === spansData.length - 1 ? 'FAILED' : 'SUCCESS'),
           latencyMs: s.latencyMs || Math.round(durationMs / Math.max(1, spansData.length)),
-          tokens: s.tokens || 1500,
-          cost: s.cost || 0.003,
+          tokens: typeof s.tokens === 'number' ? s.tokens : 0,
+          cost: typeof s.cost === 'number' ? s.cost : 0.0,
           rawInput: s.rawInput ? (typeof s.rawInput === 'string' ? s.rawInput : JSON.stringify(s.rawInput, null, 2)) : undefined,
           rawOutput: s.rawOutput ? (typeof s.rawOutput === 'string' ? s.rawOutput : JSON.stringify(s.rawOutput, null, 2)) : undefined,
           diagnosticTag: s.diagnosticTag || s.diagnostic_tag || undefined,
