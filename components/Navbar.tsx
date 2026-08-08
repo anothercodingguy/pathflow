@@ -54,7 +54,7 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="h-11 border-b border-white/[0.07] bg-[#0C0C0F] px-5 flex items-center justify-between text-xs select-none sticky top-0 z-50 font-sans">
+    <header className="h-12 border-b border-white/[0.07] bg-[#0C0C0F] px-5 flex items-center justify-between text-[13px] select-none sticky top-0 z-50 font-sans">
       
       {/* Brand & Quieter Navigation */}
       <div className="flex items-center gap-8">

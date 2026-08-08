@@ -143,25 +143,25 @@ html.light .react-flow__node {
 
 /* Linear & LangSmith Typography Hierarchy */
 .text-dev-title {
-  font-size: 24px;
+  font-size: 25px;
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.2;
 }
 
 .text-dev-subtitle {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
 .text-dev-meta {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 
 .text-dev-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -183,7 +183,7 @@ html.light .react-flow__node {
   padding-bottom: 0.25rem;
   border-radius: 0.25rem;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   border: 1px solid #1E1E24;
   background-color: #0F0F12;
