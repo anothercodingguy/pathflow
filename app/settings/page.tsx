@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Copy, Check, Key, Terminal, Server, FolderGit2, Moon, Sun, DollarSign } from 'lucide-react';
+import { Copy, Check, Key, Terminal, Server, FolderGit2, Moon, Sun, DollarSign, UserCheck } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { CurrencyMode } from '@/lib/data';
 
 export default function SettingsPage() {
+  const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<'api_keys' | 'sdk' | 'endpoints' | 'workspace' | 'theme'>('api_keys');
   const [sdkCommand] = useState('pip install pathflow');
   const [apiKey, setApiKey] = useState('pf_live_secret_key');
@@ -13,7 +15,10 @@ export default function SettingsPage() {
   const [defaultEnv, setDefaultEnv] = useState('production');
   const [currency, setCurrency] = useState<CurrencyMode>('USD');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [userEmail, setUserEmail] = useState('admin@pathflow.dev');
+
+  const userEmail = session?.user?.email || 'admin@pathflow.dev';
+  const userName = session?.user?.name || 'Developer';
+  const displayApiKey = (session?.user as any)?.apiKey || apiKey;
 
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedSdk, setCopiedSdk] = useState(false);
@@ -24,12 +29,10 @@ export default function SettingsPage() {
     const savedCurrency = localStorage.getItem('pathflow_currency') as CurrencyMode;
     const savedTheme = localStorage.getItem('pathflow_theme') as 'dark' | 'light';
     const savedKey = localStorage.getItem('pathflow_api_key');
-    const savedEmail = localStorage.getItem('pathflow_user_email');
 
     if (savedCurrency === 'INR' || savedCurrency === 'USD') setCurrency(savedCurrency);
     if (savedTheme === 'light' || savedTheme === 'dark') setTheme(savedTheme);
     if (savedKey) setApiKey(savedKey);
-    if (savedEmail) setUserEmail(savedEmail);
   }, []);
 
   const handleCurrencyChange = (mode: CurrencyMode) => {

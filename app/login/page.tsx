@@ -1,55 +1,37 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ChevronDown, ArrowRight, Check, Key } from 'lucide-react';
+import React, { useState, Suspense } from 'react';
+import { signIn } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
+import { Key, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
 
-export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState('suyash@pathflow.dev');
-  const [password, setPassword] = useState('••••••••••••');
-  const [apiKey, setApiKey] = useState('pf_live_suyash_secret_9942');
+function LoginContent() {
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/runs';
+  const errorParam = searchParams.get('error');
+
   const [isLoading, setIsLoading] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<'google' | 'github' | null>(null);
-  const [isDeveloperFormOpen, setIsDeveloperFormOpen] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [isApiKeyLoginOpen, setIsApiKeyLoginOpen] = useState(false);
 
-  const handleOAuthLogin = (provider: 'google' | 'github') => {
-    setOauthLoading(provider);
-
-    const userEmail = provider === 'google' ? 'suyash.google@pathflow.dev' : 'suyash.github@pathflow.dev';
-    const oauthKey = `pf_live_${provider}_${Date.now().toString().slice(-6)}`;
-
-    setTimeout(() => {
-      localStorage.setItem('pathflow_api_key', oauthKey);
-      localStorage.setItem('pathflow_auth_provider', provider);
-      localStorage.setItem('pathflow_user_email', userEmail);
-      document.cookie = `pathflow_session=${oauthKey}; path=/; max-age=2592000`;
-
-      setOauthLoading(null);
-      setSaved(true);
-      setTimeout(() => {
-        router.push('/runs');
-      }, 300);
-    }, 600);
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    try {
+      await signIn('google', { callbackUrl });
+    } catch (err) {
+      console.error('Sign in error:', err);
+      setIsLoading(false);
+    }
   };
 
-  const handleFormLogin = (e: React.FormEvent) => {
+  const handleApiKeySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    if (!apiKey.trim()) return;
 
-    localStorage.setItem('pathflow_api_key', apiKey);
-    localStorage.setItem('pathflow_auth_provider', 'email');
-    localStorage.setItem('pathflow_user_email', email);
-    document.cookie = `pathflow_session=${apiKey}; path=/; max-age=2592000`;
-
-    setTimeout(() => {
-      setIsLoading(false);
-      setSaved(true);
-      setTimeout(() => {
-        router.push('/runs');
-      }, 300);
-    }, 500);
+    // Set fallback session cookie for API Key developer session
+    document.cookie = `authjs.session-token=${apiKey.trim()}; path=/; max-age=2592000`;
+    localStorage.setItem('pathflow_api_key', apiKey.trim());
+    window.location.href = callbackUrl;
   };
 
   return (
@@ -71,142 +53,126 @@ export default function LoginPage() {
               Sign in to PathFlow
             </h1>
             <p className="text-zinc-400 text-sm leading-relaxed">
-              Track, inspect and optimize AI agent execution.
+              Execution intelligence & profiler platform for AI agents.
             </p>
           </div>
         </div>
 
-        {/* Primary & Secondary Authentication Buttons */}
-        <div className="space-y-2.5">
-          
-          {/* Primary CTA: Continue with Google */}
+        {/* Error Alert */}
+        {errorParam && (
+          <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400 flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
+            <span>Authentication failed. Please check your Google OAuth credentials.</span>
+          </div>
+        )}
+
+        {/* Primary CTA: Continue with Google */}
+        <div className="space-y-3">
           <button
             type="button"
-            onClick={() => handleOAuthLogin('google')}
-            disabled={oauthLoading !== null || isLoading}
-            className="w-full h-11 flex items-center justify-center gap-2.5 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-500 active:scale-[0.99] transition-all duration-200 shadow-md disabled:opacity-50 font-sans cursor-pointer"
+            onClick={handleGoogleSignIn}
+            disabled={isLoading}
+            className="w-full h-12 flex items-center justify-center gap-3 rounded-xl bg-white hover:bg-zinc-100 px-4 text-sm font-semibold text-zinc-900 active:scale-[0.99] transition-all duration-200 shadow-md disabled:opacity-50 font-sans cursor-pointer"
           >
-            {oauthLoading === 'google' ? (
-              <span className="text-white/90">Authorizing with Google...</span>
-            ) : saved ? (
+            {isLoading ? (
+              <span className="text-zinc-700 font-medium">Signing in with Google...</span>
+            ) : (
               <>
-                <Check className="h-4 w-4 text-white" /> Authenticated
+                <svg className="h-5 w-5" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+                <span>Continue with Google</span>
               </>
-            ) : (
-              <span>Continue with Google</span>
             )}
           </button>
-
-          {/* Secondary CTA: Continue with GitHub */}
-          <button
-            type="button"
-            onClick={() => handleOAuthLogin('github')}
-            disabled={oauthLoading !== null || isLoading}
-            className="w-full h-11 flex items-center justify-center gap-2.5 rounded-xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-white hover:bg-white/10 hover:border-white/20 active:scale-[0.99] transition-all duration-200 disabled:opacity-50 font-sans cursor-pointer"
-          >
-            {oauthLoading === 'github' ? (
-              <span className="text-zinc-300">Authorizing with GitHub...</span>
-            ) : (
-              <span>Continue with GitHub</span>
-            )}
-          </button>
-
         </div>
 
         {/* Subtle Divider */}
         <div className="relative flex items-center justify-center my-4">
           <div className="w-full border-t border-white/10" />
           <span className="absolute bg-[#111113] px-3 text-xs text-zinc-500 font-medium">
-            or continue with API Key
+            or API Key Authentication
           </span>
         </div>
 
-        {/* Expandable Advanced Section: Developer Authentication */}
+        {/* API Key Developer Fallback */}
         <div className="space-y-3">
           <button
             type="button"
-            onClick={() => setIsDeveloperFormOpen(!isDeveloperFormOpen)}
-            className="w-full flex items-center justify-between text-xs font-semibold text-zinc-400 hover:text-white transition-colors py-1.5 px-1 font-mono cursor-pointer"
+            onClick={() => setIsApiKeyLoginOpen(!isApiKeyLoginOpen)}
+            className="w-full flex items-center justify-between text-xs font-semibold text-zinc-400 hover:text-white transition-colors py-1 px-1 font-mono cursor-pointer"
           >
-            <span>Developer Authentication</span>
-            <ChevronDown className={`h-4 w-4 text-zinc-500 transition-transform duration-200 ${isDeveloperFormOpen ? 'rotate-180' : ''}`} />
+            <span className="flex items-center gap-1.5">
+              <Key className="h-3.5 w-3.5 text-zinc-500" />
+              <span>Developer API Key Sign In</span>
+            </span>
+            <span className="text-[10px] text-zinc-500 uppercase">{isApiKeyLoginOpen ? 'Hide' : 'Show'}</span>
           </button>
 
-          {isDeveloperFormOpen && (
-            <form onSubmit={handleFormLogin} className="space-y-3.5 pt-1 text-xs font-mono">
-              
+          {isApiKeyLoginOpen && (
+            <form onSubmit={handleApiKeySubmit} className="space-y-3 pt-1 text-xs font-mono">
               <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
-                  Developer Email
-                </label>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-11 rounded-xl border border-white/10 bg-white/5 px-3.5 text-xs text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
+                  type="text"
+                  placeholder="Paste Bearer API Key (pf_live_...)"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  className="w-full h-11 rounded-xl border border-white/10 bg-white/5 px-3.5 text-xs text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all font-mono"
                   required
                 />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-11 rounded-xl border border-white/10 bg-white/5 px-3.5 text-xs text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block flex justify-between">
-                  <span>Bearer API Key</span>
-                </label>
-                <div className="relative">
-                  <Key className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" />
-                  <input
-                    type="text"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    className="w-full h-11 rounded-xl border border-white/10 bg-white/5 pl-9 pr-3.5 text-xs text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all font-mono"
-                    required
-                  />
-                </div>
               </div>
 
               <button
                 type="submit"
-                disabled={isLoading || oauthLoading !== null}
-                className="w-full h-11 flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 text-xs font-semibold text-white hover:bg-white/15 active:scale-[0.99] transition-all duration-200 disabled:opacity-50 font-sans cursor-pointer"
+                className="w-full h-10 flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 text-xs font-semibold text-white hover:bg-white/15 active:scale-[0.99] transition-all duration-200 font-sans cursor-pointer"
               >
-                {isLoading ? (
-                  <span>Authenticating...</span>
-                ) : (
-                  <>
-                    <span>Authenticate Session</span> <ArrowRight className="h-3.5 w-3.5" />
-                  </>
-                )}
+                <span>Authenticate Session</span>
+                <ArrowRight className="h-3.5 w-3.5" />
               </button>
-
             </form>
           )}
         </div>
 
-        {/* SDK Helper Info */}
+        {/* Security Assurance */}
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-center space-y-1">
-          <p className="text-xs text-zinc-400 font-sans">
-            Need to authenticate an SDK?
+          <p className="text-xs text-zinc-400 font-sans flex items-center justify-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+            <span>Secure Google OAuth Authentication</span>
           </p>
           <p className="text-[11px] text-zinc-500 font-sans">
-            Generate or paste an API key after signing in under <strong className="text-zinc-300">Settings → API Keys</strong>.
+            PathFlow isolates execution telemetry and traces strictly to your account.
           </p>
         </div>
 
       </main>
 
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="w-full min-h-screen bg-[#09090B] flex items-center justify-center text-zinc-400 font-sans text-xs">
+        Loading Authentication...
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

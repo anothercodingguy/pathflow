@@ -10,12 +10,14 @@
     "postinstall": "node scripts/db-prep.js && prisma generate"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.11.3",
     "@prisma/client": "^6.3.1",
     "@xyflow/react": "^12.4.2",
     "clsx": "^2.1.1",
     "framer-motion": "^12.4.7",
     "lucide-react": "^0.474.0",
     "next": "^15.2.1",
+    "next-auth": "^5.0.0-beta.32",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.1",

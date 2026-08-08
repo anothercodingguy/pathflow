@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import Navbar from '@/components/Navbar';
+import Providers from '@/components/Providers';
 
 export const metadata: Metadata = {
   title: 'PathFlow | DevTools for AI Agents',
@@ -23,10 +24,12 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-[#09090B] text-zinc-100 antialiased selection:bg-blue-600 selection:text-white flex flex-col">
-        <Navbar />
-        <main className="flex-1 w-full">
-          {children}
-        </main>
+        <Providers>
+          <Navbar />
+          <main className="flex-1 w-full">
+            {children}
+          </main>
+        </Providers>
       </body>
     </html>
   );
