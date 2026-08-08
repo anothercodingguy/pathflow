@@ -38,3 +38,9 @@ prisma/dev.db-journal
 *.pem
 .idea/
 .vscode/
+
+# Python packaging
+dist/
+build/
+*.egg-info/
+__pycache__/
