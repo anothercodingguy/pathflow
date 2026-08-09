@@ -28,7 +28,12 @@ export function middleware(request: NextRequest) {
   // 3. Protected Dashboard Routes Check (Google OAuth)
   const isProtectedPath = pathname.startsWith('/runs') || 
                           pathname.startsWith('/compare') || 
-                          pathname.startsWith('/settings');
+                          pathname.startsWith('/settings') ||
+                          pathname.startsWith('/analytics') ||
+                          pathname.startsWith('/agents') ||
+                          pathname.startsWith('/detections') ||
+                          pathname.startsWith('/prompts') ||
+                          pathname.startsWith('/experiments');
 
   if (isProtectedPath) {
     const sessionToken = request.cookies.get('authjs.session-token')?.value || 
@@ -48,5 +53,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/runs/:path*', '/compare', '/settings', '/api/:path*'],
+  matcher: ['/runs/:path*', '/compare', '/settings', '/analytics/:path*', '/agents/:path*', '/detections/:path*', '/prompts/:path*', '/experiments/:path*', '/api/:path*'],
 };

@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { PathData, SpanData, formatCurrency, CurrencyMode } from '@/lib/data';
+import { runDetections, Detection } from '@/lib/detections';
 import {
   ArrowLeft,
   Download,
@@ -9,14 +10,24 @@ import {
   AlertTriangle,
   Copy,
   Check,
-  Terminal,
   Sparkles,
-  Lightbulb,
   Clock,
-  Layers,
   GitBranch,
   BarChart3,
-  Cpu
+  Cpu,
+  ChevronLeft,
+  ChevronRight,
+  XCircle,
+  Loader2,
+  Bug,
+  Zap,
+  DollarSign,
+  Layers,
+  ArrowUpRight,
+  FileText,
+  Search,
+  Shield,
+  MessageSquare
 } from 'lucide-react';
 import Link from 'next/link';
 import { ReactFlow, Controls, Background, Node, Edge } from '@xyflow/react';
@@ -38,17 +49,40 @@ interface TraceHeroInspectorProps {
   run: PathData;
 }
 
+interface InvestigationResult {
+  id: string;
+  rootCause: string;
+  evidence: string[];
+  impact: string;
+  recommendation: string;
+  confidence: number;
+  observed: string[];
+  inferred: string[];
+  suggested: string[];
+  detections: Array<{ type: string; severity: string; title: string; description: string; impact: string; recommendation: string }>;
+  status: string;
+}
+
 export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
-  const [activeLeftView, setActiveLeftView] = useState<'graph' | 'timeline' | 'flame'>('timeline');
-  const [activeRightTab, setActiveRightTab] = useState<'input' | 'output' | 'metadata' | 'raw'>('input');
+  const [activeLeftView, setActiveLeftView] = useState<'timeline' | 'graph' | 'flame'>('timeline');
+  const [activeRightTab, setActiveRightTab] = useState<'span' | 'trace' | 'detections' | 'investigation'>('span');
+  const [activeSpanTab, setActiveSpanTab] = useState<'input' | 'output' | 'metadata' | 'raw'>('input');
+  const [activeTraceTab, setActiveTraceTab] = useState<'input' | 'output' | 'error'>('input');
   const [currency, setCurrency] = useState<CurrencyMode>('USD');
+  const [copiedPayload, setCopiedPayload] = useState(false);
+  
+  // Debugger state
+  const [debuggerMode, setDebuggerMode] = useState(false);
+  const [debuggerIndex, setDebuggerIndex] = useState(0);
+
+  // Investigation state
+  const [investigation, setInvestigation] = useState<InvestigationResult | null>(null);
+  const [isInvestigating, setIsInvestigating] = useState(false);
 
   useEffect(() => {
     const updateCurrency = () => {
       const saved = localStorage.getItem('pathflow_currency') as CurrencyMode;
-      if (saved === 'INR' || saved === 'USD') {
-        setCurrency(saved);
-      }
+      if (saved === 'INR' || saved === 'USD') setCurrency(saved);
     };
     updateCurrency();
     window.addEventListener('storage', updateCurrency);
@@ -60,91 +94,106 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
   }, [run.spans]);
 
   const [selectedSpan, setSelectedSpan] = useState<SpanData | null>(defaultSpan);
-  const [copiedPayload, setCopiedPayload] = useState(false);
 
   const totalDuration = useMemo(() => {
     return run.spans.reduce((acc, s) => acc + s.latencyMs, 0) || run.durationMs || 1;
   }, [run]);
 
-  // Analytics Computation
+  // Analytics
   const slowestSpan = useMemo(() => {
     if (!run.spans || run.spans.length === 0) return null;
     return [...run.spans].sort((a, b) => b.latencyMs - a.latencyMs)[0];
   }, [run.spans]);
 
-  const highestCostSpan = useMemo(() => {
-    if (!run.spans || run.spans.length === 0) return null;
-    return [...run.spans].sort((a, b) => b.cost - a.cost)[0];
-  }, [run.spans]);
-
   const criticalSpanIds = useMemo(() => computeCriticalPath(run.spans), [run.spans]);
   const autoInsights = useMemo(() => generateAutomaticInsights(run), [run]);
-  const costAttribution = useMemo(() => computeCostAttribution(run.spans, run.cost), [run]);
   const suggestions = useMemo(() => generateOptimizationSuggestions(run), [run]);
 
-  // Compute child spans of selected span
+  // Detections
+  const detections = useMemo(() => runDetections(run), [run]);
+  const criticalDetections = detections.filter(d => d.severity === 'CRITICAL' || d.severity === 'HIGH');
+
+  // Child spans
   const childSpans = useMemo(() => {
     if (!selectedSpan) return [];
     return run.spans.filter(s => s.parentSpanId === selectedSpan.spanId);
   }, [run.spans, selectedSpan]);
 
-  // Compute React Flow Nodes & Edges for Execution Graph
+  // LLM vs Tool time
+  const llmTime = useMemo(() => run.spans.filter(s => s.type === 'llm' || s.type === 'LLMCall').reduce((a, b) => a + b.latencyMs, 0), [run.spans]);
+  const toolTime = useMemo(() => run.spans.filter(s => s.type === 'tool' || s.type === 'WebSearch' || s.type === 'Browser' || s.type === 'CodeExec' || s.type === 'retrieval').reduce((a, b) => a + b.latencyMs, 0), [run.spans]);
+  const failedSpanCount = useMemo(() => run.spans.filter(s => s.status === 'FAILED').length, [run.spans]);
+
+  // React Flow graph
   const { nodes, edges } = useMemo(() => {
     if (!run.spans || run.spans.length === 0) return { nodes: [], edges: [] };
-
     const nodesList: Node[] = [];
     const edgesList: Edge[] = [];
-
     const depthMap: Record<string, number> = {};
     run.spans.forEach((span) => {
       depthMap[span.spanId] = span.parentSpanId ? (depthMap[span.parentSpanId] || 0) + 1 : 0;
     });
-
     const levelCounts: Record<number, number> = {};
     run.spans.forEach((span) => {
       const level = depthMap[span.spanId] || 0;
       const count = levelCounts[level] || 0;
       levelCounts[level] = count + 1;
-
       const isCritical = criticalSpanIds.has(span.spanId);
-
+      const isBottleneck = slowestSpan?.spanId === span.spanId && (slowestSpan.latencyMs / totalDuration) >= 0.35;
       nodesList.push({
         id: span.spanId,
         type: 'customSpan',
         position: { x: count * 280, y: level * 140 },
-        data: { span, isCritical },
+        data: { span, isCritical, isBottleneck },
       });
-
       if (span.parentSpanId) {
         edgesList.push({
           id: `e-${span.parentSpanId}-${span.spanId}`,
           source: span.parentSpanId,
           target: span.spanId,
           animated: isCritical,
-          style: {
-            stroke: isCritical ? '#3B82F6' : '#27272A',
-            strokeWidth: isCritical ? 2.5 : 1.5,
-          },
+          style: { stroke: isCritical ? '#3B82F6' : '#27272A', strokeWidth: isCritical ? 2.5 : 1.5 },
         });
       }
     });
-
     return { nodes: nodesList, edges: edgesList };
-  }, [run.spans, criticalSpanIds]);
+  }, [run.spans, criticalSpanIds, slowestSpan, totalDuration]);
+
+  // Debugger navigation
+  const goToSpan = useCallback((index: number) => {
+    const clamped = Math.max(0, Math.min(run.spans.length - 1, index));
+    setDebuggerIndex(clamped);
+    setSelectedSpan(run.spans[clamped]);
+  }, [run.spans]);
+
+  // AI Investigation
+  const runInvestigation = useCallback(async () => {
+    setIsInvestigating(true);
+    setActiveRightTab('investigation');
+    try {
+      const res = await fetch('/api/v1/investigations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ runId: run.id }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInvestigation(data.investigation);
+      }
+    } catch (err) {
+      console.error('Investigation failed:', err);
+    } finally {
+      setIsInvestigating(false);
+    }
+  }, [run.id]);
 
   const exportTraceJson = () => {
     const tracePayload = {
       traceId: `pf_trace_${run.id}`,
       agent: run.agent,
-      metrics: {
-        latencySec: (run.durationMs / 1000).toFixed(2),
-        velocityTps: run.tps,
-        costUsd: run.cost,
-        tokens: run.tokens,
-      },
+      metrics: { latencySec: (run.durationMs / 1000).toFixed(2), costUsd: run.cost, tokens: run.tokens },
       spans: run.spans
     };
-
     const blob = new Blob([JSON.stringify(tracePayload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -164,203 +213,261 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
   const isFailed = run.status.toUpperCase() === 'FAILED';
 
   return (
-    <div className="w-full h-[calc(100vh-2.5rem)] bg-[#08080A] flex flex-col font-mono overflow-hidden">
+    <div className="w-full h-[calc(100vh-2.75rem)] bg-[#08080A] flex flex-col font-mono overflow-hidden">
       
-      {/* 1. DevTools Run Summary Top Header Bar */}
-      <div className="z-10 flex flex-wrap items-center justify-between border-b border-[#1E1E24] bg-[#08080A] px-4 py-2 text-xs shrink-0 font-mono">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/runs"
-            className="flex items-center gap-1 rounded border border-[#1E1E24] bg-[#0F0F12] px-2 py-0.5 text-zinc-400 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="h-3 w-3" />
-            Runs
-          </Link>
-
-          <span className="text-zinc-700">/</span>
-
-          <div className="flex items-center gap-2">
-            <h1 className="text-sm font-bold text-white font-sans">{run.title}</h1>
-            <span className="px-2 py-0.2 rounded border border-blue-500/40 bg-blue-500/10 text-blue-400 text-[10px] font-mono">
-              {run.project || 'default'} • {run.env || 'production'}
-            </span>
+      {/* 1. Summary Hero Bar */}
+      <div className="z-10 border-b border-white/[0.07] bg-[#08080A] px-4 py-2.5 shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <Link href="/runs" className="flex items-center gap-1 rounded border border-white/[0.07] bg-[#121217] px-2 py-0.5 text-xs text-zinc-400 hover:text-white transition-colors shrink-0">
+              <ArrowLeft className="h-3 w-3" /> Runs
+            </Link>
+            <span className="text-zinc-700 shrink-0">/</span>
+            <h1 className="text-sm font-bold text-white font-sans truncate">{run.title}</h1>
             {isFailed ? (
-              <span className="inline-flex items-center gap-1 text-red-400 text-[11px] font-bold">
-                <AlertTriangle className="h-3.5 w-3.5" /> FAILED
+              <span className="inline-flex items-center gap-1 text-red-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-500/30 bg-red-500/10 shrink-0">
+                <XCircle className="h-3 w-3" /> FAILED
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 text-emerald-400 text-[11px] font-bold">
-                <CheckCircle2 className="h-3.5 w-3.5" /> SUCCESS
+              <span className="inline-flex items-center gap-1 text-emerald-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 shrink-0">
+                <CheckCircle2 className="h-3 w-3" /> SUCCESS
               </span>
             )}
-          </div>
-        </div>
-
-        {/* Telemetry Summary Metrics Header */}
-        <div className="flex items-center gap-4 text-xs font-telemetry">
-          <span>Duration: <strong className="text-white">{(run.durationMs / 1000).toFixed(1)}s</strong></span>
-          <span className="text-zinc-700">•</span>
-          <span>Cost: {run.cost > 0 ? (
-            <strong className="text-emerald-400">{formatCurrency(run.cost, currency)}</strong>
-          ) : (
-            <span className="text-zinc-400 font-mono">— <span className="text-[10px] text-zinc-500 font-sans">(Pricing unavailable)</span></span>
-          )}</span>
-          <span className="text-zinc-700">•</span>
-          <span>Total Tokens: <strong className="text-white">{run.tokens.toLocaleString()}</strong></span>
-          <span className="text-zinc-700">•</span>
-          <span>Model: <strong className="text-blue-400">{run.modelFamily}</strong></span>
-          <span className="text-zinc-700">•</span>
-          <span>Framework: <strong className="text-zinc-300">{run.agent?.framework || 'Custom'}</strong></span>
-
-          <button onClick={exportTraceJson} className="linear-btn ml-2">
-            <Download className="h-3 w-3" />
-            Export Trace
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Automatic Execution Insights & Diagnosis Panel */}
-      <div className="bg-[#0D0D11] border-b border-[#1E1E24] px-4 py-3 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs shrink-0 font-sans">
-        
-        {/* Insights Alert List */}
-        <div className="flex flex-col gap-1 flex-1">
-          <div className="flex items-center gap-2 font-mono font-bold text-[11px] uppercase tracking-wider text-amber-400">
-            <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-            <span>EXECUTION DIAGNOSIS & BOTTLENECK ANALYSIS</span>
-          </div>
-          <div className="flex flex-wrap gap-2 text-xs">
-            {slowestSpan && (slowestSpan.latencyMs / (totalDuration || 1)) >= 0.35 ? (
-              <div className="px-3 py-1 rounded border border-amber-500/50 bg-amber-950/40 text-amber-300 font-mono text-[11px] flex items-center gap-2">
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-400" />
-                <span>
-                  <strong>⚠ Bottleneck detected:</strong> {slowestSpan.name} consumed {Math.round((slowestSpan.latencyMs / totalDuration) * 100)}% of total execution time ({slowestSpan.latencyMs < 1000 ? `${slowestSpan.latencyMs}ms` : `${(slowestSpan.latencyMs/1000).toFixed(1)}s`}).
-                </span>
-              </div>
-            ) : (
-              <div className="px-3 py-1 rounded border border-emerald-500/40 bg-emerald-950/30 text-emerald-300 font-mono text-[11px] flex items-center gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
-                <span>
-                  <strong>✓ No significant bottlenecks detected:</strong> Execution is evenly distributed across {run.spans.length} spans.
-                </span>
-              </div>
+            {run.version && (
+              <span className="text-[10px] text-zinc-500 font-mono shrink-0">{run.version}</span>
             )}
           </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {/* AI Investigate button */}
+            <button
+              onClick={runInvestigation}
+              disabled={isInvestigating}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[11px] font-bold hover:bg-amber-500/20 transition-colors disabled:opacity-50"
+            >
+              {isInvestigating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+              {isInvestigating ? 'Analyzing...' : 'Investigate'}
+            </button>
+
+            {/* Debugger toggle */}
+            <button
+              onClick={() => { setDebuggerMode(!debuggerMode); if (!debuggerMode) goToSpan(0); }}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded border text-[11px] font-bold transition-colors ${
+                debuggerMode ? 'border-blue-500/40 bg-blue-500/10 text-blue-400' : 'border-white/[0.07] bg-[#121217] text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Bug className="h-3 w-3" />
+              Debugger
+            </button>
+
+            <button onClick={exportTraceJson} className="flex items-center gap-1 px-2 py-1 rounded border border-white/[0.07] bg-[#121217] text-zinc-400 text-[11px] hover:text-white transition-colors">
+              <Download className="h-3 w-3" /> Export
+            </button>
+          </div>
         </div>
 
-        {/* Performance Breakdown Table */}
-        <div className="flex items-center gap-4 bg-[#14141A] border border-zinc-800 px-3.5 py-1.5 rounded font-mono text-[11px] shrink-0">
-          <div>
-            <span className="text-zinc-500 text-[10px] block">TOTAL TIME</span>
+        {/* KPI Strip */}
+        <div className="flex items-center gap-4 mt-2 text-[11px] font-mono">
+          <div className="flex items-center gap-1.5">
+            <Clock className="h-3 w-3 text-zinc-500" />
+            <span className="text-zinc-400">Duration:</span>
             <strong className="text-white">{(run.durationMs / 1000).toFixed(1)}s</strong>
           </div>
-          <div className="border-l border-zinc-800 pl-3">
-            <span className="text-zinc-500 text-[10px] block">LLM TIME</span>
-            <strong className="text-blue-400">
-              {run.spans ? (run.spans.filter(s => s.type === 'LLMCall').reduce((a, b) => a + b.latencyMs, 0) < 1000 ? `${run.spans.filter(s => s.type === 'LLMCall').reduce((a, b) => a + b.latencyMs, 0)}ms` : `${(run.spans.filter(s => s.type === 'LLMCall').reduce((a, b) => a + b.latencyMs, 0)/1000).toFixed(1)}s`) : '0s'}
-            </strong>
+          <div className="flex items-center gap-1.5">
+            <DollarSign className="h-3 w-3 text-zinc-500" />
+            <span className="text-zinc-400">Cost:</span>
+            <strong className="text-emerald-400">{run.cost > 0 ? formatCurrency(run.cost, currency) : '—'}</strong>
           </div>
-          <div className="border-l border-zinc-800 pl-3">
-            <span className="text-zinc-500 text-[10px] block">TOOLS TIME</span>
-            <strong className="text-amber-400">
-              {run.spans ? (run.spans.filter(s => s.type !== 'LLMCall').reduce((a, b) => a + b.latencyMs, 0) < 1000 ? `${run.spans.filter(s => s.type !== 'LLMCall').reduce((a, b) => a + b.latencyMs, 0)}ms` : `${(run.spans.filter(s => s.type !== 'LLMCall').reduce((a, b) => a + b.latencyMs, 0)/1000).toFixed(1)}s`) : '0s'}
-            </strong>
+          <div className="flex items-center gap-1.5">
+            <Zap className="h-3 w-3 text-zinc-500" />
+            <span className="text-zinc-400">Tokens:</span>
+            <strong className="text-white">{run.tokens.toLocaleString()}</strong>
           </div>
-          <div className="border-l border-zinc-800 pl-3">
-            <span className="text-zinc-500 text-[10px] block">TOKENS</span>
-            <strong className="text-emerald-400">{run.tokens.toLocaleString()}</strong>
+          <div className="flex items-center gap-1.5">
+            <Layers className="h-3 w-3 text-zinc-500" />
+            <span className="text-zinc-400">Spans:</span>
+            <strong className="text-white">{run.spans.length}</strong>
+            {failedSpanCount > 0 && <span className="text-red-400">({failedSpanCount} failed)</span>}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Cpu className="h-3 w-3 text-zinc-500" />
+            <span className="text-zinc-400">Model:</span>
+            <strong className="text-blue-400">{run.modelFamily}</strong>
+          </div>
+          {run.qualityScore != null && (
+            <div className="flex items-center gap-1.5">
+              <BarChart3 className="h-3 w-3 text-zinc-500" />
+              <span className="text-zinc-400">Quality:</span>
+              <strong className={run.qualityScore >= 80 ? 'text-emerald-400' : run.qualityScore >= 60 ? 'text-amber-400' : 'text-red-400'}>
+                {run.qualityScore}
+              </strong>
+            </div>
+          )}
+          {detections.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              <AlertTriangle className="h-3 w-3 text-amber-400" />
+              <span className="text-amber-400 font-bold">{detections.length} detection{detections.length > 1 ? 's' : ''}</span>
+            </div>
+          )}
+
+          {/* Time breakdown mini-bar */}
+          <div className="ml-auto flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-sm bg-blue-500/80" />
+              <span className="text-[10px] text-zinc-500">LLM {llmTime < 1000 ? `${llmTime}ms` : `${(llmTime / 1000).toFixed(1)}s`}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-sm bg-amber-500/80" />
+              <span className="text-[10px] text-zinc-500">Tools {toolTime < 1000 ? `${toolTime}ms` : `${(toolTime / 1000).toFixed(1)}s`}</span>
+            </div>
           </div>
         </div>
+
+        {/* Error bar */}
+        {run.error && (
+          <div className="mt-2 px-3 py-1.5 rounded border border-red-500/30 bg-red-500/10 text-[11px] text-red-300 font-mono flex items-start gap-2">
+            <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0 mt-0.5" />
+            <div>
+              {run.errorType && <span className="text-red-400 font-bold mr-1">[{run.errorType}]</span>}
+              {run.error}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* 3. DevTools Split-Screen Workspace (40% Left Pane / 60% Right Pane) */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 divide-x divide-[#1E1E24] overflow-hidden">
+      {/* Debugger Controls Bar */}
+      {debuggerMode && (
+        <div className="flex items-center justify-between px-4 py-1.5 bg-blue-500/5 border-b border-blue-500/20 shrink-0">
+          <div className="flex items-center gap-2 text-xs">
+            <Bug className="h-3.5 w-3.5 text-blue-400" />
+            <span className="text-blue-400 font-bold font-mono uppercase text-[11px]">Debugger</span>
+            <span className="text-zinc-400 font-mono text-[11px]">
+              Step {debuggerIndex + 1} of {run.spans.length}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => goToSpan(0)}
+              disabled={debuggerIndex === 0}
+              className="px-2 py-0.5 rounded border border-white/[0.07] bg-[#121217] text-[10px] text-zinc-400 hover:text-white disabled:opacity-30 transition-colors"
+            >
+              ⏮ First
+            </button>
+            <button
+              onClick={() => goToSpan(debuggerIndex - 1)}
+              disabled={debuggerIndex === 0}
+              className="px-2 py-0.5 rounded border border-white/[0.07] bg-[#121217] text-[10px] text-zinc-400 hover:text-white disabled:opacity-30 transition-colors flex items-center gap-0.5"
+            >
+              <ChevronLeft className="h-3 w-3" /> Prev
+            </button>
+            <button
+              onClick={() => goToSpan(debuggerIndex + 1)}
+              disabled={debuggerIndex >= run.spans.length - 1}
+              className="px-2 py-0.5 rounded border border-white/[0.07] bg-[#121217] text-[10px] text-zinc-400 hover:text-white disabled:opacity-30 transition-colors flex items-center gap-0.5"
+            >
+              Next <ChevronRight className="h-3 w-3" />
+            </button>
+            <button
+              onClick={() => goToSpan(run.spans.length - 1)}
+              disabled={debuggerIndex >= run.spans.length - 1}
+              className="px-2 py-0.5 rounded border border-white/[0.07] bg-[#121217] text-[10px] text-zinc-400 hover:text-white disabled:opacity-30 transition-colors"
+            >
+              Last ⏭
+            </button>
+            {/* Jump to first error */}
+            {failedSpanCount > 0 && (
+              <button
+                onClick={() => { const idx = run.spans.findIndex(s => s.status === 'FAILED'); if (idx >= 0) goToSpan(idx); }}
+                className="px-2 py-0.5 rounded border border-red-500/30 bg-red-500/10 text-[10px] text-red-400 font-bold hover:bg-red-500/20 transition-colors"
+              >
+                ⚡ Jump to Error
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 2. Split-Screen Workspace */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 divide-x divide-white/[0.05] overflow-hidden">
         
-        {/* LEFT PANE (40%) */}
+        {/* LEFT PANE */}
         <div className="lg:col-span-5 flex flex-col h-full bg-[#08080A] overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[#1E1E24] bg-[#0F0F12] px-3 py-1.5 shrink-0 text-xs font-mono">
+          <div className="flex items-center justify-between border-b border-white/[0.07] bg-[#0F0F12] px-3 py-1.5 shrink-0 text-xs font-mono">
             <div className="flex items-center gap-1">
-              <button
-                onClick={() => setActiveLeftView('timeline')}
-                className={`px-2.5 py-0.5 rounded text-[11px] font-bold transition-all ${
-                  activeLeftView === 'timeline'
-                    ? 'bg-[#16161A] text-blue-400 border border-[#1E1E24]'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                <Clock className="h-3 w-3 inline mr-1" />
-                Timeline Waterfall
-              </button>
-
-              <button
-                onClick={() => setActiveLeftView('graph')}
-                className={`px-2.5 py-0.5 rounded text-[11px] font-bold transition-all ${
-                  activeLeftView === 'graph'
-                    ? 'bg-[#16161A] text-blue-400 border border-[#1E1E24]'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                <GitBranch className="h-3 w-3 inline mr-1" />
-                Execution Graph
-              </button>
-
-              <button
-                onClick={() => setActiveLeftView('flame')}
-                className={`px-2.5 py-0.5 rounded text-[11px] font-bold transition-all ${
-                  activeLeftView === 'flame'
-                    ? 'bg-[#16161A] text-blue-400 border border-[#1E1E24]'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                <BarChart3 className="h-3 w-3 inline mr-1" />
-                Flame Graph
-              </button>
+              {(['timeline', 'graph', 'flame'] as const).map((view) => {
+                const icons = { timeline: Clock, graph: GitBranch, flame: BarChart3 };
+                const labels = { timeline: 'Timeline', graph: 'Graph', flame: 'Flame' };
+                const Icon = icons[view];
+                return (
+                  <button
+                    key={view}
+                    onClick={() => setActiveLeftView(view)}
+                    className={`px-2 py-0.5 rounded text-[11px] font-bold transition-all flex items-center gap-1 ${
+                      activeLeftView === view ? 'bg-white/[0.07] text-blue-400 border border-white/[0.1]' : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    <Icon className="h-3 w-3" /> {labels[view]}
+                  </button>
+                );
+              })}
             </div>
-
-            <span className="text-[10px] text-zinc-500">{run.spans.length} Spans</span>
+            <span className="text-[10px] text-zinc-500">{run.spans.length} spans</span>
           </div>
 
-          {/* VIEW 1: Timeline Waterfall */}
+          {/* Timeline Waterfall */}
           {activeLeftView === 'timeline' && (
-            <div className="flex-1 overflow-y-auto p-2 divide-y divide-[#1E1E24]/40 text-xs font-mono">
+            <div className="flex-1 overflow-y-auto p-2 space-y-0.5 text-xs font-mono">
               {run.spans.map((span, idx) => {
                 const isSelected = selectedSpan?.spanId === span.spanId;
+                const isDebugCurrent = debuggerMode && debuggerIndex === idx;
                 const isCritical = criticalSpanIds.has(span.spanId);
                 const indent = span.parentSpanId ? 'ml-4' : 'ml-0';
-
-                let cumulativeOffset = 0;
-                for (let i = 0; i < idx; i++) {
-                  cumulativeOffset += run.spans[i].latencyMs;
-                }
+                const pctOfTotal = Math.round((span.latencyMs / totalDuration) * 100);
 
                 return (
                   <div
-                    key={span.id}
-                    onClick={() => setSelectedSpan(span)}
-                    className={`group cursor-pointer py-2 px-2 rounded transition-colors flex items-center justify-between ${indent} ${
-                      isSelected ? 'bg-[#121215] border border-blue-500/40 text-white font-bold' : 'hover:bg-[#0F0F12] text-zinc-300'
+                    key={span.id || idx}
+                    onClick={() => { setSelectedSpan(span); setActiveRightTab('span'); if (debuggerMode) setDebuggerIndex(idx); }}
+                    className={`group cursor-pointer py-1.5 px-2 rounded transition-colors ${indent} ${
+                      isDebugCurrent ? 'bg-blue-500/10 border border-blue-500/30 ring-1 ring-blue-500/20' :
+                      isSelected ? 'bg-white/[0.04] border border-white/[0.1]' :
+                      'hover:bg-white/[0.02] border border-transparent'
                     }`}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-zinc-500 text-[10px] w-12 font-telemetry shrink-0">
-                        {cumulativeOffset}ms
-                      </span>
-                      <span className={`px-1.5 py-0.2 rounded border text-[10px] uppercase shrink-0 ${
-                        span.status === 'FAILED'
-                          ? 'border-red-500/40 text-red-400 bg-red-500/10'
-                          : 'border-[#1E1E24] text-blue-400 bg-[#0F0F12]'
-                      }`}>
-                        {span.type}
-                      </span>
-                      <span className="truncate">{span.name}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0 font-telemetry text-zinc-400 text-[11px]">
-                      {isCritical && (
-                        <span className="text-blue-400 text-[10px]" title="Critical Path Step">
-                          ⚡ BOTTLENECK
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                          span.status === 'FAILED' ? 'bg-red-400' : isCritical ? 'bg-blue-400' : 'bg-emerald-400'
+                        }`} />
+                        <span className={`px-1 py-0.5 rounded text-[9px] uppercase font-bold shrink-0 ${
+                          span.type === 'llm' || span.type === 'LLMCall' ? 'text-violet-400 bg-violet-500/10' :
+                          span.type === 'tool' || span.type === 'WebSearch' || span.type === 'Browser' ? 'text-amber-400 bg-amber-500/10' :
+                          span.type === 'retrieval' ? 'text-cyan-400 bg-cyan-500/10' :
+                          'text-zinc-400 bg-zinc-500/10'
+                        }`}>
+                          {span.type}
                         </span>
-                      )}
-                      <span className="font-bold text-white">{span.latencyMs}ms</span>
+                        <span className={`truncate text-[11px] ${isSelected || isDebugCurrent ? 'text-white font-semibold' : 'text-zinc-300'}`}>
+                          {span.name}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 text-[10px]">
+                        {span.status === 'FAILED' && <span className="text-red-400 font-bold">FAIL</span>}
+                        {span.model && <span className="text-zinc-600 hidden sm:inline">{span.model}</span>}
+                        <span className="text-zinc-400 font-mono w-14 text-right">
+                          {span.latencyMs < 1000 ? `${span.latencyMs}ms` : `${(span.latencyMs / 1000).toFixed(1)}s`}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Mini duration bar */}
+                    <div className="mt-1 h-1 w-full bg-white/[0.03] rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          span.status === 'FAILED' ? 'bg-red-500/60' :
+                          isCritical ? 'bg-blue-500/60' : 'bg-white/[0.12]'
+                        }`}
+                        style={{ width: `${Math.max(2, pctOfTotal)}%` }}
+                      />
                     </div>
                   </div>
                 );
@@ -368,7 +475,7 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
             </div>
           )}
 
-          {/* VIEW 2: Interactive Execution Graph (DAG) */}
+          {/* Execution Graph */}
           {activeLeftView === 'graph' && (
             <div className="flex-1 bg-[#09090B] relative">
               <ReactFlow
@@ -379,7 +486,7 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                 className="bg-[#09090B]"
                 onNodeClick={(_, node) => {
                   const targetSpan = run.spans.find(s => s.spanId === node.id);
-                  if (targetSpan) setSelectedSpan(targetSpan);
+                  if (targetSpan) { setSelectedSpan(targetSpan); setActiveRightTab('span'); }
                 }}
               >
                 <Background color="#1E1E24" gap={16} />
@@ -388,237 +495,423 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
             </div>
           )}
 
-          {/* VIEW 3: Perfetto Visual Flame Graph */}
+          {/* Flame Graph */}
           {activeLeftView === 'flame' && (
-            <div className="flex-1 overflow-y-auto p-3 space-y-3 text-xs font-mono">
-              <div className="text-[11px] font-bold text-zinc-500 uppercase border-b border-[#1E1E24] pb-1.5 flex justify-between">
-                <span>Execution Duration Bars</span>
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 text-xs font-mono">
+              <div className="text-[10px] font-bold text-zinc-500 uppercase border-b border-white/[0.07] pb-1.5 flex justify-between">
+                <span>Execution Duration</span>
                 <span>Total: {(totalDuration / 1000).toFixed(2)}s</span>
               </div>
-
-              <div className="space-y-2">
-                {run.spans.map((span, idx) => {
-                  const durationPct = Math.max(5, Math.min(100, (span.latencyMs / totalDuration) * 100));
-                  let cumulativeOffset = 0;
-                  for (let i = 0; i < idx; i++) {
-                    cumulativeOffset += run.spans[i].latencyMs;
-                  }
-                  const startPct = (cumulativeOffset / totalDuration) * 100;
-                  const isSelected = selectedSpan?.spanId === span.spanId;
-                  const isCritical = criticalSpanIds.has(span.spanId);
-
-                  return (
-                    <div
-                      key={span.id}
-                      onClick={() => setSelectedSpan(span)}
-                      className={`group cursor-pointer p-2 rounded border transition-colors ${
-                        isSelected ? 'border-blue-500 bg-[#121215]' : 'border-[#1E1E24] bg-[#09090B] hover:border-zinc-700'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between text-[11px] mb-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-zinc-500">{cumulativeOffset}ms</span>
-                          <span className="text-blue-400 font-bold">[{span.type}]</span>
-                          <span className="text-white truncate max-w-[140px]">{span.name}</span>
-                        </div>
-                        <span className="text-white font-bold">{span.latencyMs}ms</span>
+              {run.spans.map((span, idx) => {
+                const durationPct = Math.max(3, Math.min(100, (span.latencyMs / totalDuration) * 100));
+                const isSelected = selectedSpan?.spanId === span.spanId;
+                const isCritical = criticalSpanIds.has(span.spanId);
+                return (
+                  <div
+                    key={span.id || idx}
+                    onClick={() => { setSelectedSpan(span); setActiveRightTab('span'); }}
+                    className={`group cursor-pointer p-2 rounded border transition-colors ${
+                      isSelected ? 'border-blue-500/40 bg-white/[0.04]' : 'border-white/[0.05] hover:border-white/[0.1]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-[11px] mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`font-bold ${
+                          span.type === 'llm' || span.type === 'LLMCall' ? 'text-violet-400' : 'text-amber-400'
+                        }`}>[{span.type}]</span>
+                        <span className="text-white truncate max-w-[160px]">{span.name}</span>
                       </div>
-
-                      <div className="w-full bg-zinc-900 rounded-full h-2 relative overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${
-                            span.status === 'FAILED'
-                              ? 'bg-red-500'
-                              : isCritical
-                              ? 'bg-blue-500'
-                              : 'bg-blue-500/50'
-                          }`}
-                          style={{
-                            marginLeft: `${startPct}%`,
-                            width: `${durationPct}%`
-                          }}
-                        />
-                      </div>
+                      <span className="text-white font-bold">{span.latencyMs < 1000 ? `${span.latencyMs}ms` : `${(span.latencyMs / 1000).toFixed(1)}s`}</span>
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="w-full bg-white/[0.03] rounded-full h-2 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          span.status === 'FAILED' ? 'bg-red-500' : isCritical ? 'bg-blue-500' : 'bg-blue-500/40'
+                        }`}
+                        style={{ width: `${durationPct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* RIGHT PANE (60%): SPAN INSPECTOR METADATA & PAYLOADS */}
+        {/* RIGHT PANE */}
         <div className="lg:col-span-7 flex flex-col h-full bg-[#0F0F12] overflow-hidden">
           
-          {selectedSpan ? (
-            <div className="flex-1 flex flex-col h-full overflow-hidden divide-y divide-[#1E1E24]">
-              
-              {/* Detailed Span Header */}
-              <div className="p-4 bg-[#09090C] space-y-3 shrink-0 font-mono">
+          {/* Right pane tab bar */}
+          <div className="flex items-center gap-1 border-b border-white/[0.07] bg-[#0C0C0F] px-3 py-1.5 shrink-0">
+            {(['span', 'trace', 'detections', 'investigation'] as const).map((tab) => {
+              const icons = { span: Layers, trace: FileText, detections: AlertTriangle, investigation: Sparkles };
+              const labels = { span: 'Span Inspector', trace: 'Trace I/O', detections: `Detections (${detections.length})`, investigation: 'Investigation' };
+              const Icon = icons[tab];
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveRightTab(tab)}
+                  className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all flex items-center gap-1.5 ${
+                    activeRightTab === tab ? 'bg-white/[0.07] text-white border border-white/[0.1]' : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <Icon className={`h-3 w-3 ${tab === 'detections' && detections.length > 0 ? 'text-amber-400' : ''}`} />
+                  {labels[tab]}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* TAB: Span Inspector */}
+          {activeRightTab === 'span' && selectedSpan && (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Span header */}
+              <div className="p-4 bg-[#09090C] space-y-3 shrink-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded border border-blue-500/30 bg-blue-500/10 text-blue-400 text-[10px] font-bold">
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+                      selectedSpan.type === 'llm' || selectedSpan.type === 'LLMCall' ? 'text-violet-400 bg-violet-500/10 border border-violet-500/20' :
+                      selectedSpan.type === 'tool' || selectedSpan.type === 'WebSearch' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20' :
+                      'text-blue-400 bg-blue-500/10 border border-blue-500/20'
+                    }`}>
                       {selectedSpan.type}
                     </span>
                     <h2 className="text-sm font-bold text-white font-sans">{selectedSpan.name}</h2>
                   </div>
-
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase font-mono ${
-                    selectedSpan.status === 'FAILED' ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase ${
+                    selectedSpan.status === 'FAILED' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                   }`}>
                     {selectedSpan.status}
                   </span>
                 </div>
 
-                {/* Granular Span Attributes Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] bg-[#0F0F12] p-2.5 rounded border border-[#1E1E24]">
+                {/* Span metrics grid */}
+                <div className="grid grid-cols-4 gap-2 text-[11px] bg-[#0F0F12] p-2.5 rounded border border-white/[0.07]">
                   <div>
-                    <span className="text-zinc-500 text-[10px] block uppercase font-bold">SPAN ID</span>
-                    <span className="text-white truncate block">{selectedSpan.spanId}</span>
+                    <span className="text-zinc-500 text-[9px] block uppercase font-bold">Duration</span>
+                    <span className="text-white font-bold">{selectedSpan.latencyMs < 1000 ? `${selectedSpan.latencyMs}ms` : `${(selectedSpan.latencyMs / 1000).toFixed(1)}s`}</span>
                   </div>
                   <div>
-                    <span className="text-zinc-500 text-[10px] block uppercase font-bold">PARENT SPAN</span>
-                    <span className="text-white truncate block">{selectedSpan.parentSpanId || 'ROOT'}</span>
+                    <span className="text-zinc-500 text-[9px] block uppercase font-bold">Cost</span>
+                    <span className="text-emerald-400 font-bold">{formatCurrency(selectedSpan.cost, currency)}</span>
                   </div>
                   <div>
-                    <span className="text-zinc-500 text-[10px] block uppercase font-bold">DURATION</span>
-                    <span className="text-white font-bold block">{selectedSpan.latencyMs} ms</span>
+                    <span className="text-zinc-500 text-[9px] block uppercase font-bold">Tokens</span>
+                    <span className="text-white">{selectedSpan.tokens.toLocaleString()}</span>
                   </div>
                   <div>
-                    <span className="text-zinc-500 text-[10px] block uppercase font-bold">COST</span>
-                    <span className="text-emerald-400 font-bold block">{formatCurrency(selectedSpan.cost, currency)}</span>
+                    <span className="text-zinc-500 text-[9px] block uppercase font-bold">Children</span>
+                    <span className="text-blue-400 font-bold">{childSpans.length}</span>
                   </div>
-                  <div>
-                    <span className="text-zinc-500 text-[10px] block uppercase font-bold">INPUT TOKENS</span>
-                    <span className="text-zinc-300 block">{Math.round(selectedSpan.tokens * 0.35).toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500 text-[10px] block uppercase font-bold">OUTPUT TOKENS</span>
-                    <span className="text-zinc-300 block">{Math.round(selectedSpan.tokens * 0.65).toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500 text-[10px] block uppercase font-bold">TOTAL TOKENS</span>
-                    <span className="text-zinc-300 block">{selectedSpan.tokens.toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500 text-[10px] block uppercase font-bold">CHILD SPANS</span>
-                    <span className="text-blue-400 font-bold block">{childSpans.length} children</span>
-                  </div>
+                  {selectedSpan.model && (
+                    <div>
+                      <span className="text-zinc-500 text-[9px] block uppercase font-bold">Model</span>
+                      <span className="text-violet-400">{selectedSpan.model}</span>
+                    </div>
+                  )}
+                  {selectedSpan.provider && (
+                    <div>
+                      <span className="text-zinc-500 text-[9px] block uppercase font-bold">Provider</span>
+                      <span className="text-zinc-300">{selectedSpan.provider}</span>
+                    </div>
+                  )}
+                  {(selectedSpan.inputTokens || 0) > 0 && (
+                    <div>
+                      <span className="text-zinc-500 text-[9px] block uppercase font-bold">Input Tok</span>
+                      <span className="text-zinc-300">{selectedSpan.inputTokens?.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {(selectedSpan.outputTokens || 0) > 0 && (
+                    <div>
+                      <span className="text-zinc-500 text-[9px] block uppercase font-bold">Output Tok</span>
+                      <span className="text-zinc-300">{selectedSpan.outputTokens?.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {(selectedSpan.retryCount || 0) > 0 && (
+                    <div>
+                      <span className="text-zinc-500 text-[9px] block uppercase font-bold">Retries</span>
+                      <span className="text-amber-400 font-bold">{selectedSpan.retryCount}</span>
+                    </div>
+                  )}
                 </div>
 
+                {/* Error info */}
+                {selectedSpan.errorMessage && (
+                  <div className="px-3 py-2 rounded border border-red-500/30 bg-red-500/5 text-[11px] text-red-300 font-mono">
+                    {selectedSpan.errorType && <span className="text-red-400 font-bold">[{selectedSpan.errorType}] </span>}
+                    {selectedSpan.errorMessage}
+                  </div>
+                )}
+                {selectedSpan.diagnosticSummary && !selectedSpan.errorMessage && (
+                  <div className="px-3 py-2 rounded border border-amber-500/30 bg-amber-500/5 text-[11px] text-amber-300 font-mono">
+                    {selectedSpan.diagnosticTag && <span className="text-amber-400 font-bold">[{selectedSpan.diagnosticTag}] </span>}
+                    {selectedSpan.diagnosticSummary}
+                  </div>
+                )}
               </div>
 
-              {/* Inspector Content Tabs (Input, Output, Metadata, Raw JSON) */}
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="flex items-center justify-between border-b border-[#1E1E24] bg-[#08080A] px-4 pt-2 shrink-0 font-mono text-xs">
-                  <div className="flex items-center gap-2">
+              {/* Span content tabs */}
+              <div className="flex items-center justify-between border-b border-white/[0.07] bg-[#08080A] px-4 pt-1.5 shrink-0">
+                <div className="flex items-center gap-1">
+                  {(['input', 'output', 'metadata', 'raw'] as const).map((tab) => (
                     <button
-                      onClick={() => setActiveRightTab('input')}
-                      className={`pb-2 px-2 font-bold uppercase tracking-wider border-b-2 text-[11px] transition-all ${
-                        activeRightTab === 'input' ? 'border-blue-500 text-blue-400' : 'border-transparent text-zinc-400 hover:text-white'
+                      key={tab}
+                      onClick={() => setActiveSpanTab(tab)}
+                      className={`pb-1.5 px-2 font-bold uppercase tracking-wider border-b-2 text-[10px] transition-all ${
+                        activeSpanTab === tab ? 'border-blue-500 text-blue-400' : 'border-transparent text-zinc-500 hover:text-white'
                       }`}
                     >
-                      Input Payload
+                      {tab}
                     </button>
-                    <button
-                      onClick={() => setActiveRightTab('output')}
-                      className={`pb-2 px-2 font-bold uppercase tracking-wider border-b-2 text-[11px] transition-all ${
-                        activeRightTab === 'output' ? 'border-blue-500 text-blue-400' : 'border-transparent text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      Execution Output
-                    </button>
-                    <button
-                      onClick={() => setActiveRightTab('metadata')}
-                      className={`pb-2 px-2 font-bold uppercase tracking-wider border-b-2 text-[11px] transition-all ${
-                        activeRightTab === 'metadata' ? 'border-blue-500 text-blue-400' : 'border-transparent text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      Metadata
-                    </button>
-                    <button
-                      onClick={() => setActiveRightTab('raw')}
-                      className={`pb-2 px-2 font-bold uppercase tracking-wider border-b-2 text-[11px] transition-all ${
-                        activeRightTab === 'raw' ? 'border-blue-500 text-blue-400' : 'border-transparent text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      Raw JSON
-                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => copyText(activeSpanTab === 'input' ? selectedSpan.rawInput || '' : activeSpanTab === 'output' ? selectedSpan.rawOutput || '' : JSON.stringify(selectedSpan, null, 2))}
+                  className="flex items-center gap-1 mb-1.5 text-[10px] text-zinc-400 hover:text-white bg-[#0F0F12] border border-white/[0.07] px-2 py-0.5 rounded"
+                >
+                  {copiedPayload ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                  {copiedPayload ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 bg-[#08080A]">
+                {activeSpanTab === 'input' && (
+                  <pre className="rounded border border-white/[0.07] bg-[#0F0F12] p-4 text-xs text-zinc-300 overflow-x-auto leading-relaxed whitespace-pre-wrap">
+                    {selectedSpan.rawInput || '// No input payload recorded'}
+                  </pre>
+                )}
+                {activeSpanTab === 'output' && (
+                  <pre className="rounded border border-white/[0.07] bg-[#0F0F12] p-4 text-xs text-zinc-300 overflow-x-auto leading-relaxed whitespace-pre-wrap">
+                    {selectedSpan.rawOutput || '// No output recorded'}
+                  </pre>
+                )}
+                {activeSpanTab === 'metadata' && (
+                  <div className="border border-white/[0.07] rounded bg-[#0F0F12] divide-y divide-white/[0.05]">
+                    {[
+                      ['span_id', selectedSpan.spanId],
+                      ['parent_span_id', selectedSpan.parentSpanId || 'ROOT'],
+                      ['type', selectedSpan.type],
+                      ['status', selectedSpan.status],
+                      ['model', selectedSpan.model || '—'],
+                      ['provider', selectedSpan.provider || '—'],
+                      ['latency_ms', `${selectedSpan.latencyMs}`],
+                      ['tokens', `${selectedSpan.tokens}`],
+                      ['input_tokens', `${selectedSpan.inputTokens || 0}`],
+                      ['output_tokens', `${selectedSpan.outputTokens || 0}`],
+                      ['cost_usd', `${selectedSpan.cost}`],
+                      ['retry_count', `${selectedSpan.retryCount || 0}`],
+                    ].map(([key, val]) => (
+                      <div key={key} className="p-2.5 flex justify-between text-[11px]">
+                        <span className="text-zinc-500">{key}</span>
+                        <span className="text-white font-bold">{val}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {activeSpanTab === 'raw' && (
+                  <pre className="rounded border border-white/[0.07] bg-[#0F0F12] p-4 text-xs text-zinc-300 overflow-x-auto leading-relaxed whitespace-pre-wrap">
+                    {JSON.stringify(selectedSpan, null, 2)}
+                  </pre>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeRightTab === 'span' && !selectedSpan && (
+            <div className="flex-1 flex items-center justify-center text-center text-xs text-zinc-500">
+              Select a span from the left pane to inspect.
+            </div>
+          )}
+
+          {/* TAB: Trace I/O */}
+          {activeRightTab === 'trace' && (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex items-center gap-1 border-b border-white/[0.07] bg-[#08080A] px-4 pt-1.5 shrink-0">
+                {(['input', 'output', 'error'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTraceTab(tab)}
+                    className={`pb-1.5 px-2 font-bold uppercase tracking-wider border-b-2 text-[10px] transition-all ${
+                      activeTraceTab === tab ? 'border-blue-500 text-blue-400' : 'border-transparent text-zinc-500 hover:text-white'
+                    }`}
+                  >
+                    {tab === 'error' ? `Error ${run.error ? '⚠' : ''}` : `Trace ${tab}`}
+                  </button>
+                ))}
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 bg-[#08080A]">
+                {activeTraceTab === 'input' && (
+                  <pre className="rounded border border-white/[0.07] bg-[#0F0F12] p-4 text-xs text-zinc-300 overflow-x-auto leading-relaxed whitespace-pre-wrap">
+                    {run.input || '// No trace-level input recorded'}
+                  </pre>
+                )}
+                {activeTraceTab === 'output' && (
+                  <pre className="rounded border border-white/[0.07] bg-[#0F0F12] p-4 text-xs text-zinc-300 overflow-x-auto leading-relaxed whitespace-pre-wrap">
+                    {run.output || '// No trace-level output recorded'}
+                  </pre>
+                )}
+                {activeTraceTab === 'error' && (
+                  <div className="space-y-3">
+                    {run.error ? (
+                      <div className="rounded border border-red-500/30 bg-red-500/5 p-4 text-xs text-red-300 font-mono leading-relaxed">
+                        {run.errorType && <div className="text-red-400 font-bold mb-1">[{run.errorType}]</div>}
+                        {run.error}
+                      </div>
+                    ) : (
+                      <div className="rounded border border-emerald-500/20 bg-emerald-500/5 p-4 text-xs text-emerald-300 text-center">
+                        <CheckCircle2 className="h-5 w-5 mx-auto mb-2 text-emerald-400" />
+                        No errors — run completed successfully.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: Detections */}
+          {activeRightTab === 'detections' && (
+            <div className="flex-1 overflow-y-auto p-4 bg-[#08080A] space-y-2">
+              {detections.length === 0 ? (
+                <div className="text-center py-12">
+                  <Shield className="h-6 w-6 text-emerald-400 mx-auto mb-2" />
+                  <p className="text-xs text-zinc-400">No issues detected in this trace.</p>
+                </div>
+              ) : (
+                detections.map((d, i) => {
+                  const severityColor = d.severity === 'CRITICAL' ? 'border-red-500/30 bg-red-500/5' :
+                    d.severity === 'HIGH' ? 'border-amber-500/30 bg-amber-500/5' :
+                    d.severity === 'MEDIUM' ? 'border-yellow-500/30 bg-yellow-500/5' :
+                    'border-zinc-500/20 bg-zinc-500/5';
+                  const sevTextColor = d.severity === 'CRITICAL' ? 'text-red-400' :
+                    d.severity === 'HIGH' ? 'text-amber-400' :
+                    d.severity === 'MEDIUM' ? 'text-yellow-400' : 'text-zinc-400';
+                  return (
+                    <div key={i} className={`rounded border p-3 space-y-2 ${severityColor}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[9px] font-bold px-1 py-0.5 rounded border uppercase ${sevTextColor}`}>{d.severity}</span>
+                          <span className="text-[10px] text-zinc-500 font-mono uppercase">{d.type.replace(/_/g, ' ')}</span>
+                        </div>
+                        {d.spanName && (
+                          <button
+                            onClick={() => { const s = run.spans.find(sp => sp.spanId === d.spanId); if (s) { setSelectedSpan(s); setActiveRightTab('span'); } }}
+                            className="text-[10px] text-blue-400 hover:underline flex items-center gap-0.5"
+                          >
+                            {d.spanName} <ArrowUpRight className="h-2.5 w-2.5" />
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-white font-semibold font-sans">{d.title}</p>
+                      <p className="text-[11px] text-zinc-400 font-sans">{d.description}</p>
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <div>
+                          <span className="text-[9px] text-zinc-500 uppercase font-bold block">Impact</span>
+                          <span className="text-[11px] text-amber-300/80 font-mono">{d.impact}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] text-zinc-500 uppercase font-bold block">Fix</span>
+                          <span className="text-[11px] text-emerald-300/80 font-mono">{d.recommendation}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          {/* TAB: Investigation */}
+          {activeRightTab === 'investigation' && (
+            <div className="flex-1 overflow-y-auto p-4 bg-[#08080A] space-y-3">
+              {isInvestigating ? (
+                <div className="text-center py-16">
+                  <Loader2 className="h-6 w-6 animate-spin text-amber-400 mx-auto mb-3" />
+                  <p className="text-xs text-zinc-400">Running trace analysis...</p>
+                  <p className="text-[10px] text-zinc-600 mt-1">Analyzing {run.spans.length} spans, {detections.length} detections</p>
+                </div>
+              ) : investigation ? (
+                <>
+                  {/* Confidence */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-amber-400" />
+                      <h3 className="text-xs font-bold text-white font-sans uppercase">Root Cause Analysis</h3>
+                    </div>
+                    <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded border ${
+                      investigation.confidence >= 80 ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' :
+                      investigation.confidence >= 60 ? 'text-amber-400 border-amber-500/30 bg-amber-500/10' :
+                      'text-zinc-400 border-zinc-500/30 bg-zinc-500/10'
+                    }`}>
+                      {investigation.confidence}% confidence
+                    </span>
                   </div>
 
-                  {/* 1-Click Copy Payload Button */}
-                  <button
-                    onClick={() => copyText(
-                      activeRightTab === 'input'
-                        ? selectedSpan.rawInput || ''
-                        : activeRightTab === 'output'
-                        ? selectedSpan.rawOutput || ''
-                        : JSON.stringify(selectedSpan, null, 2)
-                    )}
-                    className="flex items-center gap-1 mb-2 text-[11px] text-zinc-400 hover:text-white bg-[#0F0F12] border border-[#1E1E24] px-2.5 py-0.5 rounded"
-                  >
-                    {copiedPayload ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                    {copiedPayload ? 'Copied' : 'Copy'}
-                  </button>
-                </div>
+                  {/* Root Cause */}
+                  <div className="rounded border border-white/[0.07] bg-[#121217] p-3">
+                    <span className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Root Cause</span>
+                    <p className="text-xs text-white font-sans leading-relaxed">{investigation.rootCause}</p>
+                  </div>
 
-                {/* Payload Viewport */}
-                <div className="flex-1 overflow-y-auto p-4 bg-[#08080A] font-mono text-xs text-zinc-300">
-                  {activeRightTab === 'input' && (
-                    <pre className="rounded border border-[#1E1E24] bg-[#0F0F12] p-4 font-mono text-xs text-zinc-300 overflow-x-auto leading-relaxed whitespace-pre-wrap">
-                      {selectedSpan.rawInput || '// No raw input payload recorded for this span'}
-                    </pre>
-                  )}
-
-                  {activeRightTab === 'output' && (
-                    <pre className="rounded border border-[#1E1E24] bg-[#0F0F12] p-4 font-mono text-xs text-zinc-300 overflow-x-auto leading-relaxed whitespace-pre-wrap">
-                      {selectedSpan.rawOutput || '// No execution output recorded for this span'}
-                    </pre>
-                  )}
-
-                  {activeRightTab === 'metadata' && (
-                    <div className="space-y-2">
-                      <div className="border border-[#1E1E24] rounded bg-[#0F0F12] divide-y divide-[#1E1E24]">
-                        <div className="p-2.5 flex justify-between">
-                          <span className="text-zinc-500">span_type</span>
-                          <span className="text-white font-bold">{selectedSpan.type}</span>
-                        </div>
-                        <div className="p-2.5 flex justify-between">
-                          <span className="text-zinc-500">model_family</span>
-                          <span className="text-white font-bold">{run.modelFamily}</span>
-                        </div>
-                        <div className="p-2.5 flex justify-between">
-                          <span className="text-zinc-500">provider</span>
-                          <span className="text-white font-bold">Anthropic / OpenAI</span>
-                        </div>
-                        <div className="p-2.5 flex justify-between">
-                          <span className="text-zinc-500">otel_standard</span>
-                          <span className="text-white font-bold">v1.28.0</span>
-                        </div>
+                  {/* Evidence */}
+                  {investigation.evidence.length > 0 && (
+                    <div className="rounded border border-white/[0.07] bg-[#121217] p-3">
+                      <span className="text-[9px] text-zinc-500 uppercase font-bold block mb-1.5">Evidence</span>
+                      <div className="space-y-1">
+                        {investigation.evidence.map((e, i) => (
+                          <div key={i} className="flex items-start gap-1.5 text-[11px] text-zinc-300 font-mono">
+                            <span className="text-blue-400 mt-0.5">•</span>
+                            <span>{e}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
 
-                  {activeRightTab === 'raw' && (
-                    <pre className="rounded border border-[#1E1E24] bg-[#0F0F12] p-4 font-mono text-xs text-zinc-300 overflow-x-auto leading-relaxed whitespace-pre-wrap">
-                      {JSON.stringify(selectedSpan, null, 2)}
-                    </pre>
-                  )}
+                  {/* Observed / Inferred / Suggested */}
+                  <div className="grid grid-cols-1 gap-2">
+                    {investigation.inferred.length > 0 && (
+                      <div className="rounded border border-amber-500/20 bg-amber-500/5 p-3">
+                        <span className="text-[9px] text-amber-400 uppercase font-bold block mb-1">Inferred</span>
+                        {investigation.inferred.map((item, i) => (
+                          <p key={i} className="text-[11px] text-amber-200/80 font-mono">{item}</p>
+                        ))}
+                      </div>
+                    )}
+                    {investigation.suggested.length > 0 && (
+                      <div className="rounded border border-emerald-500/20 bg-emerald-500/5 p-3">
+                        <span className="text-[9px] text-emerald-400 uppercase font-bold block mb-1">Suggested Actions</span>
+                        {investigation.suggested.map((item, i) => (
+                          <p key={i} className="text-[11px] text-emerald-200/80 font-mono">{item}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Impact + Recommendation */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded border border-white/[0.07] bg-[#121217] p-3">
+                      <span className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Impact</span>
+                      <p className="text-[11px] text-zinc-300 font-mono">{investigation.impact}</p>
+                    </div>
+                    <div className="rounded border border-white/[0.07] bg-[#121217] p-3">
+                      <span className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Recommendation</span>
+                      <p className="text-[11px] text-zinc-300 font-mono">{investigation.recommendation}</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-16">
+                  <Sparkles className="h-6 w-6 text-zinc-600 mx-auto mb-3" />
+                  <p className="text-xs text-zinc-400 font-sans">Click <strong>"Investigate"</strong> to run AI root cause analysis.</p>
+                  <p className="text-[10px] text-zinc-600 mt-1">Analyzes spans, detections, errors, and execution patterns.</p>
                 </div>
-
-              </div>
-
-            </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center p-6 text-center text-xs text-zinc-500 font-mono">
-              Select any span from the left pane to inspect telemetry attributes and raw JSON payloads.
+              )}
             </div>
           )}
 
         </div>
-
       </div>
-
     </div>
   );
 }

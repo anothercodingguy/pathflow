@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { formatRunToPathData } from '@/lib/data';
 
 export async function GET(request: Request) {
   try {
@@ -8,6 +9,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q') || '';
     const status = searchParams.get('status') || '';
+    const agent = searchParams.get('agent') || '';
+    const env = searchParams.get('env') || '';
+    const project = searchParams.get('project') || '';
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200);
 
     const where: any = {};
     if (currentUser) {
@@ -23,63 +29,51 @@ export async function GET(request: Request) {
     if (status && status !== 'ALL') {
       where.status = status.toLowerCase();
     }
+    if (agent) {
+      where.agent = { name: { contains: agent } };
+    }
+    if (env && env !== 'ALL') {
+      where.env = env;
+    }
+    if (project && project !== 'ALL') {
+      where.project = project;
+    }
     if (q) {
       where.OR = [
         { title: { contains: q } },
         { description: { contains: q } },
-        { modelFamily: { contains: q } }
+        { modelFamily: { contains: q } },
+        { id: { contains: q } },
       ];
     }
 
-    const runs = await prisma.run.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        user: true,
-        agent: true,
-        spans: {
-          orderBy: { createdAt: 'asc' }
+    const [runs, total] = await Promise.all([
+      prisma.run.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          user: true,
+          agent: true,
+          spans: {
+            orderBy: { createdAt: 'asc' }
+          }
         }
-      }
+      }),
+      prisma.run.count({ where })
+    ]);
+
+    const formattedPaths = runs.map(formatRunToPathData);
+
+    return NextResponse.json({
+      success: true,
+      count: formattedPaths.length,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      paths: formattedPaths
     });
-
-    const formattedPaths = runs.map(run => ({
-      id: run.id,
-      title: run.title,
-      description: run.description || '',
-      agent: {
-        id: run.agent?.id || '',
-        name: run.agent?.name || 'CodeRefactor Agent',
-        framework: run.agent?.framework || 'Custom',
-      },
-      status: run.status.toUpperCase(),
-      tps: run.actionVelocityTps,
-      cost: run.totalCostUsd,
-      tokens: run.totalTokens,
-      durationMs: run.wallClockMs,
-      elevationDepth: run.dagDepth,
-      modelFamily: run.modelFamily,
-      createdAt: new Date(run.createdAt).toLocaleString(),
-      project: run.project || 'default',
-      env: run.env || 'production',
-      spans: run.spans.map(s => ({
-        id: s.id,
-        spanId: s.spanId,
-        name: s.name,
-        type: s.type,
-        status: s.status,
-        latencyMs: s.latencyMs,
-        tokens: s.tokens,
-        cost: s.cost,
-        rawInput: s.rawInput,
-        rawOutput: s.rawOutput,
-        diagnosticTag: s.diagnosticTag || undefined,
-        diagnosticSummary: s.diagnosticSummary || undefined,
-        parentSpanId: s.parentSpanId || undefined
-      }))
-    }));
-
-    return NextResponse.json({ success: true, count: formattedPaths.length, paths: formattedPaths });
   } catch (error: any) {
     console.error('API Error /api/paths:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

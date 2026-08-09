@@ -29,7 +29,7 @@ function LoginContent() {
     if (!apiKey.trim()) return;
 
     // Set fallback session cookie for API Key developer session
-    document.cookie = `authjs.session-token=${apiKey.trim()}; path=/; max-age=2592000`;
+    document.cookie = `pathflow_session=${apiKey.trim()}; path=/; max-age=2592000`;
     localStorage.setItem('pathflow_api_key', apiKey.trim());
     window.location.href = callbackUrl;
   };

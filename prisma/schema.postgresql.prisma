@@ -65,6 +65,7 @@ model Agent {
   name        String
   framework   String   @default("Custom")
   modelFamily String
+  description String?
   runs        Run[]
   user        User?    @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
@@ -93,9 +94,24 @@ model Run {
   project           String   @default("default")
   env               String   @default("production")
 
+  // Extended Observability Fields
+  input             String?
+  output            String?
+  error             String?
+  errorType         String?
+  sessionId         String?
+  endUserId         String?
+  qualityScore      Int?
+  version           String?
+  promptVersion     String?
+  gitCommit         String?
+  isDemo            Boolean  @default(false)
+
   user              User     @relation(fields: [userId], references: [id])
   agent             Agent?   @relation(fields: [agentId], references: [id])
   spans             Span[]
+  detections        Detection[]
+  investigation     Investigation?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -115,6 +131,44 @@ model Span {
   rawOutput         String?
   diagnosticTag     String?
   diagnosticSummary String?
+  
+  model             String?
+  provider          String?
+  inputTokens       Int?     @default(0)
+  outputTokens      Int?     @default(0)
+  errorType         String?
+  errorMessage      String?
+  retryCount        Int      @default(0)
+  metadata          String?
+  attributes        String?
+
   run               Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
   createdAt         DateTime @default(now())
+}
+
+model Detection {
+  id        String   @id @default(uuid())
+  runId     String
+  type      String
+  severity  String
+  message   String
+  metadata  String?
+  run       Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Investigation {
+  id             String   @id @default(uuid())
+  runId          String   @unique
+  rootCause      String
+  confidence     Int
+  evidence       String?
+  recommendation String?
+  impact         String?
+  observed       String?
+  inferred       String?
+  suggested      String?
+  status         String?
+  run            Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
 }

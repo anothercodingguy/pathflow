@@ -3,7 +3,7 @@ export interface SpanData {
   spanId: string;
   parentSpanId?: string | null;
   name: string;
-  type: 'Prompt' | 'WebSearch' | 'CodeExec' | 'LLMCall' | 'VectorDB' | 'Reflection' | 'Browser' | 'Memory' | 'Output' | string;
+  type: 'agent' | 'llm' | 'tool' | 'retrieval' | 'embedding' | 'reranker' | 'guardrail' | 'chain' | 'workflow' | 'custom' | 'Prompt' | 'WebSearch' | 'CodeExec' | 'LLMCall' | 'VectorDB' | 'Reflection' | 'Browser' | 'Memory' | 'Output' | string;
   status: 'SUCCESS' | 'FAILED' | 'RETRY' | 'KILLED' | string;
   latencyMs: number;
   tokens: number;
@@ -12,6 +12,17 @@ export interface SpanData {
   rawOutput?: string;
   diagnosticTag?: 'BAD_TOOL_SCHEMA' | 'VECTOR_RETRIEVAL_EMPTY' | 'PROMPT_DRIFT' | 'CIRCUIT_BREAKER_KILL' | string;
   diagnosticSummary?: string;
+
+  // Extended span fields
+  model?: string;
+  provider?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  errorType?: string;
+  errorMessage?: string;
+  retryCount?: number;
+  metadata?: string;
+  attributes?: string;
 }
 
 export interface PathData {
@@ -34,6 +45,21 @@ export interface PathData {
     framework: string;
   };
   spans: SpanData[];
+
+  // Extended trace fields
+  input?: string;
+  output?: string;
+  error?: string;
+  errorType?: string;
+  sessionId?: string;
+  endUserId?: string;
+  qualityScore?: number;
+  version?: string;
+  promptVersion?: string;
+  gitCommit?: string;
+  isDemo?: boolean;
+  promptTokens?: number;
+  completionTokens?: number;
 }
 
 export type CurrencyMode = 'USD' | 'INR';
@@ -58,6 +84,69 @@ export function formatCostDisplay(costUsd: number, currency: CurrencyMode = 'USD
     return { text: '—', label: 'Pricing unavailable', isUnavailable: true };
   }
   return { text: formatCurrency(costUsd, currency), label: currency, isUnavailable: false };
+}
+
+/**
+ * Format a Prisma run record into PathData for the frontend.
+ */
+export function formatRunToPathData(run: any): PathData {
+  return {
+    id: run.id,
+    title: run.title,
+    description: run.description || '',
+    agent: {
+      id: run.agent?.id || '',
+      name: run.agent?.name || 'Agent',
+      framework: run.agent?.framework || 'Custom',
+    },
+    status: run.status.toUpperCase(),
+    tps: run.actionVelocityTps,
+    cost: run.totalCostUsd,
+    tokens: run.totalTokens,
+    durationMs: run.wallClockMs,
+    elevationDepth: run.dagDepth,
+    modelFamily: run.modelFamily,
+    createdAt: run.createdAt instanceof Date ? run.createdAt.toISOString() : new Date(run.createdAt).toISOString(),
+    project: run.project || 'default',
+    env: run.env || 'production',
+    input: run.input || undefined,
+    output: run.output || undefined,
+    error: run.error || undefined,
+    errorType: run.errorType || undefined,
+    sessionId: run.sessionId || undefined,
+    endUserId: run.endUserId || undefined,
+    qualityScore: run.qualityScore ?? undefined,
+    version: run.version || undefined,
+    promptVersion: run.promptVersion || undefined,
+    gitCommit: run.gitCommit || undefined,
+    isDemo: run.isDemo || false,
+    promptTokens: run.promptTokens || 0,
+    completionTokens: run.completionTokens || 0,
+    spans: (run.spans || []).map((s: any) => ({
+      id: s.id,
+      spanId: s.spanId,
+      name: s.name,
+      type: s.type,
+      status: s.status,
+      latencyMs: s.latencyMs,
+      tokens: s.tokens,
+      cost: s.cost,
+      rawInput: s.rawInput || undefined,
+      rawOutput: s.rawOutput || undefined,
+      diagnosticTag: s.diagnosticTag || undefined,
+      diagnosticSummary: s.diagnosticSummary || undefined,
+      parentSpanId: s.parentSpanId || undefined,
+      model: s.model || undefined,
+      provider: s.provider || undefined,
+      inputTokens: s.inputTokens || 0,
+      outputTokens: s.outputTokens || 0,
+      errorType: s.errorType || undefined,
+      errorMessage: s.errorMessage || undefined,
+      retryCount: s.retryCount || 0,
+      metadata: s.metadata || undefined,
+      attributes: s.attributes || undefined,
+    })),
+  };
 }
 
 /**
