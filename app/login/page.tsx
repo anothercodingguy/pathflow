@@ -7,8 +7,8 @@ import { Key, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
 
 function LoginContent() {
   const searchParams = useSearchParams();
-  const rawCallback = searchParams.get('callbackUrl') || '/runs';
-  const callbackUrl = rawCallback.startsWith('/app') ? (rawCallback.replace(/^\/app/, '') || '/runs') : rawCallback;
+  const rawCallback = searchParams.get('callbackUrl') || '/app/runs';
+  const callbackUrl = rawCallback.startsWith('/app') ? rawCallback : `/app${rawCallback.startsWith('/') ? '' : '/'}${rawCallback}`;
   const errorParam = searchParams.get('error');
 
   const [isLoading, setIsLoading] = useState(false);

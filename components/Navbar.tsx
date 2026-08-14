@@ -91,7 +91,7 @@ export default function Navbar() {
     localStorage.removeItem('pathflow_auth_provider');
     document.cookie = 'authjs.session-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     document.cookie = 'pathflow_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    await signOut({ callbackUrl: '/login' });
+    await signOut({ callbackUrl: '/app/login' });
   };
 
   const handleSearch = (e: React.FormEvent) => {
