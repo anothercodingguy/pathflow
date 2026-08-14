@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
-  basePath: "/app/api/auth",
+  basePath: "/api/auth",
   adapter: PrismaAdapter(prisma),
   providers: [
     Google({
