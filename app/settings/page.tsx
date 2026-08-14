@@ -11,7 +11,9 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'api_keys' | 'sdk' | 'endpoints' | 'workspace' | 'theme'>('api_keys');
   const [sdkCommand] = useState('pip install pathflow');
   const [apiKey, setApiKey] = useState('pf_live_secret_key');
-  const defaultEndpoint = process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/v1` : 'https://thepathflow.online/app/api/v1';
+  const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://thepathflow.online/app';
+  const appBase = rawAppUrl.endsWith('/app') ? rawAppUrl : `${rawAppUrl}/app`;
+  const defaultEndpoint = `${appBase}/api/v1`;
   const [endpoint] = useState(defaultEndpoint);
   const [defaultProject, setDefaultProject] = useState('backend-agents');
   const [defaultEnv, setDefaultEnv] = useState('production');

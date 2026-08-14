@@ -7,7 +7,6 @@ export async function GET() {
       include: {
         runs: {
           orderBy: { createdAt: 'desc' },
-          take: 5,
           select: {
             id: true,
             title: true,
@@ -23,20 +22,28 @@ export async function GET() {
     });
 
     const formattedAgents = agents.map((agent) => {
-      const runs = agent.runs || [];
-      const totalRuns = runs.length;
+      const allRuns = agent.runs || [];
+      const totalRuns = allRuns.length;
 
-      // To get accurate stats, query all runs for this agent
-      const successCount = runs.filter(r => r.status === 'completed').length;
+      const successCount = allRuns.filter(r => r.status === 'completed').length;
       const successRate = totalRuns > 0 ? Math.round((successCount / totalRuns) * 100) : 0;
-      const avgLatency = totalRuns > 0 ? Math.round(runs.reduce((a, r) => a + r.wallClockMs, 0) / totalRuns) : 0;
-      const avgCost = totalRuns > 0 ? runs.reduce((a, r) => a + r.totalCostUsd, 0) / totalRuns : 0;
-      const totalCost = runs.reduce((a, r) => a + r.totalCostUsd, 0);
-      const avgTokens = totalRuns > 0 ? Math.round(runs.reduce((a, r) => a + r.totalTokens, 0) / totalRuns) : 0;
-      const qualityRuns = runs.filter(r => r.qualityScore != null);
+      const avgLatency = totalRuns > 0 ? Math.round(allRuns.reduce((a, r) => a + r.wallClockMs, 0) / totalRuns) : 0;
+      const avgCost = totalRuns > 0 ? allRuns.reduce((a, r) => a + r.totalCostUsd, 0) / totalRuns : 0;
+      const totalCost = allRuns.reduce((a, r) => a + r.totalCostUsd, 0);
+      const avgTokens = totalRuns > 0 ? Math.round(allRuns.reduce((a, r) => a + r.totalTokens, 0) / totalRuns) : 0;
+      const qualityRuns = allRuns.filter(r => r.qualityScore != null);
       const avgQuality = qualityRuns.length > 0
         ? Math.round(qualityRuns.reduce((a, r) => a + (r.qualityScore || 0), 0) / qualityRuns.length)
         : null;
+
+      const recentRuns = allRuns.slice(0, 5).map(r => ({
+        id: r.id,
+        title: r.title,
+        status: r.status,
+        wallClockMs: r.wallClockMs,
+        totalCostUsd: r.totalCostUsd,
+        createdAt: r.createdAt.toISOString(),
+      }));
 
       return {
         id: agent.id,
@@ -51,14 +58,7 @@ export async function GET() {
         totalCost: Math.round(totalCost * 1000) / 1000,
         avgTokens,
         avgQuality,
-        recentRuns: runs.map(r => ({
-          id: r.id,
-          title: r.title,
-          status: r.status,
-          wallClockMs: r.wallClockMs,
-          totalCostUsd: r.totalCostUsd,
-          createdAt: r.createdAt.toISOString(),
-        })),
+        recentRuns,
       };
     });
 

@@ -82,7 +82,7 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
       const lSpan = leftTrace.spans.find(s => s.name === rSpan.name || s.type === rSpan.type);
       if (lSpan) {
         const diffMs = rSpan.latencyMs - lSpan.latencyMs;
-        const pct = ((rSpan.latencyMs - lSpan.latencyMs) / lSpan.latencyMs) * 100;
+        const pct = lSpan.latencyMs > 0 ? ((rSpan.latencyMs - lSpan.latencyMs) / lSpan.latencyMs) * 100 : 0;
         if (Math.abs(pct) > 10) {
           changedSpans.push({
             name: rSpan.name,

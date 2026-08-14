@@ -15,7 +15,6 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200);
 
-    const where: any = {};
     const userIds = currentUser ? [currentUser.id] : [];
     const defaultAdmin = await prisma.user.findFirst({
       where: { OR: [{ apiKey: 'pf_live_suyash_secret_9942' }, { email: 'admin@pathflow.dev' }] }
@@ -23,32 +22,41 @@ export async function GET(request: Request) {
     if (defaultAdmin && !userIds.includes(defaultAdmin.id)) {
       userIds.push(defaultAdmin.id);
     }
+
+    const andConditions: any[] = [];
     if (userIds.length > 0) {
-      where.OR = [
-        { userId: { in: userIds } },
-        { isDemo: true }
-      ];
+      andConditions.push({
+        OR: [
+          { userId: { in: userIds } },
+          { isDemo: true }
+        ]
+      });
     }
+
     if (status && status !== 'ALL') {
-      where.status = status.toLowerCase();
+      andConditions.push({ status: status.toLowerCase() });
     }
     if (agent) {
-      where.agent = { name: { contains: agent } };
+      andConditions.push({ agent: { name: { contains: agent } } });
     }
     if (env && env !== 'ALL') {
-      where.env = env;
+      andConditions.push({ env });
     }
     if (project && project !== 'ALL') {
-      where.project = project;
+      andConditions.push({ project });
     }
     if (q) {
-      where.OR = [
-        { title: { contains: q } },
-        { description: { contains: q } },
-        { modelFamily: { contains: q } },
-        { id: { contains: q } },
-      ];
+      andConditions.push({
+        OR: [
+          { title: { contains: q } },
+          { description: { contains: q } },
+          { modelFamily: { contains: q } },
+          { id: { contains: q } },
+        ]
+      });
     }
+
+    const where = andConditions.length > 0 ? { AND: andConditions } : {};
 
     const [runs, total] = await Promise.all([
       prisma.run.findMany({

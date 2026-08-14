@@ -42,8 +42,9 @@ export async function POST(request: Request) {
       },
     });
 
-    const host = process.env.NEXT_PUBLIC_APP_URL || "https://thepathflow.online";
-    const redirectUrl = `${host}/app/settings/billing/verify?orderId=${encodeURIComponent(merchantOrderId)}`;
+    const rawHost = process.env.NEXT_PUBLIC_APP_URL || "https://thepathflow.online";
+    const baseDomain = rawHost.replace(/\/app\/?$/, "");
+    const redirectUrl = `${baseDomain}/app/settings/billing/verify?orderId=${encodeURIComponent(merchantOrderId)}`;
 
     const paymentResult = await initiatePhonePePayment({
       merchantOrderId,

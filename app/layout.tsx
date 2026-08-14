@@ -18,9 +18,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="light">
+    <html lang="en">
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `document.documentElement.classList.add('light');` }} />
+        <script dangerouslySetInnerHTML={{ __html: `try{if(localStorage.getItem('pathflow_theme')==='light'){document.documentElement.classList.add('light');}else{document.documentElement.classList.remove('light');}}catch(e){}` }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

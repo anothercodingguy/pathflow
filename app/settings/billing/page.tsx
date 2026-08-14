@@ -64,7 +64,8 @@ function BillingContent() {
   const fetchBillingInfo = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/billing/history");
+      const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+      const res = await fetch(`${apiBase}/api/billing/history`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
@@ -99,7 +100,8 @@ function BillingContent() {
       setUpgradingPlan(planId);
       setErrorMsg(null);
       
-      const res = await fetch("/api/billing/create-order", {
+      const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+      const res = await fetch(`${apiBase}/api/billing/create-order`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan: planId }),
@@ -109,12 +111,12 @@ function BillingContent() {
       if (data.success && data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       } else {
-        setErrorMsg(data.error || "Unable to initiate payment with PhonePe.");
+        setErrorMsg(data.error || "Unable to initiate payment checkout.");
         setUpgradingPlan(null);
       }
     } catch (err: any) {
       console.error("Checkout initiation error:", err);
-      setErrorMsg(err?.message || "Failed to connect to PhonePe gateway.");
+      setErrorMsg(err?.message || "Failed to connect to payment gateway.");
       setUpgradingPlan(null);
     }
   };
@@ -150,9 +152,9 @@ function BillingContent() {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 font-mono text-[11px] font-semibold flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-            PhonePe Standard Checkout
+          <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono text-[11px] font-semibold flex items-center gap-1.5">
+            <CreditCard className="w-3.5 h-3.5 text-blue-400" />
+            <span>Instant Checkout (INR)</span>
           </span>
         </div>
       </div>
@@ -251,13 +253,13 @@ function BillingContent() {
               )}
             </div>
 
-            {/* Honest Billing Note */}
+            {/* Transparent Billing Note */}
             <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
-              <div className="flex items-center gap-1.5 text-zinc-400 font-semibold text-[11px]">
-                <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
-                <span>PhonePe Standard Checkout</span>
+              <div className="flex items-center gap-1.5 text-zinc-300 font-semibold text-[11px]">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Transparent Subscription Billing</span>
               </div>
-              <p className="text-[11px] text-zinc-500 leading-relaxed">
+              <p className="text-[11px] text-zinc-400 leading-relaxed">
                 PathFlow billing uses one-time monthly payments with seamless manual renewal reminders. No hidden recurring auto-debits without your explicit approval.
               </p>
             </div>
@@ -358,10 +360,10 @@ function BillingContent() {
                     className="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all shadow-md active:scale-[0.99] flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     {upgradingPlan === "PRO" ? (
-                      <span>Opening PhonePe...</span>
+                      <span>Redirecting to Checkout...</span>
                     ) : (
                       <>
-                        <span>Upgrade with PhonePe</span>
+                        <span>Upgrade to Pro</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </>
                     )}
@@ -406,10 +408,10 @@ function BillingContent() {
                     className="w-full py-2 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-xs transition-all shadow-md active:scale-[0.99] flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     {upgradingPlan === "TEAM" ? (
-                      <span>Opening PhonePe...</span>
+                      <span>Redirecting to Checkout...</span>
                     ) : (
                       <>
-                        <span>Upgrade with PhonePe</span>
+                        <span>Upgrade to Team</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </>
                     )}

@@ -27,19 +27,19 @@ function SimulatorContent() {
     <div className="min-h-screen bg-[#08080A] text-white flex items-center justify-center p-4 font-sans">
       <div className="w-full max-w-md bg-[#121217] border border-white/10 rounded-2xl p-6 shadow-2xl space-y-6">
         
-        {/* PhonePe Header */}
+        {/* Checkout Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#5F259F] flex items-center justify-center font-bold text-white text-sm">
-              पे
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center font-bold text-blue-400 text-sm">
+              <CreditCard className="w-4 h-4" />
             </div>
             <div>
-              <div className="font-bold text-sm text-white">PhonePe Standard Checkout</div>
-              <div className="text-[10px] text-purple-400 font-mono font-semibold">SANDBOX UAT ENVIRONMENT</div>
+              <div className="font-bold text-sm text-white">PathFlow Checkout Simulator</div>
+              <div className="text-[10px] text-blue-400 font-mono font-semibold">TEST ENVIRONMENT (INR)</div>
             </div>
           </div>
           <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-mono border border-emerald-500/20">
-            TEST MODE
+            SANDBOX
           </span>
         </div>
 
