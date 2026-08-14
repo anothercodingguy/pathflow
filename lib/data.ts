@@ -158,7 +158,8 @@ export async function fetchRunsFromApi(query: string = '', status: string = ''):
     if (query) params.append('q', query);
     if (status && status !== 'ALL') params.append('status', status);
 
-    const url = `/api/paths${params.toString() ? `?${params.toString()}` : ''}`;
+    const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+    const url = `${apiBase}/api/paths${params.toString() ? `?${params.toString()}` : ''}`;
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return [];
 
@@ -172,7 +173,8 @@ export async function fetchRunsFromApi(query: string = '', status: string = ''):
 
 export async function fetchRunByIdFromApi(id: string): Promise<PathData | null> {
   try {
-    const res = await fetch(`/api/paths/${id}`, { cache: 'no-store' });
+    const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+    const res = await fetch(`${apiBase}/api/paths/${id}`, { cache: 'no-store' });
     if (!res.ok) return null;
 
     const data = await res.json();

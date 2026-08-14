@@ -7,7 +7,8 @@ import { Key, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
 
 function LoginContent() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/runs';
+  const rawCallback = searchParams.get('callbackUrl') || '/runs';
+  const callbackUrl = rawCallback.startsWith('/app') ? (rawCallback.replace(/^\/app/, '') || '/runs') : rawCallback;
   const errorParam = searchParams.get('error');
 
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +32,8 @@ function LoginContent() {
     // Set fallback session cookie for API Key developer session
     document.cookie = `pathflow_session=${apiKey.trim()}; path=/; max-age=2592000`;
     localStorage.setItem('pathflow_api_key', apiKey.trim());
-    window.location.href = callbackUrl;
+    const targetUrl = callbackUrl.startsWith('/app') ? callbackUrl : `/app${callbackUrl.startsWith('/') ? '' : '/'}${callbackUrl}`;
+    window.location.href = targetUrl;
   };
 
   return (

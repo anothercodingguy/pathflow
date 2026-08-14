@@ -171,7 +171,8 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
     setIsInvestigating(true);
     setActiveRightTab('investigation');
     try {
-      const res = await fetch('/api/v1/investigations', {
+      const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+      const res = await fetch(`${apiBase}/api/v1/investigations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ runId: run.id }),

@@ -6,6 +6,9 @@ export interface UserSession {
   email: string;
   name: string;
   apiKey: string;
+  plan?: string;
+  planStatus?: string;
+  planExpiresAt?: Date | null;
   image?: string | null;
 }
 
@@ -32,6 +35,9 @@ export async function getCurrentUser(): Promise<UserSession | null> {
           email: user.email || 'user@pathflow.dev',
           name: user.name || 'PathFlow User',
           apiKey: user.apiKey,
+          plan: user.plan || 'FREE',
+          planStatus: user.planStatus || 'ACTIVE',
+          planExpiresAt: user.planExpiresAt,
           image: user.image || session.user.image,
         };
       }

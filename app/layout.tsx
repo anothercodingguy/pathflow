@@ -6,6 +6,10 @@ import Providers from '@/components/Providers';
 export const metadata: Metadata = {
   title: 'PathFlow | DevTools for AI Agents',
   description: 'Full-width IDE trace inspector, Flame Graphs, Timelines, Critical Path Highlighting, and GitHub PR-style run diffing for AI agents.',
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({

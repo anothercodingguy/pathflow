@@ -42,10 +42,10 @@ Go to [https://console.cloud.google.com/](https://console.cloud.google.com/) and
 4. Name: `PathFlow Web Client`.
 5. **Authorized JavaScript origins**:
    - `http://localhost:3000`
-   - `https://pathflow-psi.vercel.app`
+   - `https://thepathflow.online`
 6. **Authorized redirect URIs** (Exact Auth.js Callback Routes):
-   - **Development**: `http://localhost:3000/api/auth/callback/google`
-   - **Production**: `https://pathflow-psi.vercel.app/api/auth/callback/google`
+   - **Development**: `http://localhost:3000/app/api/auth/callback/google`
+   - **Production**: `https://thepathflow.online/app/api/auth/callback/google`
 7. Click **Create**.
 
 ---
@@ -56,6 +56,19 @@ A modal will display your credentials:
 - **Client Secret**: `GOCSPX-xxxx`
 
 Copy both values.
+
+---
+
+### Step 6: Configure Environment Variables in Vercel
+
+Add the following environment variables to your **PathFlow** Vercel Project:
+
+| Variable | Value | Environment |
+| :--- | :--- | :--- |
+| `GOOGLE_CLIENT_ID` | `Your copied Client ID` | Production, Preview, Development |
+| `GOOGLE_CLIENT_SECRET` | `Your copied Client Secret` | Production, Preview, Development |
+| `AUTH_SECRET` | `openssl rand -base64 32` | Production, Preview, Development |
+| `NEXTAUTH_URL` | `https://thepathflow.online/app` | Production, Preview, Development |
 
 ---
 
@@ -77,7 +90,7 @@ GOOGLE_CLIENT_SECRET="GOCSPX-xxxx"
 
 ## 3. Vercel Production Environment Variables
 
-1. Go to your Vercel Dashboard at [https://vercel.com](https://vercel.com) → Select **`pathflow-psi`**.
+1. Go to your Vercel Dashboard at [https://vercel.com](https://vercel.com) → Select **`pathflow-app`**.
 2. Go to **Settings** → **Environment Variables**.
 3. Add the following variables:
 
@@ -86,7 +99,7 @@ GOOGLE_CLIENT_SECRET="GOCSPX-xxxx"
 | `GOOGLE_CLIENT_ID` | `xxxx.apps.googleusercontent.com` | Production, Preview, Development |
 | `GOOGLE_CLIENT_SECRET` | `GOCSPX-xxxx` | Production, Preview, Development |
 | `AUTH_SECRET` | `your_random_auth_secret_key` | Production, Preview, Development |
-| `NEXTAUTH_URL` | `https://pathflow-psi.vercel.app` | Production, Preview, Development |
+| `NEXTAUTH_URL` | `https://app.pathflow.dev` | Production, Preview, Development |
 
 4. Click **Save**.
 5. Go to **Deployments** → Click **Redeploy** on your latest build.
@@ -95,7 +108,7 @@ GOOGLE_CLIENT_SECRET="GOCSPX-xxxx"
 
 ## 4. Verifying Authentication Flow
 
-1. Open `http://localhost:3000/login` (or `https://pathflow-psi.vercel.app/login`).
+1. Open `http://localhost:3000/login` (or `https://app.pathflow.dev/login`).
 2. Click **Continue with Google**.
 3. Select your Google account on the consent screen.
 4. You will be redirected to **`/runs`** with an authenticated session!

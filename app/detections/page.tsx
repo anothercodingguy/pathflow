@@ -57,7 +57,8 @@ export default function DetectionsPage() {
         const params = new URLSearchParams();
         if (selectedSeverity) params.append('severity', selectedSeverity);
         if (selectedType) params.append('type', selectedType);
-        const res = await fetch(`/api/v1/detections?${params.toString()}`, { cache: 'no-store' });
+        const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+        const res = await fetch(`${apiBase}/api/v1/detections?${params.toString()}`, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           setDetections(data.detections || []);

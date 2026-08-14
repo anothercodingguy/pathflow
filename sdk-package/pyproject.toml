@@ -28,7 +28,7 @@ keywords = ["ai", "agents", "observability", "telemetry", "opentelemetry", "trac
 dependencies = []
 
 [project.urls]
-Homepage = "https://pathflow-psi.vercel.app"
+Homepage = "https://pathflow.dev"
 Repository = "https://github.com/anothercodingguy/pathflow"
 
 [tool.setuptools.packages.find]

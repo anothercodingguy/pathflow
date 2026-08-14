@@ -30,7 +30,8 @@ export default function AgentsPage() {
   useEffect(() => {
     async function loadAgents() {
       try {
-        const res = await fetch('/api/v1/agents', { cache: 'no-store' });
+        const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+        const res = await fetch(`${apiBase}/api/v1/agents`, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           setAgents(data.agents || []);

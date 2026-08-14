@@ -1,27 +1,46 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+function getCorsHeaders(request: NextRequest) {
+  const origin = request.headers.get('origin');
+  const allowedOrigins = [
+    'https://thepathflow.online',
+    'https://thepathflow.vercel.app',
+    'https://app.pathflow.dev',
+    'https://pathflow.dev',
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.NEXT_PUBLIC_MARKETING_URL,
+  ].filter(Boolean) as string[];
+
+  const isAllowed = origin ? (allowedOrigins.includes(origin) || origin.includes('localhost')) : false;
+  const corsOrigin = isAllowed ? origin! : (process.env.NEXT_PUBLIC_MARKETING_URL || 'https://thepathflow.online');
+
+  return {
+    'Access-Control-Allow-Origin': corsOrigin,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-PathFlow-Key',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Handle CORS preflight options for external Python SDK requests
+  // 1. Handle CORS preflight options for external API / Python SDK requests
   if (request.method === 'OPTIONS') {
     return new NextResponse(null, {
       status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-PathFlow-Key',
-      },
+      headers: getCorsHeaders(request),
     });
   }
 
   // 2. Inject CORS headers on API responses
   const response = NextResponse.next();
   if (pathname.startsWith('/api/')) {
-    response.headers.set('Access-Control-Allow-Origin', '*');
-    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-PathFlow-Key');
+    const corsHeaders = getCorsHeaders(request);
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
     return response;
   }
 
@@ -43,8 +62,10 @@ export function middleware(request: NextRequest) {
                          request.cookies.get('pathflow_session')?.value;
 
     if (!sessionToken) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('callbackUrl', pathname);
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = '/login';
+      const fullPath = pathname.startsWith('/app') ? pathname : `/app${pathname}`;
+      loginUrl.searchParams.set('callbackUrl', fullPath);
       return NextResponse.redirect(loginUrl);
     }
   }

@@ -1,6 +1,6 @@
 # PathFlow Python Telemetry SDK
 
-`pathflow` is a zero-config, lightweight **AI Agent Telemetry and Profiling SDK** for [PathFlow](https://pathflow-psi.vercel.app).
+`pathflow` is a zero-config, lightweight **AI Agent Telemetry and Profiling SDK** for [PathFlow](https://pathflow.dev).
 
 It automatically captures execution traces, DAG parent/child span trees, duration timing, model details, token counts, cost attribution, and exceptions for AI agents—with zero friction and zero changes to your core agent logic.
 
@@ -22,7 +22,7 @@ Set your credentials via environment variables:
 export PATHFLOW_API_KEY="pf_live_..."
 
 # Optional (only if self-hosting or using custom endpoint)
-export PATHFLOW_ENDPOINT="https://pathflow-psi.vercel.app/api/v1"
+export PATHFLOW_ENDPOINT="https://app.pathflow.dev/api/v1"
 ```
 
 Or pass them explicitly into the constructor:
@@ -32,7 +32,7 @@ from pathflow import PathFlow
 
 pf = PathFlow(
     api_key="pf_live_...",
-    endpoint="https://pathflow-psi.vercel.app/api/v1"
+    endpoint="https://app.pathflow.dev/api/v1"
 )
 ```
 

@@ -16,10 +16,19 @@ model User {
   username      String?   @unique @default(uuid())
   passwordHash  String?   @default("hashed_password")
   apiKey        String    @unique @default(uuid())
+  
+  // Billing & Subscription
+  plan          String    @default("FREE")
+  planStatus    String    @default("ACTIVE")
+  planStartedAt DateTime?
+  planExpiresAt DateTime?
+
   accounts      Account[]
   sessions      Session[]
   runs          Run[]
   agents        Agent[]
+  orders        Order[]
+  subscriptions Subscription[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -171,4 +180,38 @@ model Investigation {
   status         String?
   run            Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
   createdAt      DateTime @default(now())
+}
+
+model Order {
+  id              String    @id @default(uuid())
+  userId          String
+  plan            String    // PRO, TEAM, ENTERPRISE
+  amount          Int       // in paisa (e.g. 249900)
+  currency        String    @default("INR")
+  status          String    @default("PENDING") // PENDING, SUCCESS, FAILED, CANCELLED, EXPIRED
+  provider        String    @default("PHONEPE")
+  merchantOrderId String    @unique
+  providerOrderId String?
+  paymentDetails  String?
+  errorMessage    String?
+  paidAt          DateTime?
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Subscription {
+  id              String   @id @default(uuid())
+  userId          String
+  plan            String   // PRO, TEAM, ENTERPRISE
+  status          String   @default("ACTIVE") // ACTIVE, EXPIRED, CANCELLED
+  billingCycle    String   @default("MONTHLY")
+  amount          Int      // in paisa
+  currency        String   @default("INR")
+  merchantOrderId String?
+  startDate       DateTime @default(now())
+  endDate         DateTime
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Copy, Check, Key, Terminal, Server, FolderGit2, Moon, Sun, DollarSign, UserCheck } from 'lucide-react';
+import Link from 'next/link';
+import { Copy, Check, Key, Terminal, Server, FolderGit2, Moon, Sun, DollarSign, UserCheck, Zap } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { CurrencyMode } from '@/lib/data';
 
@@ -10,7 +11,8 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'api_keys' | 'sdk' | 'endpoints' | 'workspace' | 'theme'>('api_keys');
   const [sdkCommand] = useState('pip install pathflow');
   const [apiKey, setApiKey] = useState('pf_live_secret_key');
-  const [endpoint] = useState('http://localhost:3000/api/v1');
+  const defaultEndpoint = process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/v1` : 'https://thepathflow.online/app/api/v1';
+  const [endpoint] = useState(defaultEndpoint);
   const [defaultProject, setDefaultProject] = useState('backend-agents');
   const [defaultEnv, setDefaultEnv] = useState('production');
   const [currency, setCurrency] = useState<CurrencyMode>('USD');
@@ -147,6 +149,15 @@ run_agent()`;
             <FolderGit2 className="h-3.5 w-3.5 text-blue-400" />
             Workspace & Projects
           </button>
+
+          <Link
+            href="/settings/billing"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded text-xs font-mono transition-colors text-left text-purple-300 hover:text-white hover:bg-[#16161A] border border-purple-500/20 bg-purple-500/5"
+          >
+            <Zap className="h-3.5 w-3.5 text-purple-400" />
+            <span>Billing & Plans</span>
+            <span className="ml-auto text-[10px] px-1 rounded bg-purple-500/20 text-purple-300 font-bold">PRO</span>
+          </Link>
 
           <button
             onClick={() => setActiveTab('theme')}

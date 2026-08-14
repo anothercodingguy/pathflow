@@ -6,6 +6,8 @@ async function main() {
   console.log('🌱 Seeding PathFlow Database with comprehensive demo data...');
 
   // Clean existing database records
+  await prisma.subscription.deleteMany();
+  await prisma.order.deleteMany();
   await prisma.investigation.deleteMany();
   await prisma.detection.deleteMany();
   await prisma.span.deleteMany();

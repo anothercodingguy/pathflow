@@ -16,15 +16,18 @@ export async function GET(request: Request) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200);
 
     const where: any = {};
-    if (currentUser) {
-      const userIds = [currentUser.id];
-      const defaultAdmin = await prisma.user.findFirst({
-        where: { OR: [{ apiKey: 'pf_live_suyash_secret_9942' }, { email: 'admin@pathflow.dev' }] }
-      });
-      if (defaultAdmin && !userIds.includes(defaultAdmin.id)) {
-        userIds.push(defaultAdmin.id);
-      }
-      where.userId = { in: userIds };
+    const userIds = currentUser ? [currentUser.id] : [];
+    const defaultAdmin = await prisma.user.findFirst({
+      where: { OR: [{ apiKey: 'pf_live_suyash_secret_9942' }, { email: 'admin@pathflow.dev' }] }
+    });
+    if (defaultAdmin && !userIds.includes(defaultAdmin.id)) {
+      userIds.push(defaultAdmin.id);
+    }
+    if (userIds.length > 0) {
+      where.OR = [
+        { userId: { in: userIds } },
+        { isDemo: true }
+      ];
     }
     if (status && status !== 'ALL') {
       where.status = status.toLowerCase();

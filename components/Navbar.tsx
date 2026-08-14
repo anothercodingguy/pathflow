@@ -107,17 +107,23 @@ export default function Navbar() {
     return pathname === href || (href !== '/' && pathname.startsWith(href));
   };
 
+  const marketingUrl = process.env.NEXT_PUBLIC_MARKETING_URL || 'https://thepathflow.online';
+
   return (
     <>
       <header className="h-11 border-b border-white/[0.07] bg-[#0C0C0F] px-4 flex items-center justify-between text-[13px] select-none sticky top-0 z-50 font-sans">
         
         {/* Brand & Navigation */}
         <div className="flex items-center gap-6">
-          <Link href="/runs" className="flex items-center gap-2 group shrink-0">
-            <span className="font-black tracking-tight text-white uppercase text-xs font-sans">
+          <a 
+            href={marketingUrl} 
+            title="Return to PathFlow Marketing Website" 
+            className="flex items-center gap-2 group shrink-0 hover:opacity-80 transition-opacity"
+          >
+            <span className="font-black tracking-tight text-white uppercase text-xs font-sans flex items-center gap-1">
               PATH<span className="text-blue-500">FLOW</span>
             </span>
-          </Link>
+          </a>
 
           <nav className="flex items-center gap-1">
             {navGroups.map((group) => (
@@ -202,6 +208,26 @@ export default function Navbar() {
                   <Settings className="h-3.5 w-3.5 text-zinc-400" />
                   <span>Settings & API Keys</span>
                 </Link>
+
+                <Link
+                  href="/settings/billing"
+                  onClick={() => setIsProfileOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-purple-300 hover:bg-[#1A1A22] hover:text-white transition-colors font-sans text-xs"
+                >
+                  <Zap className="h-3.5 w-3.5 text-purple-400" />
+                  <span>Billing & Plans</span>
+                  <span className="text-[10px] text-purple-400 ml-auto font-mono font-bold">Pro / Team</span>
+                </Link>
+
+                <a
+                  href={marketingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 text-zinc-300 hover:bg-[#1A1A22] hover:text-white transition-colors font-sans text-xs border-t border-white/[0.07]"
+                >
+                  <span>Marketing Website</span>
+                  <span className="text-[10px] text-zinc-500 ml-auto">thepathflow.online ↗</span>
+                </a>
 
                 <button
                   onClick={handleSignOut}

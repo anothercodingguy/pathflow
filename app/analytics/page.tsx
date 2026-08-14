@@ -65,7 +65,8 @@ export default function AnalyticsPage() {
   useEffect(() => {
     async function loadAnalytics() {
       try {
-        const res = await fetch('/api/v1/analytics', { cache: 'no-store' });
+        const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+        const res = await fetch(`${apiBase}/api/v1/analytics`, { cache: 'no-store' });
         if (!res.ok) throw new Error('Failed to load analytics');
         const data = await res.json();
         setAnalytics(data.analytics);
