@@ -4,6 +4,8 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
+  basePath: "/app/api/auth",
   adapter: PrismaAdapter(prisma),
   providers: [
     Google({
@@ -30,6 +32,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   pages: {
     signIn: "/login",
+    error: "/login",
   },
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "pathflow_production_secret_key_9942",
 });
