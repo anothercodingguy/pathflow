@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { PathData, formatCurrency, CurrencyMode, fetchRunsFromApi } from '@/lib/data';
 import {
   Search, CheckCircle2, AlertTriangle, RefreshCw, Terminal,
-  Loader2, BarChart3, ArrowUpRight, XCircle, Clock, DollarSign, Zap
+  Loader2, BarChart3, ArrowUpRight, XCircle, Clock, DollarSign, Zap, X
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -166,8 +166,16 @@ export default function RunsPage() {
             placeholder="Search by title, agent, error, ID... (status:error, cost>0.05)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#0C0C0F] border border-white/[0.07] rounded-md pl-8 pr-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500"
+            className="w-full bg-[#0C0C0F] border border-white/[0.07] rounded-md pl-8 pr-8 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500"
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
         {/* Status pills */}

@@ -182,8 +182,8 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
           {regressionSummary && (
             <div className={`p-3.5 rounded border font-sans text-xs ${
               regressionSummary.hasRegression
-                ? 'border-amber-500/40 bg-amber-950/30 text-amber-200'
-                : 'border-emerald-500/40 bg-emerald-950/30 text-emerald-200'
+                ? 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200'
+                : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200'
             }`}>
               <div className="flex items-center justify-between mb-1.5 font-mono text-[11px]">
                 <div className="flex items-center gap-2 font-bold uppercase tracking-wider">
@@ -201,7 +201,7 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
                 </div>
               </div>
 
-              <div className="space-y-1 font-mono text-[11px] text-zinc-300">
+              <div className="space-y-1 font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
                 {regressionSummary.reasons.map((reason, i) => (
                   <div key={i} className="flex items-start gap-1.5">
                     <span className="text-amber-400">•</span>
@@ -220,8 +220,8 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
               </h2>
               <span className={`px-2.5 py-0.5 rounded text-[11px] font-mono font-bold border ${
                 latencyPct <= 0
-                  ? 'bg-emerald-950/40 text-emerald-300 border-emerald-500/40'
-                  : 'bg-amber-950/40 text-amber-300 border-amber-500/40'
+                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/40'
+                  : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/40'
               }`}>
                 {latencyPct <= 0 ? '✓ Performance Improved' : '⚠ Performance Regression'}
               </span>

@@ -229,11 +229,11 @@ export default function DetectionsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Impact</span>
-                        <p className="text-[11px] text-amber-300/80 font-mono">{item.detection.impact}</p>
+                        <p className="text-[11px] text-amber-600 dark:text-amber-300/80 font-mono">{item.detection.impact}</p>
                       </div>
                       <div>
                         <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Recommendation</span>
-                        <p className="text-[11px] text-emerald-300/80 font-mono">{item.detection.recommendation}</p>
+                        <p className="text-[11px] text-emerald-600 dark:text-emerald-300/80 font-mono">{item.detection.recommendation}</p>
                       </div>
                     </div>
                   </div>

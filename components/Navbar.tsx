@@ -8,7 +8,7 @@ import {
   Settings, LogOut, ChevronDown, Search, Command,
   BarChart3, AlertTriangle, Bug, Zap, Users, Activity,
   Radio, Shield, Bell, FileText, FlaskConical, X,
-  Layers, LayoutDashboard
+  Layers, LayoutDashboard, Sun, Moon
 } from 'lucide-react';
 import { CurrencyMode } from '@/lib/data';
 
@@ -43,12 +43,32 @@ export default function Navbar() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const userEmail = session?.user?.email || 'admin@pathflow.dev';
   const userName = session?.user?.name || 'Developer';
   const userImage = session?.user?.image;
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isLight = document.documentElement.classList.contains('light');
+      setTheme(isLight ? 'light' : 'dark');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    if (nextTheme === 'light') {
+      document.documentElement.classList.add('light');
+      localStorage.setItem('pathflow_theme', 'light');
+    } else {
+      document.documentElement.classList.remove('light');
+      localStorage.setItem('pathflow_theme', 'dark');
+    }
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -163,7 +183,7 @@ export default function Navbar() {
           </nav>
         </div>
 
-        {/* Right Side: Search + Profile */}
+        {/* Right Side: Search + Theme Toggle + Profile */}
         <div className="flex items-center gap-2">
           {/* Search Trigger */}
           <button
@@ -175,6 +195,15 @@ export default function Navbar() {
             <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-white/[0.06] text-[10px] font-mono text-zinc-500">
               ⌘K
             </kbd>
+          </button>
+
+          {/* Theme Toggle Button */}
+          <button
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+            className="p-1.5 rounded-md bg-[#14141A] hover:bg-[#1A1A22] border border-white/[0.08] text-zinc-400 hover:text-zinc-200 transition-colors"
+          >
+            {theme === 'dark' ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-blue-400" />}
           </button>
 
           {/* User Profile Menu */}
@@ -218,6 +247,23 @@ export default function Navbar() {
                   <span>Billing & Plans</span>
                   <span className="text-[10px] text-purple-400 ml-auto font-mono font-bold">Pro / Team</span>
                 </Link>
+
+                <button
+                  onClick={toggleTheme}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-zinc-300 hover:bg-[#1A1A22] hover:text-white transition-colors font-sans text-xs text-left"
+                >
+                  {theme === 'dark' ? (
+                    <>
+                      <Sun className="h-3.5 w-3.5 text-amber-400" />
+                      <span>Light Theme</span>
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="h-3.5 w-3.5 text-blue-400" />
+                      <span>Dark Theme</span>
+                    </>
+                  )}
+                </button>
 
                 <a
                   href={marketingUrl}

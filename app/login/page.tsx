@@ -74,7 +74,7 @@ function LoginContent() {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={isLoading}
-            className="w-full h-12 flex items-center justify-center gap-3 rounded-xl bg-white hover:bg-zinc-100 px-4 text-sm font-semibold text-zinc-900 active:scale-[0.99] transition-all duration-200 shadow-md disabled:opacity-50 font-sans cursor-pointer"
+            className="w-full h-12 flex items-center justify-center gap-3 rounded-xl bg-white hover:bg-zinc-100 border border-zinc-200 dark:border-transparent px-4 text-sm font-semibold text-zinc-900 active:scale-[0.99] transition-all duration-200 shadow-sm disabled:opacity-50 font-sans cursor-pointer"
           >
             {isLoading ? (
               <span className="text-zinc-700 font-medium">Signing in with Google...</span>
@@ -106,8 +106,8 @@ function LoginContent() {
 
         {/* Subtle Divider */}
         <div className="relative flex items-center justify-center my-4">
-          <div className="w-full border-t border-white/10" />
-          <span className="absolute bg-[#111113] px-3 text-xs text-zinc-500 font-medium">
+          <div className="w-full border-t border-zinc-200 dark:border-white/10" />
+          <span className="absolute bg-white dark:bg-[#111113] px-3 text-xs text-zinc-500 font-medium">
             or API Key Authentication
           </span>
         </div>
@@ -134,14 +134,14 @@ function LoginContent() {
                   placeholder="Paste Bearer API Key (pf_live_...)"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  className="w-full h-11 rounded-xl border border-white/10 bg-white/5 px-3.5 text-xs text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all font-mono"
+                  className="w-full h-11 rounded-xl border border-zinc-300 dark:border-white/10 bg-zinc-50 dark:bg-white/5 px-3.5 text-xs text-zinc-900 dark:text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all font-mono"
                   required
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full h-10 flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 text-xs font-semibold text-white hover:bg-white/15 active:scale-[0.99] transition-all duration-200 font-sans cursor-pointer"
+                className="w-full h-10 flex items-center justify-center gap-2 rounded-xl border border-zinc-300 dark:border-white/15 bg-zinc-900 text-white dark:bg-white/10 dark:text-white hover:bg-zinc-800 dark:hover:bg-white/15 active:scale-[0.99] transition-all duration-200 font-sans cursor-pointer"
               >
                 <span>Authenticate Session</span>
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -151,9 +151,9 @@ function LoginContent() {
         </div>
 
         {/* Security Assurance */}
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-center space-y-1">
-          <p className="text-xs text-zinc-400 font-sans flex items-center justify-center gap-1.5">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+        <div className="rounded-xl border border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/[0.02] p-3 text-center space-y-1">
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 font-sans flex items-center justify-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
             <span>Secure Google OAuth Authentication</span>
           </p>
           <p className="text-[11px] text-zinc-500 font-sans">

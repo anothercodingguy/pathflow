@@ -154,7 +154,7 @@ function BillingContent() {
         <div className="flex items-center gap-2">
           <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono text-[11px] font-semibold flex items-center gap-1.5">
             <CreditCard className="w-3.5 h-3.5 text-blue-400" />
-            <span>Instant Checkout (INR)</span>
+            <span>INR Billing (One-Time Monthly)</span>
           </span>
         </div>
       </div>
@@ -208,7 +208,7 @@ function BillingContent() {
         
         {/* Left Column: Current Active Plan & Usage Details */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="bg-[#101014] border border-white/10 rounded-2xl p-5 space-y-4">
+          <div className="bg-[#121217] border border-white/[0.08] rounded-2xl p-5 space-y-4">
             
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <div>
@@ -267,7 +267,7 @@ function BillingContent() {
           </div>
 
           {/* Quick Support Card */}
-          <div className="bg-[#101014] border border-white/10 rounded-2xl p-4 space-y-2 text-xs">
+          <div className="bg-[#121217] border border-white/[0.08] rounded-2xl p-4 space-y-2 text-xs">
             <div className="font-semibold text-white">Need a custom plan or GST invoice?</div>
             <p className="text-zinc-400 text-[11px] leading-relaxed">
               Email us with your company GSTIN and billing address for standard tax invoices.
@@ -294,7 +294,7 @@ function BillingContent() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             
             {/* Free Tier */}
-            <div className={`rounded-2xl border p-4 flex flex-col justify-between ${currentPlan.id === "FREE" ? "bg-[#14141A] border-white/20" : "bg-[#101014] border-white/10"}`}>
+            <div className={`rounded-2xl border p-4 flex flex-col justify-between ${currentPlan.id === "FREE" ? "bg-[#14141A] border-white/20" : "bg-[#121217] border-white/[0.08]"}`}>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="font-bold text-white text-sm">Free</span>
@@ -322,7 +322,7 @@ function BillingContent() {
             </div>
 
             {/* Pro Tier (Featured) */}
-            <div className={`rounded-2xl border-2 p-4 flex flex-col justify-between relative shadow-xl ${currentPlan.id === "PRO" ? "bg-blue-950/20 border-blue-500" : "bg-[#121218] border-blue-500/50"}`}>
+            <div className={`rounded-2xl border-2 p-4 flex flex-col justify-between relative shadow-xl ${currentPlan.id === "PRO" ? "bg-blue-950/20 border-blue-500" : "bg-[#121217] border-blue-500/50"}`}>
               <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-blue-600 text-white font-mono text-[9px] font-bold uppercase tracking-wider">
                 RECOMMENDED
               </div>
@@ -334,7 +334,7 @@ function BillingContent() {
                   )}
                 </div>
                 <div className="text-2xl font-black text-white">
-                  ₹2,499 <span className="text-xs text-zinc-400 font-mono font-normal">/ mo</span>
+                  ₹1,999 <span className="text-xs text-zinc-400 font-mono font-normal">/ mo</span>
                 </div>
                 <p className="text-zinc-300 text-[11px]">For developers running production services.</p>
                 <ul className="space-y-2 text-zinc-200 font-mono text-[11px] pt-2 border-t border-white/10">
@@ -373,7 +373,7 @@ function BillingContent() {
             </div>
 
             {/* Team Tier */}
-            <div className={`rounded-2xl border p-4 flex flex-col justify-between ${currentPlan.id === "TEAM" ? "bg-purple-950/20 border-purple-500" : "bg-[#101014] border-white/10"}`}>
+            <div className={`rounded-2xl border p-4 flex flex-col justify-between ${currentPlan.id === "TEAM" ? "bg-purple-950/20 border-purple-500" : "bg-[#121217] border-white/[0.08]"}`}>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="font-bold text-white text-sm">Team</span>
@@ -394,36 +394,19 @@ function BillingContent() {
                 </ul>
               </div>
               <div className="pt-4">
-                {currentPlan.id === "TEAM" ? (
-                  <button 
-                    disabled 
-                    className="w-full py-2 rounded-xl bg-purple-500/20 text-purple-300 text-xs font-semibold cursor-not-allowed"
-                  >
-                    Active Plan
-                  </button>
-                ) : (
-                  <button 
-                    onClick={() => handleInitiateCheckout("TEAM")}
-                    disabled={upgradingPlan === "TEAM"}
-                    className="w-full py-2 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-xs transition-all shadow-md active:scale-[0.99] flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  >
-                    {upgradingPlan === "TEAM" ? (
-                      <span>Redirecting to Checkout...</span>
-                    ) : (
-                      <>
-                        <span>Upgrade to Team</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </>
-                    )}
-                  </button>
-                )}
+                <button 
+                  disabled 
+                  className="w-full py-2 rounded-xl bg-white/5 text-zinc-500 text-xs font-semibold cursor-not-allowed"
+                >
+                  Coming Soon
+                </button>
               </div>
             </div>
 
           </div>
 
           {/* Payment Transaction History Table */}
-          <div className="bg-[#101014] border border-white/10 rounded-2xl p-5 space-y-3 mt-6">
+          <div className="bg-[#121217] border border-white/[0.08] rounded-2xl p-5 space-y-3 mt-6">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-white text-xs font-mono uppercase tracking-wider">
                 Payment History & Orders
