@@ -144,19 +144,25 @@ export async function POST(request: Request) {
         ? 'Investigate the root cause error and add appropriate error handling.'
         : 'No immediate action required.';
 
-    // Save investigation to database
-    const investigation = await prisma.investigation.create({
-      data: {
+    // Save or update investigation in database
+    const investigationData = {
+      rootCause,
+      evidence: JSON.stringify(evidence),
+      impact,
+      recommendation,
+      confidence,
+      observed: JSON.stringify(observed),
+      inferred: JSON.stringify(inferred),
+      suggested: JSON.stringify(suggested),
+      status: 'COMPLETED',
+    };
+
+    const investigation = await prisma.investigation.upsert({
+      where: { runId },
+      update: investigationData,
+      create: {
         runId,
-        rootCause,
-        evidence: JSON.stringify(evidence),
-        impact,
-        recommendation,
-        confidence,
-        observed: JSON.stringify(observed),
-        inferred: JSON.stringify(inferred),
-        suggested: JSON.stringify(suggested),
-        status: 'COMPLETED',
+        ...investigationData,
       }
     });
 
