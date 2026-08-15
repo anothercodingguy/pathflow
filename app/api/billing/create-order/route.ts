@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { PLANS, PlanId } from "@/lib/plans";
-import { generateMerchantOrderId, initiatePhonePePayment } from "@/lib/phonepe";
+import { generateReceiptId, createRazorpayOrder } from "@/lib/razorpay";
 
 export async function POST(request: Request) {
   try {
@@ -27,40 +27,50 @@ export async function POST(request: Request) {
 
     // Amount in paisa is strictly server-side determined
     const amountPaisa = planConfig.pricePaisa;
-    const merchantOrderId = generateMerchantOrderId();
+    const receipt = generateReceiptId();
 
-    // Create internal order record in database first
-    const internalOrder = await prisma.order.create({
+    const paymentResult = await createRazorpayOrder({
+      amountPaisa,
+      receipt,
+      currency: "INR",
+      notes: {
+        userId: user.id,
+        userEmail: user.email,
+        plan: planConfig.id,
+      },
+      userEmail: user.email,
+      userName: user.name,
+    });
+
+    // Create internal order record in database
+    await prisma.order.create({
       data: {
         userId: user.id,
         plan: planConfig.id,
         amount: amountPaisa,
         currency: "INR",
         status: "PENDING",
-        provider: "PHONEPE",
-        merchantOrderId: merchantOrderId,
+        provider: "RAZORPAY",
+        merchantOrderId: paymentResult.orderId,
+        providerOrderId: paymentResult.orderId,
       },
-    });
-
-    const rawHost = process.env.NEXT_PUBLIC_APP_URL || "https://thepathflow.online";
-    const baseDomain = rawHost.replace(/\/app\/?$/, "");
-    const redirectUrl = `${baseDomain}/app/settings/billing/verify?orderId=${encodeURIComponent(merchantOrderId)}`;
-
-    const paymentResult = await initiatePhonePePayment({
-      merchantOrderId,
-      amountPaisa,
-      redirectUrl,
-      userEmail: user.email,
-      userName: user.name,
     });
 
     return NextResponse.json({
       success: true,
-      orderId: merchantOrderId,
-      checkoutUrl: paymentResult.redirectUrl,
-      plan: planConfig.id,
+      orderId: paymentResult.orderId,
+      keyId: paymentResult.keyId,
+      amount: amountPaisa,
       amountINR: planConfig.priceINR,
       currency: "INR",
+      plan: planConfig.id,
+      planName: planConfig.name,
+      user: {
+        name: user.name,
+        email: user.email,
+      },
+      checkoutUrl: (paymentResult as any).checkoutUrl || undefined,
+      mode: paymentResult.mode,
     });
   } catch (error: any) {
     console.error("[API Billing Create Order Error]:", error);

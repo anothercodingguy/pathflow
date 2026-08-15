@@ -189,7 +189,7 @@ model Order {
   amount          Int       // in paisa (e.g. 249900)
   currency        String    @default("INR")
   status          String    @default("PENDING") // PENDING, SUCCESS, FAILED, CANCELLED, EXPIRED
-  provider        String    @default("PHONEPE")
+  provider        String    @default("RAZORPAY")
   merchantOrderId String    @unique
   providerOrderId String?
   paymentDetails  String?

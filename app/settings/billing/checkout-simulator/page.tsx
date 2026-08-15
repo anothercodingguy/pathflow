@@ -7,8 +7,8 @@ import { ShieldCheck, CheckCircle2, XCircle, ArrowLeft, CreditCard, Smartphone }
 function SimulatorContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const orderId = searchParams.get("orderId") || "PF_ORD_DEMO";
-  const amountPaisa = parseInt(searchParams.get("amount") || "249900", 10);
+  const orderId = searchParams.get("orderId") || "order_rzp_mock";
+  const amountPaisa = parseInt(searchParams.get("amount") || "199900", 10);
   const amountINR = (amountPaisa / 100).toLocaleString("en-IN", { style: "currency", currency: "INR" });
 
   const handleSuccess = () => {
@@ -34,12 +34,12 @@ function SimulatorContent() {
               <CreditCard className="w-4 h-4" />
             </div>
             <div>
-              <div className="font-bold text-sm text-white">PathFlow Checkout Simulator</div>
-              <div className="text-[10px] text-blue-400 font-mono font-semibold">TEST ENVIRONMENT (INR)</div>
+              <div className="font-bold text-sm text-white">Razorpay Standard Checkout</div>
+              <div className="text-[10px] text-blue-400 font-mono font-semibold">TEST ENVIRONMENT (FREE RAZORPAY)</div>
             </div>
           </div>
           <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-mono border border-emerald-500/20">
-            SANDBOX
+            TEST MODE
           </span>
         </div>
 
@@ -47,10 +47,10 @@ function SimulatorContent() {
         <div className="bg-white/5 rounded-xl p-4 space-y-2 border border-white/5 font-mono text-xs">
           <div className="flex justify-between text-zinc-400">
             <span>Merchant:</span>
-            <span className="text-white font-semibold">PathFlow Inc.</span>
+            <span className="text-white font-semibold">PathFlow Technologies</span>
           </div>
           <div className="flex justify-between text-zinc-400">
-            <span>Order Reference:</span>
+            <span>Razorpay Order ID:</span>
             <span className="text-zinc-300 truncate max-w-[200px]">{orderId}</span>
           </div>
           <div className="flex justify-between text-zinc-400 pt-2 border-t border-white/5">
@@ -61,11 +61,11 @@ function SimulatorContent() {
 
         {/* Mock Payment Options */}
         <div className="space-y-2 font-mono text-xs">
-          <div className="text-[11px] text-zinc-400 uppercase font-semibold">Select Mock Payment Method:</div>
+          <div className="text-[11px] text-zinc-400 uppercase font-semibold">Supported Payment Methods:</div>
           <div className="grid grid-cols-2 gap-2">
-            <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-300 flex items-center gap-2 cursor-pointer font-sans text-xs">
+            <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-300 flex items-center gap-2 cursor-pointer font-sans text-xs">
               <Smartphone className="w-4 h-4" />
-              <span>UPI / QR</span>
+              <span>UPI / QR / GPay</span>
             </div>
             <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-zinc-400 flex items-center gap-2 font-sans text-xs">
               <CreditCard className="w-4 h-4" />
@@ -78,10 +78,10 @@ function SimulatorContent() {
         <div className="space-y-3 pt-2">
           <button
             onClick={handleSuccess}
-            className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-emerald-900/20 font-sans"
+            className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-blue-900/20 font-sans"
           >
             <CheckCircle2 className="w-4 h-4" />
-            <span>Simulate Payment Success (200 OK)</span>
+            <span>Simulate Razorpay Payment Success (200 OK)</span>
           </button>
 
           <button
@@ -104,7 +104,7 @@ function SimulatorContent() {
         {/* Security Footer */}
         <div className="text-center pt-2 text-[10px] text-zinc-500 font-mono flex items-center justify-center gap-1">
           <ShieldCheck className="w-3.5 h-3.5 text-zinc-400" />
-          <span>256-Bit SSL Encrypted Standard Gateway</span>
+          <span>Razorpay 256-Bit SSL Encrypted Checkout</span>
         </div>
 
       </div>
@@ -114,7 +114,7 @@ function SimulatorContent() {
 
 export default function CheckoutSimulatorPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-white">Loading Simulator...</div>}>
+    <Suspense fallback={<div className="p-8 text-white">Loading Checkout...</div>}>
       <SimulatorContent />
     </Suspense>
   );

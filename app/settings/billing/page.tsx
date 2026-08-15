@@ -94,6 +94,20 @@ function BillingContent() {
     }
   }, [planParam, billingData?.currentPlan?.id]);
 
+  const loadRazorpayScript = () => {
+    return new Promise<boolean>((resolve) => {
+      if (typeof window !== "undefined" && (window as any).Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handleInitiateCheckout = async (planId: PlanId) => {
     if (planId === "FREE" || planId === "ENTERPRISE") return;
     try {
@@ -108,8 +122,67 @@ function BillingContent() {
       });
 
       const data = await res.json();
-      if (data.success && data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
+      if (data.success) {
+        // If in test simulation mode without live Razorpay keys, redirect to simulated checkout
+        if (data.checkoutUrl && (!data.keyId || data.keyId.includes("sandbox_key") || data.keyId.includes("free_sandbox"))) {
+          window.location.href = data.checkoutUrl;
+          return;
+        }
+
+        // Try opening Razorpay modal
+        const isLoaded = await loadRazorpayScript();
+        if (isLoaded && typeof (window as any).Razorpay !== "undefined") {
+          const rzp = new (window as any).Razorpay({
+            key: data.keyId,
+            amount: data.amount,
+            currency: data.currency || "INR",
+            name: "PathFlow",
+            description: `PathFlow ${data.planName || data.plan} Subscription`,
+            order_id: data.orderId,
+            prefill: {
+              name: data.user?.name || "Developer",
+              email: data.user?.email || "developer@pathflow.dev",
+            },
+            theme: {
+              color: "#3B82F6",
+            },
+            handler: async function (response: any) {
+              try {
+                setUpgradingPlan(planId);
+                const verifyRes = await fetch(`${apiBase}/api/billing/verify`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature: response.razorpay_signature,
+                  }),
+                });
+                const verifyData = await verifyRes.json();
+                if (verifyData.success) {
+                  router.push("/settings/billing?status=success");
+                  fetchBillingInfo();
+                } else {
+                  setErrorMsg(verifyData.error || "Payment verification failed.");
+                }
+              } catch (err: any) {
+                setErrorMsg("Verification request failed.");
+              } finally {
+                setUpgradingPlan(null);
+              }
+            },
+            modal: {
+              ondismiss: function () {
+                setUpgradingPlan(null);
+              },
+            },
+          });
+          rzp.open();
+        } else if (data.checkoutUrl) {
+          window.location.href = data.checkoutUrl;
+        } else {
+          router.push(`/settings/billing/checkout-simulator?orderId=${data.orderId}&amount=${data.amount}`);
+        }
       } else {
         setErrorMsg(data.error || "Unable to initiate payment checkout.");
         setUpgradingPlan(null);
