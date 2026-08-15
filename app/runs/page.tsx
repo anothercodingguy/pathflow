@@ -55,6 +55,8 @@ export default function RunsPage() {
   const [currency, setCurrency] = useState<CurrencyMode>('USD');
   const [isLoading, setIsLoading] = useState(true);
 
+  const [pollInterval, setPollInterval] = useState<'OFF' | '2s' | '5s' | '10s'>('5s');
+
   // Read URL query params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -62,16 +64,26 @@ export default function RunsPage() {
     if (q) setSearchQuery(q);
   }, []);
 
-  const loadRuns = async () => {
-    setIsLoading(true);
+  const loadRuns = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     const data = await fetchRunsFromApi('', statusFilter === 'ALL' ? '' : statusFilter);
     setRuns(data);
-    setIsLoading(false);
+    if (!silent) setIsLoading(false);
   };
 
   useEffect(() => {
     loadRuns();
   }, [statusFilter]);
+
+  // Live Auto-Refresh Polling
+  useEffect(() => {
+    if (pollInterval === 'OFF') return;
+    const ms = pollInterval === '2s' ? 2000 : pollInterval === '5s' ? 5000 : 10000;
+    const interval = setInterval(() => {
+      loadRuns(true);
+    }, ms);
+    return () => clearInterval(interval);
+  }, [pollInterval, statusFilter]);
 
   useEffect(() => {
     const updateCurrency = () => {
@@ -146,14 +158,32 @@ export default function RunsPage() {
             {isLoading ? 'Loading execution traces...' : `${totalRuns} traces • ${successCount} passed • ${failedCount} failed • $${totalCost.toFixed(2)} total cost`}
           </p>
         </div>
-        <button
-          onClick={loadRuns}
-          disabled={isLoading}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-white/[0.07] bg-[#121217] text-zinc-400 text-[11px] font-mono hover:text-white transition-colors"
-        >
-          <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin text-blue-400' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Live stream status */}
+          <div className="flex items-center gap-1 bg-[#121217] border border-white/[0.07] rounded px-2 py-0.5 text-[10px]">
+            <span className={`w-1.5 h-1.5 rounded-full ${pollInterval !== 'OFF' ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} />
+            <span className="text-zinc-400 font-mono">Stream:</span>
+            <select
+              value={pollInterval}
+              onChange={(e) => setPollInterval(e.target.value as any)}
+              className="bg-transparent text-white focus:outline-none cursor-pointer font-mono"
+            >
+              <option value="2s" className="bg-[#121217] text-white">Live (2s)</option>
+              <option value="5s" className="bg-[#121217] text-white">5s</option>
+              <option value="10s" className="bg-[#121217] text-white">10s</option>
+              <option value="OFF" className="bg-[#121217] text-zinc-400">Paused</option>
+            </select>
+          </div>
+
+          <button
+            onClick={() => loadRuns(false)}
+            disabled={isLoading}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-white/[0.07] bg-[#121217] text-zinc-400 text-[11px] font-mono hover:text-white transition-colors"
+          >
+            <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin text-blue-400' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

@@ -27,7 +27,10 @@ import {
   FileText,
   Search,
   Shield,
-  MessageSquare
+  MessageSquare,
+  Share2,
+  ThumbsUp,
+  ThumbsDown
 } from 'lucide-react';
 import Link from 'next/link';
 import { ReactFlow, Controls, Background, Node, Edge } from '@xyflow/react';
@@ -65,7 +68,7 @@ interface InvestigationResult {
 
 export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
   const [activeLeftView, setActiveLeftView] = useState<'timeline' | 'graph' | 'flame'>('timeline');
-  const [activeRightTab, setActiveRightTab] = useState<'span' | 'trace' | 'detections' | 'investigation'>('span');
+  const [activeRightTab, setActiveRightTab] = useState<'span' | 'trace' | 'detections' | 'investigation' | 'evals'>('span');
   const [activeSpanTab, setActiveSpanTab] = useState<'input' | 'output' | 'metadata' | 'raw'>('input');
   const [activeTraceTab, setActiveTraceTab] = useState<'input' | 'output' | 'error'>('input');
   const [currency, setCurrency] = useState<CurrencyMode>('USD');
@@ -78,6 +81,89 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
   // Investigation state
   const [investigation, setInvestigation] = useState<InvestigationResult | null>(null);
   const [isInvestigating, setIsInvestigating] = useState(false);
+
+  // Share Trace state
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
+
+  // Evals state
+  const [evalData, setEvalData] = useState<{
+    score: number;
+    thumbs: 'UP' | 'DOWN' | null;
+    hallucinationScore: number;
+    faithfulnessScore: number;
+    notes: string;
+  }>({
+    score: 85,
+    thumbs: 'UP',
+    hallucinationScore: 5,
+    faithfulnessScore: 95,
+    notes: '',
+  });
+  const [isSavingEval, setIsSavingEval] = useState(false);
+  const [evalSavedMsg, setEvalSavedMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadEval() {
+      try {
+        const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+        const res = await fetch(`${apiBase}/api/v1/evals?runId=${run.id}`);
+        const data = await res.json();
+        if (data.success && data.evaluation) {
+          setEvalData({
+            score: data.evaluation.score ?? 85,
+            thumbs: data.evaluation.thumbs ?? 'UP',
+            hallucinationScore: data.evaluation.hallucinationScore ?? 5,
+            faithfulnessScore: data.evaluation.faithfulnessScore ?? 95,
+            notes: data.evaluation.notes ?? '',
+          });
+        }
+      } catch {}
+    }
+    loadEval();
+  }, [run.id]);
+
+  const handleShareTrace = async () => {
+    setIsSharing(true);
+    try {
+      const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+      const res = await fetch(`${apiBase}/api/paths/${run.id}/share`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success && data.shareUrl) {
+        setShareUrl(data.shareUrl);
+        navigator.clipboard.writeText(data.shareUrl);
+        setCopiedShareLink(true);
+        setTimeout(() => setCopiedShareLink(false), 3000);
+      }
+    } catch {} finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleSaveEval = async () => {
+    setIsSavingEval(true);
+    try {
+      const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+      const res = await fetch(`${apiBase}/api/v1/evals`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          runId: run.id,
+          ...evalData,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEvalSavedMsg('✅ Evaluation saved!');
+        setTimeout(() => setEvalSavedMsg(null), 3000);
+      }
+    } catch {
+      setEvalSavedMsg('❌ Failed to save evaluation');
+    } finally {
+      setIsSavingEval(false);
+    }
+  };
 
   useEffect(() => {
     const updateCurrency = () => {
@@ -259,6 +345,15 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
             >
               <Bug className="h-3 w-3" />
               Debugger
+            </button>
+
+            <button
+              onClick={handleShareTrace}
+              disabled={isSharing}
+              className="flex items-center gap-1 px-2 py-1 rounded border border-white/[0.07] bg-[#121217] text-zinc-400 text-[11px] hover:text-white transition-colors"
+            >
+              {copiedShareLink ? <Check className="h-3 w-3 text-emerald-400" /> : <Share2 className="h-3 w-3 text-blue-400" />}
+              {copiedShareLink ? 'Link Copied!' : isSharing ? 'Sharing...' : 'Share'}
             </button>
 
             <button onClick={exportTraceJson} className="flex items-center gap-1 px-2 py-1 rounded border border-white/[0.07] bg-[#121217] text-zinc-400 text-[11px] hover:text-white transition-colors">
@@ -543,16 +638,16 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
         <div className="lg:col-span-7 flex flex-col h-full bg-[#0F0F12] overflow-hidden">
           
           {/* Right pane tab bar */}
-          <div className="flex items-center gap-1 border-b border-white/[0.07] bg-[#0C0C0F] px-3 py-1.5 shrink-0">
-            {(['span', 'trace', 'detections', 'investigation'] as const).map((tab) => {
-              const icons = { span: Layers, trace: FileText, detections: AlertTriangle, investigation: Sparkles };
-              const labels = { span: 'Span Inspector', trace: 'Trace I/O', detections: `Detections (${detections.length})`, investigation: 'Investigation' };
+          <div className="flex items-center gap-1 border-b border-white/[0.07] bg-[#0C0C0F] px-3 py-1.5 shrink-0 overflow-x-auto">
+            {(['span', 'trace', 'detections', 'investigation', 'evals'] as const).map((tab) => {
+              const icons = { span: Layers, trace: FileText, detections: AlertTriangle, investigation: Sparkles, evals: ThumbsUp };
+              const labels = { span: 'Span Inspector', trace: 'Trace I/O', detections: `Detections (${detections.length})`, investigation: 'Investigation', evals: 'Evals & Feedback' };
               const Icon = icons[tab];
               return (
                 <button
                   key={tab}
                   onClick={() => setActiveRightTab(tab)}
-                  className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all flex items-center gap-1.5 shrink-0 ${
                     activeRightTab === tab ? 'bg-white/[0.07] text-white border border-white/[0.1]' : 'text-zinc-400 hover:text-white'
                   }`}
                 >
@@ -908,6 +1003,119 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                   <p className="text-[10px] text-zinc-600 mt-1">Analyzes spans, detections, errors, and execution patterns.</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TAB: Evals & Feedback */}
+          {activeRightTab === 'evals' && (
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="flex items-center justify-between border-b border-white/[0.07] pb-2">
+                <div>
+                  <h3 className="font-bold text-white text-xs font-sans uppercase">Human Evaluation & Guardrails</h3>
+                  <p className="text-[10px] text-zinc-400 font-mono mt-0.5">Annotate LLM outputs, faithfulness, hallucination risk, and dataset quality</p>
+                </div>
+                {evalSavedMsg && (
+                  <span className="text-[11px] font-mono text-emerald-400 font-bold">{evalSavedMsg}</span>
+                )}
+              </div>
+
+              {/* Thumbs Feedback */}
+              <div className="p-3 bg-[#09090C] border border-white/[0.07] rounded-lg space-y-2 font-mono">
+                <span className="text-[10px] text-zinc-400 uppercase font-bold block">Execution Quality Assessment</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setEvalData({ ...evalData, thumbs: 'UP' })}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+                      evalData.thumbs === 'UP' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-[#121217] text-zinc-400 border border-white/[0.07] hover:text-white'
+                    }`}
+                  >
+                    <ThumbsUp className="w-3.5 h-3.5" />
+                    <span>Thumbs Up (Accurate)</span>
+                  </button>
+
+                  <button
+                    onClick={() => setEvalData({ ...evalData, thumbs: 'DOWN' })}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+                      evalData.thumbs === 'DOWN' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : 'bg-[#121217] text-zinc-400 border border-white/[0.07] hover:text-white'
+                    }`}
+                  >
+                    <ThumbsDown className="w-3.5 h-3.5" />
+                    <span>Thumbs Down (Flawed)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Metric Sliders */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="p-3 bg-[#09090C] border border-white/[0.07] rounded-lg space-y-2">
+                  <div className="flex justify-between text-xs font-mono">
+                    <span className="text-zinc-400">Overall Score</span>
+                    <span className="font-bold text-blue-400">{evalData.score}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={evalData.score}
+                    onChange={(e) => setEvalData({ ...evalData, score: parseInt(e.target.value, 10) })}
+                    className="w-full h-1 bg-white/10 rounded appearance-none cursor-pointer"
+                  />
+                </div>
+
+                <div className="p-3 bg-[#09090C] border border-white/[0.07] rounded-lg space-y-2">
+                  <div className="flex justify-between text-xs font-mono">
+                    <span className="text-zinc-400">Faithfulness</span>
+                    <span className="font-bold text-emerald-400">{evalData.faithfulnessScore}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={evalData.faithfulnessScore}
+                    onChange={(e) => setEvalData({ ...evalData, faithfulnessScore: parseInt(e.target.value, 10) })}
+                    className="w-full h-1 bg-white/10 rounded appearance-none cursor-pointer"
+                  />
+                </div>
+
+                <div className="p-3 bg-[#09090C] border border-white/[0.07] rounded-lg space-y-2">
+                  <div className="flex justify-between text-xs font-mono">
+                    <span className="text-zinc-400">Hallucination Risk</span>
+                    <span className={`font-bold ${evalData.hallucinationScore > 30 ? 'text-red-400' : 'text-zinc-300'}`}>
+                      {evalData.hallucinationScore}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={evalData.hallucinationScore}
+                    onChange={(e) => setEvalData({ ...evalData, hallucinationScore: parseInt(e.target.value, 10) })}
+                    className="w-full h-1 bg-white/10 rounded appearance-none cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Reviewer Annotation Notes */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-zinc-500 uppercase font-mono font-bold block">Reviewer Notes & Feedback</label>
+                <textarea
+                  rows={4}
+                  placeholder="Record qualitative feedback, edge cases, prompt flaws, or fine-tuning notes..."
+                  value={evalData.notes}
+                  onChange={(e) => setEvalData({ ...evalData, notes: e.target.value })}
+                  className="w-full rounded border border-white/[0.07] bg-[#09090C] p-3 text-xs text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none font-mono"
+                />
+              </div>
+
+              <div className="text-right pt-2">
+                <button
+                  onClick={handleSaveEval}
+                  disabled={isSavingEval}
+                  className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors shadow-lg shadow-blue-900/20 cursor-pointer"
+                >
+                  {isSavingEval ? 'Saving Evaluation...' : 'Save Trace Evaluation'}
+                </button>
+              </div>
             </div>
           )}
 

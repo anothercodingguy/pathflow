@@ -29,6 +29,8 @@ model User {
   agents        Agent[]
   orders        Order[]
   subscriptions Subscription[]
+  alertWebhooks AlertWebhook[]
+  projectBudgets ProjectBudget[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -70,13 +72,13 @@ model VerificationToken {
 
 model Agent {
   id          String   @id @default(uuid())
-  userId      String?
+  userId      String
   name        String
   framework   String   @default("Custom")
-  modelFamily String
+  modelFamily String   @default("Claude 3.5 Sonnet")
   description String?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   runs        Run[]
-  user        User?    @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
 }
 
@@ -86,7 +88,7 @@ model Run {
   agentId           String?
   title             String
   description       String?
-  status            String   @default("completed")
+  status            String   // completed, failed, running
   modelFamily       String   @default("Claude 3.5 Sonnet")
   
   // Telemetry Metrics
@@ -115,12 +117,14 @@ model Run {
   promptVersion     String?
   gitCommit         String?
   isDemo            Boolean  @default(false)
+  shareToken        String?  @unique
 
   user              User     @relation(fields: [userId], references: [id])
   agent             Agent?   @relation(fields: [agentId], references: [id])
   spans             Span[]
   detections        Detection[]
   investigation     Investigation?
+  evaluation        Evaluation?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -182,11 +186,57 @@ model Investigation {
   createdAt      DateTime @default(now())
 }
 
+model Evaluation {
+  id                 String   @id @default(uuid())
+  runId              String   @unique
+  score              Int?     // 0-100 overall score
+  thumbs             String?  // UP, DOWN
+  hallucinationScore Int?     // 0-100
+  faithfulnessScore  Int?     // 0-100
+  toxicityScore      Int?     // 0-100
+  notes              String?
+  evaluator          String   @default("Human Reviewer")
+  run                Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model AlertWebhook {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  type        String   // SLACK, DISCORD, GENERIC_HTTP
+  url         String
+  triggers    String   @default("CRITICAL_DETECTIONS,HIGH_COST,ERROR_SPIKE")
+  minCostUsd  Float?   @default(0.50)
+  minSeverity String   @default("CRITICAL")
+  enabled     Boolean  @default(true)
+  lastFiredAt DateTime?
+  failureCount Int     @default(0)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ProjectBudget {
+  id                 String   @id @default(uuid())
+  userId             String
+  project            String   @default("default")
+  monthlyLimitUsd    Float    @default(50.0)
+  alertThresholdPct  Int      @default(80)
+  circuitBreaker     Boolean  @default(false)
+  currentSpendUsd    Float    @default(0.0)
+  currency           String   @default("USD")
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
 model Order {
   id              String    @id @default(uuid())
   userId          String
   plan            String    // PRO, TEAM, ENTERPRISE
-  amount          Int       // in paisa (e.g. 249900)
+  amount          Int       // in paisa (e.g. 199900)
   currency        String    @default("INR")
   status          String    @default("PENDING") // PENDING, SUCCESS, FAILED, CANCELLED, EXPIRED
   provider        String    @default("RAZORPAY")

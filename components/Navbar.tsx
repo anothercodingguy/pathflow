@@ -8,7 +8,7 @@ import {
   Settings, LogOut, ChevronDown, Search, Command,
   BarChart3, AlertTriangle, Bug, Zap, Users, Activity,
   Radio, Shield, Bell, FileText, FlaskConical, X,
-  Layers, LayoutDashboard, Sun, Moon
+  Layers, LayoutDashboard, Sun, Moon, MessageSquare
 } from 'lucide-react';
 import { CurrencyMode } from '@/lib/data';
 
@@ -17,6 +17,7 @@ const navGroups = [
     label: 'Observe',
     items: [
       { label: 'Runs', href: '/runs', icon: Radio },
+      { label: 'Sessions', href: '/sessions', icon: MessageSquare },
       { label: 'Agents', href: '/agents', icon: Users },
     ],
   },

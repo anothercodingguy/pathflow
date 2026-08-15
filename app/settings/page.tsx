@@ -2,13 +2,32 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Copy, Check, Key, Terminal, Server, FolderGit2, Moon, Sun, DollarSign, UserCheck, Zap } from 'lucide-react';
+import { Copy, Check, Key, Terminal, Server, FolderGit2, Moon, Sun, DollarSign, UserCheck, Zap, Bell, ShieldAlert, Plus, Trash2, Send, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { CurrencyMode } from '@/lib/data';
 
+interface WebhookItem {
+  id: string;
+  name: string;
+  type: string;
+  url: string;
+  minSeverity: string;
+  minCostUsd: number;
+  enabled: boolean;
+  lastFiredAt?: string;
+  failureCount: number;
+}
+
+interface BudgetData {
+  monthlyLimitUsd: number;
+  alertThresholdPct: number;
+  circuitBreaker: boolean;
+  currentSpendUsd: number;
+}
+
 export default function SettingsPage() {
   const { data: session } = useSession();
-  const [activeTab, setActiveTab] = useState<'api_keys' | 'sdk' | 'endpoints' | 'workspace' | 'theme'>('api_keys');
+  const [activeTab, setActiveTab] = useState<'api_keys' | 'sdk' | 'endpoints' | 'workspace' | 'alerts' | 'budget' | 'theme'>('api_keys');
   const [sdkCommand] = useState('pip install pathflow');
   const [apiKey, setApiKey] = useState('pf_live_secret_key');
   const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://thepathflow.online/app';
@@ -19,6 +38,26 @@ export default function SettingsPage() {
   const [defaultEnv, setDefaultEnv] = useState('production');
   const [currency, setCurrency] = useState<CurrencyMode>('USD');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  // Webhooks state
+  const [webhooks, setWebhooks] = useState<WebhookItem[]>([]);
+  const [newWebhookName, setNewWebhookName] = useState('');
+  const [newWebhookType, setNewWebhookType] = useState<'SLACK' | 'DISCORD' | 'GENERIC_HTTP'>('SLACK');
+  const [newWebhookUrl, setNewWebhookUrl] = useState('');
+  const [newMinSeverity, setNewMinSeverity] = useState('CRITICAL');
+  const [newMinCost, setNewMinCost] = useState('0.50');
+  const [isSavingWebhook, setIsSavingWebhook] = useState(false);
+  const [testAlertStatus, setTestAlertStatus] = useState<string | null>(null);
+
+  // Budget state
+  const [budget, setBudget] = useState<BudgetData>({
+    monthlyLimitUsd: 50.0,
+    alertThresholdPct: 80,
+    circuitBreaker: false,
+    currentSpendUsd: 0.0,
+  });
+  const [isSavingBudget, setIsSavingBudget] = useState(false);
+  const [budgetSaveMessage, setBudgetSaveMessage] = useState<string | null>(null);
 
   const userEmail = session?.user?.email || 'admin@pathflow.dev';
   const userName = session?.user?.name || 'Developer';
@@ -37,7 +76,119 @@ export default function SettingsPage() {
     if (savedCurrency === 'INR' || savedCurrency === 'USD') setCurrency(savedCurrency);
     if (savedTheme === 'light' || savedTheme === 'dark') setTheme(savedTheme);
     if (savedKey) setApiKey(savedKey);
+
+    loadWebhooks();
+    loadBudget();
   }, []);
+
+  const loadWebhooks = async () => {
+    try {
+      const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+      const res = await fetch(`${apiBase}/api/v1/alerts`);
+      const data = await res.json();
+      if (data.success) setWebhooks(data.webhooks || []);
+    } catch {}
+  };
+
+  const loadBudget = async () => {
+    try {
+      const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+      const res = await fetch(`${apiBase}/api/v1/budget?project=${encodeURIComponent(defaultProject)}`);
+      const data = await res.json();
+      if (data.success && data.budget) {
+        setBudget({
+          monthlyLimitUsd: data.budget.monthlyLimitUsd,
+          alertThresholdPct: data.budget.alertThresholdPct,
+          circuitBreaker: data.budget.circuitBreaker,
+          currentSpendUsd: data.status?.currentSpendUsd || 0,
+        });
+      }
+    } catch {}
+  };
+
+  const handleAddWebhook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newWebhookName || !newWebhookUrl) return;
+    setIsSavingWebhook(true);
+    try {
+      const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+      const res = await fetch(`${apiBase}/api/v1/alerts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newWebhookName,
+          type: newWebhookType,
+          url: newWebhookUrl,
+          minSeverity: newMinSeverity,
+          minCostUsd: newMinCost,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNewWebhookName('');
+        setNewWebhookUrl('');
+        loadWebhooks();
+      }
+    } catch {} finally {
+      setIsSavingWebhook(false);
+    }
+  };
+
+  const handleDeleteWebhook = async (id: string) => {
+    try {
+      const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+      await fetch(`${apiBase}/api/v1/alerts?id=${id}`, { method: 'DELETE' });
+      loadWebhooks();
+    } catch {}
+  };
+
+  const handleTestAlert = async (url?: string, type?: string) => {
+    setTestAlertStatus('Sending test notification...');
+    try {
+      const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+      const res = await fetch(`${apiBase}/api/v1/alerts/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, type }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTestAlertStatus('✅ Test alert sent successfully!');
+      } else {
+        setTestAlertStatus(`❌ Failed: ${data.error}`);
+      }
+    } catch (err: any) {
+      setTestAlertStatus('❌ Network error sending alert');
+    }
+    setTimeout(() => setTestAlertStatus(null), 4000);
+  };
+
+  const handleSaveBudget = async () => {
+    setIsSavingBudget(true);
+    setBudgetSaveMessage(null);
+    try {
+      const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+      const res = await fetch(`${apiBase}/api/v1/budget`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project: defaultProject,
+          monthlyLimitUsd: budget.monthlyLimitUsd,
+          alertThresholdPct: budget.alertThresholdPct,
+          circuitBreaker: budget.circuitBreaker,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBudgetSaveMessage('✅ Budget and circuit breaker saved successfully!');
+      }
+    } catch {
+      setBudgetSaveMessage('❌ Failed to update budget.');
+    } finally {
+      setIsSavingBudget(false);
+      setTimeout(() => setBudgetSaveMessage(null), 3000);
+    }
+  };
 
   const handleCurrencyChange = (mode: CurrencyMode) => {
     setCurrency(mode);
@@ -99,10 +250,10 @@ run_agent()`;
         </span>
       </div>
 
-      {/* DevTools Settings Layout (Navigation Tabs + Settings Card) */}
+      {/* DevTools Settings Layout */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
         
-        {/* Left Navigation Tabs (3 Columns) */}
+        {/* Left Navigation Tabs */}
         <div className="md:col-span-3 space-y-1">
           <button
             onClick={() => setActiveTab('api_keys')}
@@ -141,6 +292,30 @@ run_agent()`;
           </button>
 
           <button
+            onClick={() => setActiveTab('alerts')}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded text-xs font-mono transition-colors text-left ${
+              activeTab === 'alerts'
+                ? 'bg-[#16161A] text-white font-bold border border-[#1E1E24]'
+                : 'text-zinc-400 hover:text-white hover:bg-[#0F0F12]'
+            }`}
+          >
+            <Bell className="h-3.5 w-3.5 text-blue-400" />
+            Alerts & Webhooks
+          </button>
+
+          <button
+            onClick={() => setActiveTab('budget')}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded text-xs font-mono transition-colors text-left ${
+              activeTab === 'budget'
+                ? 'bg-[#16161A] text-white font-bold border border-[#1E1E24]'
+                : 'text-zinc-400 hover:text-white hover:bg-[#0F0F12]'
+            }`}
+          >
+            <ShieldAlert className="h-3.5 w-3.5 text-blue-400" />
+            Budgets & Circuit Breakers
+          </button>
+
+          <button
             onClick={() => setActiveTab('workspace')}
             className={`w-full flex items-center gap-2 px-3 py-2 rounded text-xs font-mono transition-colors text-left ${
               activeTab === 'workspace'
@@ -174,7 +349,7 @@ run_agent()`;
           </button>
         </div>
 
-        {/* Right Content Panel (9 Columns) */}
+        {/* Right Content Panel */}
         <div className="md:col-span-9 border border-[#1E1E24] rounded bg-[#0F0F12] p-4 space-y-4 font-mono text-xs">
           
           {/* TAB 1: API KEYS */}
@@ -214,7 +389,7 @@ run_agent()`;
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] text-zinc-500 uppercase font-bold block">1. Install PyPI Package</label>
+                <label className="text-[10px] text-zinc-500 uppercase font-bold block">1. Install Python Package</label>
                 <div className="flex items-center gap-2 bg-[#08080A] border border-[#1E1E24] rounded p-2">
                   <span className="text-blue-400 flex-1 font-mono">{sdkCommand}</span>
                   <button onClick={() => copyText(sdkCommand, 'sdk')} className="linear-btn shrink-0">
@@ -243,16 +418,235 @@ run_agent()`;
             <div className="space-y-4">
               <div className="border-b border-[#1E1E24] pb-2">
                 <h2 className="font-bold text-white text-sm font-sans uppercase">Ingestion Endpoint Configuration</h2>
-                <p className="text-zinc-400 text-xs mt-0.5">Self-hosted or cloud telemetry receiver URLs.</p>
+                <p className="text-zinc-400 text-xs mt-0.5">Self-hosted, cloud telemetry receiver, and OpenTelemetry OTLP URLs.</p>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] text-zinc-500 uppercase font-bold block">Telemetry HTTP Collector URL</label>
+                <label className="text-[10px] text-zinc-500 uppercase font-bold block">Native Telemetry HTTP Collector URL</label>
                 <div className="flex items-center gap-2 bg-[#08080A] border border-[#1E1E24] rounded p-2">
                   <span className="text-zinc-200 flex-1 font-mono">{endpoint}</span>
                   <button onClick={() => copyText(endpoint, 'endpoint')} className="linear-btn shrink-0">
                     {copiedEndpoint ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
                     {copiedEndpoint ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] text-zinc-500 uppercase font-bold block">OpenTelemetry (OTLP/HTTP) Exporter Endpoint</label>
+                <div className="flex items-center gap-2 bg-[#08080A] border border-[#1E1E24] rounded p-2">
+                  <span className="text-zinc-200 flex-1 font-mono">{endpoint}/otel/v1/traces</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: ALERTS & WEBHOOKS */}
+          {activeTab === 'alerts' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-[#1E1E24] pb-2">
+                <div>
+                  <h2 className="font-bold text-white text-sm font-sans uppercase">Alerts & Webhooks</h2>
+                  <p className="text-zinc-400 text-xs mt-0.5">Receive immediate notifications on Slack, Discord, or Custom HTTP endpoints for Critical Anomaly Detections.</p>
+                </div>
+                {testAlertStatus && (
+                  <span className="text-xs font-mono text-blue-400 animate-pulse">{testAlertStatus}</span>
+                )}
+              </div>
+
+              {/* Add Webhook Form */}
+              <form onSubmit={handleAddWebhook} className="bg-[#08080A] border border-[#1E1E24] rounded-lg p-3 space-y-3">
+                <div className="text-[11px] font-bold text-white uppercase flex items-center gap-1.5">
+                  <Plus className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Add Alert Webhook</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Prod Incident Slack"
+                      value={newWebhookName}
+                      onChange={(e) => setNewWebhookName(e.target.value)}
+                      className="w-full rounded border border-[#1E1E24] bg-[#121217] px-2.5 py-1.5 text-xs text-white focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Platform</label>
+                    <select
+                      value={newWebhookType}
+                      onChange={(e) => setNewWebhookType(e.target.value as any)}
+                      className="w-full rounded border border-[#1E1E24] bg-[#121217] px-2.5 py-1.5 text-xs text-white focus:border-blue-500 focus:outline-none"
+                    >
+                      <option value="SLACK">Slack Webhook</option>
+                      <option value="DISCORD">Discord Webhook</option>
+                      <option value="GENERIC_HTTP">Custom HTTP Endpoint</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Min Cost Trigger ($)</label>
+                    <input
+                      type="number"
+                      step="0.05"
+                      value={newMinCost}
+                      onChange={(e) => setNewMinCost(e.target.value)}
+                      className="w-full rounded border border-[#1E1E24] bg-[#121217] px-2.5 py-1.5 text-xs text-white focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Webhook URL</label>
+                  <input
+                    type="url"
+                    placeholder="https://hooks.slack.com/services/... or https://discord.com/api/webhooks/..."
+                    value={newWebhookUrl}
+                    onChange={(e) => setNewWebhookUrl(e.target.value)}
+                    className="w-full rounded border border-[#1E1E24] bg-[#121217] px-2.5 py-1.5 text-xs text-white focus:border-blue-500 focus:outline-none font-mono"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleTestAlert(newWebhookUrl, newWebhookType)}
+                    className="px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-zinc-300 text-[11px] font-mono flex items-center gap-1"
+                  >
+                    <Send className="w-3 h-3 text-blue-400" />
+                    <span>Test URL</span>
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isSavingWebhook || !newWebhookName || !newWebhookUrl}
+                    className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors"
+                  >
+                    {isSavingWebhook ? 'Saving...' : 'Save Webhook'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Active Webhooks List */}
+              <div className="space-y-2">
+                <div className="text-[10px] text-zinc-500 uppercase font-bold">Active Webhook Channels ({webhooks.length})</div>
+                {webhooks.length === 0 ? (
+                  <div className="p-4 bg-[#08080A] border border-[#1E1E24] rounded-lg text-center text-zinc-500 text-xs font-mono">
+                    No webhooks configured. Add a Slack or Discord webhook to receive live anomaly alerts.
+                  </div>
+                ) : (
+                  webhooks.map((wh) => (
+                    <div key={wh.id} className="p-3 bg-[#08080A] border border-[#1E1E24] rounded-lg flex items-center justify-between font-mono text-xs">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white">{wh.name}</span>
+                          <span className="px-1.5 py-0.2 rounded text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20">{wh.type}</span>
+                        </div>
+                        <div className="text-[10px] text-zinc-500 truncate max-w-sm">{wh.url}</div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleTestAlert(wh.url, wh.type)}
+                          className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-zinc-300 text-[10px]"
+                        >
+                          Send Test
+                        </button>
+                        <button
+                          onClick={() => handleDeleteWebhook(wh.id)}
+                          className="p-1 rounded text-red-400 hover:bg-red-500/10"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: BUDGETS & CIRCUIT BREAKERS */}
+          {activeTab === 'budget' && (
+            <div className="space-y-4">
+              <div className="border-b border-[#1E1E24] pb-2">
+                <h2 className="font-bold text-white text-sm font-sans uppercase">Cost Budgets & Circuit Breakers</h2>
+                <p className="text-zinc-400 text-xs mt-0.5">Configure monthly spend caps and automatic circuit breakers to protect against runaway tool loops.</p>
+              </div>
+
+              {budgetSaveMessage && (
+                <div className="p-2.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
+                  {budgetSaveMessage}
+                </div>
+              )}
+
+              {/* Spend Progress Bar */}
+              <div className="p-4 bg-[#08080A] border border-[#1E1E24] rounded-lg space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-zinc-400">30-Day Project Spend:</span>
+                  <span className="font-bold text-white">${budget.currentSpendUsd.toFixed(3)} / ${budget.monthlyLimitUsd.toFixed(2)}</span>
+                </div>
+                <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden border border-white/10">
+                  <div
+                    className={`h-full transition-all ${
+                      (budget.currentSpendUsd / budget.monthlyLimitUsd) > 0.8 ? 'bg-red-500' : 'bg-blue-500'
+                    }`}
+                    style={{ width: `${Math.min(100, Math.round((budget.currentSpendUsd / budget.monthlyLimitUsd) * 100))}%` }}
+                  />
+                </div>
+                <div className="text-[10px] text-zinc-500 text-right">
+                  {Math.round((budget.currentSpendUsd / budget.monthlyLimitUsd) * 100)}% of monthly budget utilized
+                </div>
+              </div>
+
+              {/* Budget Settings Form */}
+              <div className="space-y-3 bg-[#08080A] border border-[#1E1E24] rounded-lg p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Monthly Cost Limit ($ USD)</label>
+                    <input
+                      type="number"
+                      step="5"
+                      value={budget.monthlyLimitUsd}
+                      onChange={(e) => setBudget({ ...budget, monthlyLimitUsd: parseFloat(e.target.value) || 50 })}
+                      className="w-full rounded border border-[#1E1E24] bg-[#121217] px-2.5 py-1.5 text-xs text-white focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Alert Threshold (%)</label>
+                    <input
+                      type="number"
+                      value={budget.alertThresholdPct}
+                      onChange={(e) => setBudget({ ...budget, alertThresholdPct: parseInt(e.target.value, 10) || 80 })}
+                      className="w-full rounded border border-[#1E1E24] bg-[#121217] px-2.5 py-1.5 text-xs text-white focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Circuit Breaker Toggle */}
+                <div className="pt-3 border-t border-[#1E1E24] flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-white text-xs">Automated Circuit Breaker</div>
+                    <div className="text-[10px] text-zinc-500">Automatically pause new agent runs if the monthly spend limit is 100% exceeded.</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={budget.circuitBreaker}
+                    onChange={(e) => setBudget({ ...budget, circuitBreaker: e.target.checked })}
+                    className="w-4 h-4 rounded border-[#1E1E24] bg-[#121217] text-blue-600 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="pt-2 text-right">
+                  <button
+                    onClick={handleSaveBudget}
+                    disabled={isSavingBudget}
+                    className="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors"
+                  >
+                    {isSavingBudget ? 'Saving...' : 'Save Budget Configuration'}
                   </button>
                 </div>
               </div>
@@ -348,6 +742,7 @@ run_agent()`;
                         currency === 'INR' ? 'bg-[#16161A] text-emerald-400 font-bold border-emerald-500' : 'bg-[#08080A] text-zinc-400 border-[#1E1E24]'
                       }`}
                     >
+                      <DollarSign className="h-3.5 w-3.5 text-emerald-400" />
                       INR (₹ Rupees)
                     </button>
                   </div>
