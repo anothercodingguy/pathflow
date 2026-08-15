@@ -56,9 +56,9 @@ export const PLANS: Record<PlanId, PlanConfig> = {
   PRO: {
     id: "PRO",
     name: "Pro",
-    priceINR: 2499,
-    pricePaisa: 249900,
-    displayPrice: "₹2,499",
+    priceINR: 1999,
+    pricePaisa: 199900,
+    displayPrice: "₹1,999",
     interval: "/ month",
     popular: true,
     description: "For developers running real production workloads.",
