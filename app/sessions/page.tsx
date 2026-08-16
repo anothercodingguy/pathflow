@@ -57,14 +57,9 @@ export default function SessionsPage() {
       
       {/* Top Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.07] pb-3">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-            <MessageSquare className="w-4 h-4" />
-          </div>
-          <div>
-            <h1 className="text-base font-bold text-white tracking-tight">Conversational Sessions</h1>
-            <p className="text-[11px] text-zinc-400">Multi-turn agent dialogues, tool calls, and step-by-step chat replay</p>
-          </div>
+        <div>
+          <h1 className="text-xl font-bold text-white font-sans tracking-tight uppercase">Sessions</h1>
+          <p className="text-xs text-zinc-400 font-sans mt-0.5">Multi-turn agent dialogues, tool calls, and step-by-step chat replay.</p>
         </div>
 
         <button

@@ -87,7 +87,7 @@ export default function DetectionsPage() {
       {/* Header */}
       <div className="flex items-baseline justify-between border-b border-white/[0.07] pb-2.5">
         <div>
-          <h1 className="text-xl font-bold text-white font-sans tracking-tight">Detections</h1>
+          <h1 className="text-xl font-bold text-white font-sans tracking-tight uppercase">Detections</h1>
           <p className="text-xs text-zinc-400 font-sans mt-0.5">Automatically detected execution issues across all agent runs.</p>
         </div>
         <div className="flex items-center gap-2">

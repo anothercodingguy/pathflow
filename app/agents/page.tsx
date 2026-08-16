@@ -65,7 +65,7 @@ export default function AgentsPage() {
       {/* Header */}
       <div className="flex items-baseline justify-between border-b border-white/[0.07] pb-2.5">
         <div>
-          <h1 className="text-xl font-bold text-white font-sans tracking-tight">Agents</h1>
+          <h1 className="text-xl font-bold text-white font-sans tracking-tight uppercase">Agents</h1>
           <p className="text-xs text-zinc-400 font-sans mt-0.5">Agent health, performance metrics, and execution history.</p>
         </div>
         <span className="text-[11px] text-zinc-500 font-mono">{agents.length} agents registered</span>

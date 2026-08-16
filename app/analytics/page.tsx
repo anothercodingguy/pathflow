@@ -100,7 +100,7 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="flex items-baseline justify-between border-b border-white/[0.07] pb-2.5">
         <div>
-          <h1 className="text-xl font-bold text-white font-sans tracking-tight">Analytics</h1>
+          <h1 className="text-xl font-bold text-white font-sans tracking-tight uppercase">Analytics</h1>
           <p className="text-xs text-zinc-400 font-sans mt-0.5">Performance metrics and operational insights across all agent executions.</p>
         </div>
       </div>

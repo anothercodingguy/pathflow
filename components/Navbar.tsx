@@ -141,7 +141,7 @@ export default function Navbar() {
             title="Return to PathFlow Marketing Website" 
             className="flex items-center gap-2 group shrink-0 hover:opacity-80 transition-opacity"
           >
-            <span className="font-black tracking-tight text-white uppercase text-xs font-sans flex items-center gap-1">
+            <span className="font-black tracking-tight text-white uppercase text-xs font-sans">
               PATH<span className="text-blue-500">FLOW</span>
             </span>
           </a>

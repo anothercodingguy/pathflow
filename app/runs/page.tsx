@@ -155,7 +155,7 @@ export default function RunsPage() {
       {/* Header */}
       <div className="flex items-baseline justify-between border-b border-white/[0.07] pb-2.5">
         <div>
-          <h1 className="text-xl font-bold text-white font-sans tracking-tight">Runs</h1>
+          <h1 className="text-xl font-bold text-white font-sans tracking-tight uppercase">Runs</h1>
           <p className="text-xs text-zinc-400 font-sans mt-0.5">
             {isLoading ? 'Loading execution traces...' : `${totalRuns} traces • ${successCount} passed • ${failedCount} failed • $${totalCost.toFixed(2)} total cost`}
           </p>
