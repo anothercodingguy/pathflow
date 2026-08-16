@@ -6,6 +6,8 @@ import {
   AlertTriangle, Shield, XCircle, Clock, DollarSign, Zap,
   ChevronRight, Loader2, Filter, ArrowUpRight, Bug
 } from 'lucide-react';
+import FilterPills from '@/components/ui/FilterPills';
+import LoadingState from '@/components/ui/LoadingState';
 
 interface DetectionItem {
   runId: string;
@@ -101,33 +103,19 @@ export default function DetectionsPage() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1.5">
-          <Filter className="h-3 w-3 text-zinc-500" />
-          <span className="text-[10px] text-zinc-500 uppercase font-bold">Severity:</span>
-        </div>
-        <button
-          onClick={() => setSelectedSeverity('')}
-          className={`px-2 py-0.5 rounded border text-[10px] font-mono transition-colors ${
-            !selectedSeverity ? 'bg-white/[0.07] text-white border-white/[0.15]' : 'bg-transparent text-zinc-400 border-white/[0.07] hover:text-white'
-          }`}
-        >
-          All
-        </button>
-        {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map(sev => (
-          <button
-            key={sev}
-            onClick={() => setSelectedSeverity(sev === selectedSeverity ? '' : sev)}
-            className={`px-2 py-0.5 rounded border text-[10px] font-mono transition-colors ${
-              selectedSeverity === sev 
-                ? `${severityColors[sev].bg} ${severityColors[sev].text} ${severityColors[sev].border}` 
-                : 'bg-transparent text-zinc-400 border-white/[0.07] hover:text-white'
-            }`}
-          >
-            {sev}
-          </button>
-        ))}
+      {/* Beautiful UI Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <FilterPills
+          items={[
+            { id: '', label: 'All Severities', count: detections.length },
+            { id: 'CRITICAL', label: 'Critical', count: severityCounts.CRITICAL || 0, dotColor: '#EF4444' },
+            { id: 'HIGH', label: 'High', count: severityCounts.HIGH || 0, dotColor: '#F59E0B' },
+            { id: 'MEDIUM', label: 'Medium', count: severityCounts.MEDIUM || 0, dotColor: '#EAB308' },
+            { id: 'LOW', label: 'Low', count: severityCounts.LOW || 0, dotColor: '#3B82F6' },
+          ]}
+          selectedId={selectedSeverity}
+          onSelect={(id) => setSelectedSeverity(id)}
+        />
 
         <div className="w-px h-4 bg-white/[0.07]" />
 
@@ -137,7 +125,7 @@ export default function DetectionsPage() {
         <select
           value={selectedType}
           onChange={(e) => setSelectedType(e.target.value)}
-          className="px-2 py-0.5 rounded border border-white/[0.07] bg-[#121217] text-[10px] text-zinc-300 font-mono focus:outline-none focus:border-blue-500"
+          className="px-2 py-1 rounded-lg border border-white/[0.1] bg-[#121217] text-[11px] text-zinc-300 font-mono focus:outline-none focus:border-blue-500"
         >
           <option value="">All Types</option>
           {types.map(t => (
@@ -148,9 +136,9 @@ export default function DetectionsPage() {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-5 w-5 animate-spin text-blue-400" />
-          <span className="ml-2 text-zinc-400 text-xs">Running detection engine...</span>
+        <div className="flex flex-col items-center justify-center py-20 space-y-3">
+          <LoadingState label="Running AI anomaly detection engine…" variant="Drive" />
+          <span className="text-zinc-500 text-xs font-mono">Analyzing loops, timeouts, hallucination risks, and retry spikes</span>
         </div>
       )}
 

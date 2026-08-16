@@ -15,6 +15,31 @@
     --text-primary: #F4F4F5;
     --text-secondary: #A1A1AA;
     --text-muted: #71717A;
+
+    /* Beautiful UI Tokens */
+    --canvas: #09090b;
+    --surface: #111115;
+    --inset: #0c0c0f;
+    --field: #18181f;
+    --hover: rgba(255, 255, 255, 0.05);
+    --hover-2: rgba(255, 255, 255, 0.08);
+    --line: rgba(255, 255, 255, 0.08);
+    --line-strong: rgba(255, 255, 255, 0.16);
+    --ink: #f4f4f5;
+    --ink-2: #a1a1aa;
+    --ink-3: #71717a;
+    --accent: #3b82f6;
+    --accent-tint: rgba(59, 130, 246, 0.12);
+    --accent-ink: #60a5fa;
+    --green: #10b981;
+    --green-tint: rgba(16, 185, 129, 0.12);
+    --orange: #f59e0b;
+    --red: #ef4444;
+    --shadow-hairline: 0 0 0 1px var(--line);
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px var(--line);
+    --shadow-btn: 0 1px 2px rgba(0,0,0,0.2), 0 0 0 1px var(--line);
+    --shadow-raised: 0 4px 12px rgba(0,0,0,0.4), 0 0 0 1px var(--line);
+    --shadow-overlay: 0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px var(--line-strong);
   }
 
   html.light {
@@ -24,6 +49,31 @@
     --text-primary: #09090B;
     --text-secondary: #52525B;
     --text-muted: #A1A1AA;
+
+    /* Beautiful UI Tokens Light */
+    --canvas: #f4f4f5;
+    --surface: #ffffff;
+    --inset: #f0f0f2;
+    --field: #e4e4e7;
+    --hover: rgba(0, 0, 0, 0.04);
+    --hover-2: rgba(0, 0, 0, 0.07);
+    --line: rgba(0, 0, 0, 0.08);
+    --line-strong: rgba(0, 0, 0, 0.18);
+    --ink: #09090b;
+    --ink-2: #52525b;
+    --ink-3: #a1a1aa;
+    --accent: #2563eb;
+    --accent-tint: rgba(37, 99, 235, 0.08);
+    --accent-ink: #1d4ed8;
+    --green: #059669;
+    --green-tint: rgba(5, 150, 105, 0.1);
+    --orange: #d97706;
+    --red: #dc2626;
+    --shadow-hairline: 0 0 0 1px var(--line);
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px var(--line);
+    --shadow-btn: 0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px var(--line);
+    --shadow-raised: 0 4px 12px rgba(0,0,0,0.08), 0 0 0 1px var(--line);
+    --shadow-overlay: 0 8px 24px rgba(0,0,0,0.12), 0 0 0 1px var(--line-strong);
   }
 }
 
@@ -259,3 +309,31 @@ html.light .linear-btn {
   from { stroke-dashoffset: 12; }
   to { stroke-dashoffset: 0; }
 }
+
+/* Beautiful UI Animation Primitives */
+@keyframes pixel-on {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.95; }
+}
+
+@keyframes shimmer-text {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0.6); opacity: 0; }
+  70% { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fade-up {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+

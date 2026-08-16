@@ -290,31 +290,77 @@ export default function Navbar() {
 
       </header>
 
-      {/* Global Search Modal */}
+      {/* Beautiful UI Global AI Prompt & Search Modal */}
       {isSearchOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[15vh]">
-          <div className="w-full max-w-lg bg-[#121217] border border-white/[0.1] rounded-xl shadow-2xl overflow-hidden">
-            <form onSubmit={handleSearch} className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.07]">
-              <Search className="h-4 w-4 text-zinc-400 shrink-0" />
-              <input
-                ref={searchRef}
-                type="text"
-                placeholder="Search runs, agents, traces, errors..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent text-white text-sm placeholder-zinc-500 focus:outline-none font-sans"
-              />
+        <div 
+          onClick={() => setIsSearchOpen(false)}
+          className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-start justify-center pt-[12vh] px-4 animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-xl bg-[#111115] border border-white/15 rounded-2xl shadow-2xl overflow-hidden p-3 font-sans"
+          >
+            <div className="flex items-center justify-between px-2 pb-2 border-b border-white/[0.08]">
+              <span className="text-[12px] font-semibold text-zinc-300 flex items-center gap-1.5">
+                <Command className="h-3.5 w-3.5 text-blue-400" />
+                PathFlow AI Assistant & Trace Spotlight
+              </span>
               <button
                 type="button"
                 onClick={() => setIsSearchOpen(false)}
-                className="text-zinc-500 hover:text-white"
+                className="text-zinc-500 hover:text-zinc-300 p-1 rounded-md"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
               </button>
+            </div>
+
+            <form onSubmit={handleSearch} className="pt-3">
+              <div className="flex items-center gap-2 rounded-xl bg-[#09090C] border border-white/10 px-3 py-2 focus-within:border-blue-500/50">
+                <Search className="h-4 w-4 text-zinc-400 shrink-0" />
+                <input
+                  ref={searchRef}
+                  type="text"
+                  placeholder="Ask AI or query traces (e.g. status:failed, model:claude, cost>0.02)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="min-w-0 flex-1 bg-transparent text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={!searchQuery.trim()}
+                  className="flex size-7 items-center justify-center rounded-lg bg-blue-600 text-white transition-transform hover:bg-blue-500 disabled:opacity-30"
+                >
+                  ↵
+                </button>
+              </div>
             </form>
-            <div className="px-4 py-3 text-xs text-zinc-500 font-mono">
-              <p>Type to search by run ID, agent name, error message, or model.</p>
-              <p className="mt-1">Press <kbd className="px-1 py-0.5 rounded bg-white/[0.06] text-zinc-400">Enter</kbd> to search, <kbd className="px-1 py-0.5 rounded bg-white/[0.06] text-zinc-400">Esc</kbd> to close.</p>
+
+            {/* Quick prompt suggestions */}
+            <div className="mt-3 grid grid-cols-2 gap-1.5 pt-2 border-t border-white/[0.06]">
+              {[
+                { label: 'Find high-latency spans (>2s)', query: 'duration>2000' },
+                { label: 'Show failed LLM executions', query: 'status:failed' },
+                { label: 'Analyze token explosion runs', query: 'status:error tokens' },
+                { label: 'Filter Claude 3.7 traces', query: 'model:claude-3-7' },
+              ].map((sug, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    router.push(`/runs?q=${encodeURIComponent(sug.query)}`);
+                    setIsSearchOpen(false);
+                  }}
+                  className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] px-2.5 py-1.5 text-left text-xs text-zinc-300 hover:bg-white/[0.08] hover:text-white transition-colors"
+                >
+                  <span className="text-blue-400 text-[10px]">↗</span>
+                  <span className="truncate">{sug.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-2.5 flex items-center justify-between text-[11px] text-zinc-500 font-mono px-1">
+              <span>Press <kbd className="rounded bg-white/10 px-1 py-0.5 text-zinc-400">Esc</kbd> to exit</span>
+              <span><kbd className="rounded bg-white/10 px-1 py-0.5 text-zinc-400">⌘K</kbd> anywhere</span>
             </div>
           </div>
         </div>

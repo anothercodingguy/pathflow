@@ -7,6 +7,8 @@ import {
   Loader2, BarChart3, ArrowUpRight, XCircle, Clock, DollarSign, Zap, X
 } from 'lucide-react';
 import Link from 'next/link';
+import FilterPills from '@/components/ui/FilterPills';
+import LoadingState from '@/components/ui/LoadingState';
 
 function formatAge(dateStr: string): string {
   if (!dateStr) return '';
@@ -208,24 +210,16 @@ export default function RunsPage() {
           )}
         </div>
 
-        {/* Status pills */}
-        <div className="flex items-center gap-0.5 bg-[#0C0C0F] border border-white/[0.07] rounded-md p-0.5">
-          {[
-            { value: 'ALL' as const, label: 'All' },
-            { value: 'completed' as const, label: 'Passed' },
-            { value: 'failed' as const, label: 'Failed' },
-          ].map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => setStatusFilter(value)}
-              className={`px-2.5 py-1 rounded text-[10px] font-mono transition-colors ${
-                statusFilter === value ? 'bg-white/[0.07] text-white font-bold' : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {/* Beautiful UI Status Filter Pills */}
+        <FilterPills
+          items={[
+            { id: 'ALL', label: 'All', count: totalRuns },
+            { id: 'completed', label: 'Passed', count: successCount, dotColor: '#10B981' },
+            { id: 'failed', label: 'Failed', count: failedCount, dotColor: '#EF4444' },
+          ]}
+          selectedId={statusFilter}
+          onSelect={(id) => setStatusFilter(id as any)}
+        />
 
         {/* Model */}
         <select
