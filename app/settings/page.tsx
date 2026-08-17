@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Copy, Check, Key, Terminal, Server, FolderGit2, Moon, Sun, DollarSign, UserCheck, Zap, Bell, ShieldAlert, Plus, Trash2, Send, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Copy, Check, Key, Terminal, Server, FolderGit2, Moon, Sun, DollarSign, UserCheck, Zap, Bell, ShieldAlert, Plus, Trash2, Send, AlertTriangle, CheckCircle2, MessageSquarePlus, Lightbulb, Bug, HelpCircle, Loader2, Sparkles, Heart } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { CurrencyMode } from '@/lib/data';
 
@@ -27,7 +27,7 @@ interface BudgetData {
 
 export default function SettingsPage() {
   const { data: session } = useSession();
-  const [activeTab, setActiveTab] = useState<'api_keys' | 'sdk' | 'endpoints' | 'workspace' | 'alerts' | 'budget' | 'theme'>('api_keys');
+  const [activeTab, setActiveTab] = useState<'api_keys' | 'sdk' | 'endpoints' | 'workspace' | 'alerts' | 'budget' | 'theme' | 'feedback'>('api_keys');
   const [sdkCommand] = useState('pip install pathflow');
   const [apiKey, setApiKey] = useState('pf_live_secret_key');
   const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://thepathflow.online/app';
@@ -58,6 +58,15 @@ export default function SettingsPage() {
   });
   const [isSavingBudget, setIsSavingBudget] = useState(false);
   const [budgetSaveMessage, setBudgetSaveMessage] = useState<string | null>(null);
+
+  // Feedback & Feature Request State
+  const [feedbackType, setFeedbackType] = useState<'FEATURE' | 'BUG' | 'INTEGRATION' | 'GENERAL'>('FEATURE');
+  const [feedbackPriority, setFeedbackPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'BLOCKER'>('MEDIUM');
+  const [feedbackTitle, setFeedbackTitle] = useState('');
+  const [feedbackDescription, setFeedbackDescription] = useState('');
+  const [feedbackEmail, setFeedbackEmail] = useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [feedbackStatus, setFeedbackStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const userEmail = session?.user?.email || 'admin@pathflow.dev';
   const userName = session?.user?.name || 'Developer';
@@ -207,6 +216,45 @@ export default function SettingsPage() {
     window.dispatchEvent(new Event('storage'));
   };
 
+  const handleSubmitFeedback = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedbackTitle.trim() || !feedbackDescription.trim()) return;
+
+    setIsSubmittingFeedback(true);
+    setFeedbackStatus(null);
+
+    try {
+      const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+      const res = await fetch(`${apiBase}/api/v1/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: feedbackType,
+          priority: feedbackPriority,
+          title: feedbackTitle,
+          description: feedbackDescription,
+          email: feedbackEmail || userEmail,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setFeedbackStatus({
+          type: 'success',
+          message: 'Thank you! Your feedback has been sent directly to the engineering team.',
+        });
+        setFeedbackTitle('');
+        setFeedbackDescription('');
+      } else {
+        setFeedbackStatus({ type: 'error', message: data.error || 'Failed to submit feedback.' });
+      }
+    } catch {
+      setFeedbackStatus({ type: 'error', message: 'Network error. Please try again or email admin@pathflow.dev.' });
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
+
   const copyText = (text: string, type: 'sdk' | 'key' | 'endpoint' | 'snippet') => {
     navigator.clipboard.writeText(text);
     if (type === 'sdk') {
@@ -346,6 +394,18 @@ run_agent()`;
           >
             <Moon className="h-3.5 w-3.5 text-blue-400" />
             Theme & Currency Mode
+          </button>
+
+          <button
+            onClick={() => setActiveTab('feedback')}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded text-xs font-mono transition-colors text-left ${
+              activeTab === 'feedback'
+                ? 'bg-[#16161A] text-white font-bold border border-[#1E1E24]'
+                : 'text-zinc-400 hover:text-white hover:bg-[#0F0F12]'
+            }`}
+          >
+            <MessageSquarePlus className="h-3.5 w-3.5 text-blue-400" />
+            Request Feature & Feedback
           </button>
         </div>
 
@@ -748,6 +808,154 @@ run_agent()`;
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* TAB 8: REQUEST A FEATURE & GIVE FEEDBACK */}
+          {activeTab === 'feedback' && (
+            <div className="space-y-4">
+              <div className="border-b border-[#1E1E24] pb-2">
+                <div className="flex items-center gap-2">
+                  <MessageSquarePlus className="h-4 w-4 text-blue-400" />
+                  <h2 className="font-bold text-white text-sm font-sans uppercase">Request a Feature & Feedback</h2>
+                </div>
+                <p className="text-zinc-400 text-xs mt-0.5 font-sans">
+                  Have an idea for a new agent tracing feature, framework integration, or improvement? Share it directly with our core engineering team.
+                </p>
+              </div>
+
+              {feedbackStatus && (
+                <div className={`p-3 rounded-lg border text-xs font-mono flex items-start gap-2 ${
+                  feedbackStatus.type === 'success'
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                    : 'bg-red-500/10 border-red-500/30 text-red-300'
+                }`}>
+                  {feedbackStatus.type === 'success' ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                  )}
+                  <span className="leading-relaxed">{feedbackStatus.message}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmitFeedback} className="space-y-3.5">
+                {/* Category Selection */}
+                <div>
+                  <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1.5 font-mono">Feedback Category</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { id: 'FEATURE', label: 'Feature Request', icon: Lightbulb, color: 'text-amber-400' },
+                      { id: 'BUG', label: 'Bug Report', icon: Bug, color: 'text-red-400' },
+                      { id: 'INTEGRATION', label: 'Integration', icon: Sparkles, color: 'text-purple-400' },
+                      { id: 'GENERAL', label: 'General Feedback', icon: Heart, color: 'text-pink-400' },
+                    ].map((cat) => {
+                      const Icon = cat.icon;
+                      const isSelected = feedbackType === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setFeedbackType(cat.id as any)}
+                          className={`flex items-center gap-1.5 px-2.5 py-2 rounded border text-xs font-mono text-left transition-colors ${
+                            isSelected
+                              ? 'bg-[#16161A] text-white font-bold border-blue-500 shadow-sm'
+                              : 'bg-[#08080A] text-zinc-400 border-[#1E1E24] hover:text-white'
+                          }`}
+                        >
+                          <Icon className={`h-3.5 w-3.5 ${cat.color}`} />
+                          <span className="truncate">{cat.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Priority Selection */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1 font-mono">Priority / Importance</label>
+                    <select
+                      value={feedbackPriority}
+                      onChange={(e) => setFeedbackPriority(e.target.value as any)}
+                      className="w-full px-3 py-1.5 rounded border border-[#1E1E24] bg-[#08080A] text-white font-mono text-xs focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="LOW">Nice to have (Low)</option>
+                      <option value="MEDIUM">Important for workflow (Medium)</option>
+                      <option value="HIGH">High priority requirement (High)</option>
+                      <option value="BLOCKER">Blocking production deployment (Blocker)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1 font-mono">Your Email (for updates)</label>
+                    <input
+                      type="email"
+                      placeholder={userEmail}
+                      value={feedbackEmail}
+                      onChange={(e) => setFeedbackEmail(e.target.value)}
+                      className="w-full px-3 py-1.5 rounded border border-[#1E1E24] bg-[#08080A] text-white font-mono text-xs placeholder-zinc-600 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Title */}
+                <div>
+                  <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1 font-mono">Summary / Title *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Add native LangGraph multi-agent DAG visualizer or Discord webhook formatting"
+                    value={feedbackTitle}
+                    onChange={(e) => setFeedbackTitle(e.target.value)}
+                    className="w-full px-3 py-2 rounded border border-[#1E1E24] bg-[#08080A] text-white font-mono text-xs placeholder-zinc-600 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1 font-mono">Details / User Story *</label>
+                  <textarea
+                    required
+                    rows={5}
+                    placeholder="Describe what you want to achieve, how it should work, or the issue you encountered..."
+                    value={feedbackDescription}
+                    onChange={(e) => setFeedbackDescription(e.target.value)}
+                    className="w-full px-3 py-2 rounded border border-[#1E1E24] bg-[#08080A] text-white font-mono text-xs placeholder-zinc-600 focus:outline-none focus:border-blue-500 resize-none leading-relaxed"
+                  />
+                </div>
+
+                {/* Direct Action Row */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-[#1E1E24]">
+                  <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+                    <span>Direct contact:</span>
+                    <a
+                      href="mailto:admin@pathflow.dev?subject=PathFlow%20Feedback"
+                      className="text-blue-400 hover:underline"
+                    >
+                      admin@pathflow.dev
+                    </a>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingFeedback || !feedbackTitle.trim() || !feedbackDescription.trim()}
+                    className="flex items-center gap-2 px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs font-mono transition-colors shadow-lg active:scale-95 cursor-pointer"
+                  >
+                    {isSubmittingFeedback ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-3.5 w-3.5" />
+                        Submit Request
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
           )}
 
