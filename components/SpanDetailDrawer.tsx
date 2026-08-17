@@ -6,6 +6,8 @@ import { X, Copy, Check, Layers, Code2, AlertTriangle, Bug, Cpu, Sparkles, Datab
 import ContextCards, { ContextChunk } from '@/components/ui/ContextCards';
 import SelectionActions from '@/components/ui/SelectionActions';
 import ThinkingState from '@/components/ui/ThinkingState';
+import ToolResultCard from '@/components/ui/ToolResultCard';
+import StreamingResponse from '@/components/ui/StreamingResponse';
 
 interface SpanDetailDrawerProps {
   span: SpanData | null;
@@ -190,6 +192,25 @@ export default function SpanDetailDrawer({ span, onClose, currency = 'USD' }: Sp
       <div className="flex-1 overflow-y-auto p-5 relative space-y-4">
         {activeTab === 'context' ? (
           <ContextCards chunks={contextChunks} />
+        ) : activeTab === 'output' && (span.type === 'tool' || span.type === 'function') ? (
+          <ToolResultCard
+            toolName={span.name}
+            status={span.status === 'FAILED' ? 'error' : 'success'}
+            durationMs={span.latencyMs}
+            cost={span.cost}
+            inputPayload={span.rawInput}
+            outputPayload={span.rawOutput}
+            error={span.errorMessage}
+            defaultExpanded={true}
+          />
+        ) : activeTab === 'output' && (span.type === 'llm' || span.type === 'inference') && span.rawOutput ? (
+          <StreamingResponse
+            content={span.rawOutput}
+            model={span.model || 'LLM Inference'}
+            tokensCount={span.tokens}
+            durationMs={span.latencyMs}
+            cost={span.cost}
+          />
         ) : (
           <>
             <div className="flex items-center justify-between">
@@ -199,7 +220,7 @@ export default function SpanDetailDrawer({ span, onClose, currency = 'USD' }: Sp
               </span>
               <button
                 onClick={() => copyPayload(activeTab === 'input' ? span.rawInput : activeTab === 'output' ? span.rawOutput : JSON.stringify(span, null, 2))}
-                className="flex items-center gap-1 rounded bg-zinc-800 px-2.5 py-1 text-[11px] font-mono text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                className="flex items-center gap-1 rounded-lg bg-zinc-800 px-2.5 py-1 text-[11px] font-mono text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
               >
                 {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
                 {copied ? 'Copied' : 'Copy'}

@@ -8,6 +8,10 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+import TiltCard from '@/components/ui/TiltCard';
+import NumberAnimation from '@/components/ui/NumberAnimation';
+import LoadingState from '@/components/ui/LoadingState';
+
 interface Analytics {
   kpis: {
     totalRuns: number;
@@ -34,22 +38,50 @@ interface Analytics {
   runVolume: Array<{ date: string; total: number; success: number; failed: number }>;
 }
 
-function KpiCard({ label, value, subValue, icon: Icon, color = 'text-white' }: { label: string; value: string; subValue?: string; icon: any; color?: string }) {
+function KpiCard({ 
+  label, 
+  value, 
+  numValue,
+  prefix = '',
+  suffix = '',
+  decimals = 0,
+  subValue, 
+  icon: Icon, 
+  color = 'text-white' 
+}: { 
+  label: string; 
+  value?: string; 
+  numValue?: number;
+  prefix?: string;
+  suffix?: string;
+  decimals?: number;
+  subValue?: string; 
+  icon: any; 
+  color?: string 
+}) {
   return (
-    <div className="border border-white/[0.07] rounded-lg bg-[#121217] p-4 space-y-1.5">
+    <TiltCard maxTilt={8} className="p-4 space-y-2 bg-[#111115] border-white/10">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider font-mono">{label}</span>
-        <Icon className="h-3.5 w-3.5 text-zinc-600" />
+        <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider font-mono">{label}</span>
+        <div className="flex size-6 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.06]">
+          <Icon className="h-3.5 w-3.5 text-zinc-400" />
+        </div>
       </div>
-      <div className={`text-xl font-bold font-mono ${color}`}>{value}</div>
-      {subValue && <div className="text-[11px] text-zinc-500 font-mono">{subValue}</div>}
-    </div>
+      <div className={`text-xl font-bold font-mono ${color}`}>
+        {numValue !== undefined ? (
+          <NumberAnimation value={numValue} prefix={prefix} suffix={suffix} decimals={decimals} />
+        ) : (
+          value
+        )}
+      </div>
+      {subValue && <div className="text-[11px] text-zinc-500 font-mono leading-tight">{subValue}</div>}
+    </TiltCard>
   );
 }
 
 function SkeletonCard() {
   return (
-    <div className="border border-white/[0.07] rounded-lg bg-[#121217] p-4 space-y-2 animate-pulse">
+    <div className="border border-white/[0.07] rounded-2xl bg-[#111115] p-4 space-y-2 animate-pulse">
       <div className="h-3 w-20 bg-zinc-800 rounded" />
       <div className="h-6 w-16 bg-zinc-800 rounded" />
       <div className="h-3 w-24 bg-zinc-800 rounded" />
@@ -95,10 +127,10 @@ export default function AnalyticsPage() {
   const kpis = analytics?.kpis;
 
   return (
-    <div className="w-full min-h-[calc(100vh-2.75rem)] bg-[#08080A] px-4 py-3 space-y-4 font-mono text-xs">
+    <div className="w-full min-h-[calc(100vh-2.75rem)] bg-[#08080A] px-4 py-4 space-y-5 font-mono text-xs">
       
       {/* Header */}
-      <div className="flex items-baseline justify-between border-b border-white/[0.07] pb-2.5">
+      <div className="flex items-baseline justify-between border-b border-white/[0.07] pb-3">
         <div>
           <h1 className="text-xl font-bold text-white font-sans tracking-tight uppercase">Analytics</h1>
           <p className="text-xs text-zinc-400 font-sans mt-0.5">Performance metrics and operational insights across all agent executions.</p>
@@ -106,35 +138,41 @@ export default function AnalyticsPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
         {isLoading ? (
           Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)
         ) : kpis ? (
           <>
-            <KpiCard label="Total Runs" value={kpis.totalRuns.toLocaleString()} icon={Activity} />
+            <KpiCard label="Total Runs" numValue={kpis.totalRuns} icon={Activity} />
             <KpiCard
               label="Success Rate"
-              value={`${kpis.successRate}%`}
+              numValue={kpis.successRate}
+              suffix="%"
               subValue={`${kpis.successfulRuns} successful`}
               icon={CheckCircle2}
               color={kpis.successRate >= 90 ? 'text-emerald-400' : kpis.successRate >= 70 ? 'text-amber-400' : 'text-red-400'}
             />
             <KpiCard
               label="Failure Rate"
-              value={`${kpis.failureRate}%`}
+              numValue={kpis.failureRate}
+              suffix="%"
               subValue={`${kpis.failedRuns} failed`}
               icon={XCircle}
               color={kpis.failureRate <= 10 ? 'text-emerald-400' : kpis.failureRate <= 25 ? 'text-amber-400' : 'text-red-400'}
             />
             <KpiCard
               label="Avg Latency"
-              value={`${(kpis.avgLatency / 1000).toFixed(1)}s`}
+              numValue={kpis.avgLatency / 1000}
+              decimals={1}
+              suffix="s"
               subValue={`P95: ${(kpis.p95Latency / 1000).toFixed(1)}s`}
               icon={Clock}
             />
             <KpiCard
               label="P99 Latency"
-              value={`${(kpis.p99Latency / 1000).toFixed(1)}s`}
+              numValue={kpis.p99Latency / 1000}
+              decimals={1}
+              suffix="s"
               icon={Clock}
               color="text-zinc-300"
             />
@@ -146,27 +184,31 @@ export default function AnalyticsPage() {
             />
             <KpiCard
               label="Avg Tokens"
-              value={kpis.avgTokens.toLocaleString()}
+              numValue={kpis.avgTokens}
               icon={Zap}
               color="text-zinc-300"
             />
             <KpiCard
               label="Total Cost"
-              value={`$${kpis.totalCost.toFixed(2)}`}
+              numValue={kpis.totalCost}
+              prefix="$"
+              decimals={2}
               subValue={`Avg: $${kpis.avgCost.toFixed(4)}/run`}
               icon={DollarSign}
               color="text-emerald-400"
             />
             <KpiCard
               label="Avg Cost"
-              value={`$${kpis.avgCost.toFixed(4)}`}
+              numValue={kpis.avgCost}
+              prefix="$"
+              decimals={4}
               icon={DollarSign}
               color="text-emerald-400"
             />
             {kpis.avgQuality !== null && (
               <KpiCard
                 label="Avg Quality"
-                value={`${kpis.avgQuality}`}
+                numValue={kpis.avgQuality}
                 subValue="PathFlow composite score"
                 icon={BarChart3}
                 color={kpis.avgQuality >= 80 ? 'text-emerald-400' : kpis.avgQuality >= 60 ? 'text-amber-400' : 'text-red-400'}
