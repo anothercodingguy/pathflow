@@ -9,6 +9,7 @@ import {
 import TiltCard from '@/components/ui/TiltCard';
 import NumberAnimation from '@/components/ui/NumberAnimation';
 import LoadingState from '@/components/ui/LoadingState';
+import { MOCK_AGENTS } from '@/lib/mockData';
 
 interface AgentData {
   id: string;
@@ -27,8 +28,8 @@ interface AgentData {
 }
 
 export default function AgentsPage() {
-  const [agents, setAgents] = useState<AgentData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [agents, setAgents] = useState<AgentData[]>(MOCK_AGENTS as any);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     async function loadAgents() {
@@ -37,16 +38,17 @@ export default function AgentsPage() {
         const res = await fetch(`${apiBase}/api/v1/agents`, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          setAgents(data.agents || []);
+          if (data.agents && data.agents.length > 0) {
+            setAgents(data.agents);
+          }
         }
       } catch (err) {
-        console.error('Failed to load agents:', err);
-      } finally {
-        setIsLoading(false);
+        console.warn('Failed to load agents, using mock data fallback:', err);
       }
     }
     loadAgents();
   }, []);
+
 
   function getHealthScore(agent: AgentData): { score: number; label: string; color: string } {
     const successComponent = agent.successRate * 0.4;

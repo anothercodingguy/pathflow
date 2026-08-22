@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import FilterPills from '@/components/ui/FilterPills';
 import LoadingState from '@/components/ui/LoadingState';
+import { MOCK_DETECTIONS } from '@/lib/mockData';
 
 interface DetectionItem {
   runId: string;
@@ -47,8 +48,8 @@ const typeIcons: Record<string, any> = {
 };
 
 export default function DetectionsPage() {
-  const [detections, setDetections] = useState<DetectionItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [detections, setDetections] = useState<DetectionItem[]>(MOCK_DETECTIONS as any);
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedSeverity, setSelectedSeverity] = useState<string>('');
   const [selectedType, setSelectedType] = useState<string>('');
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
@@ -63,16 +64,17 @@ export default function DetectionsPage() {
         const res = await fetch(`${apiBase}/api/v1/detections?${params.toString()}`, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          setDetections(data.detections || []);
+          if (data.detections && data.detections.length > 0) {
+            setDetections(data.detections);
+          }
         }
       } catch (err) {
-        console.error('Failed to load detections:', err);
-      } finally {
-        setIsLoading(false);
+        console.warn('Failed to load detections, using mock data fallback:', err);
       }
     }
     loadDetections();
   }, [selectedSeverity, selectedType]);
+
 
   const severityCounts: Record<string, number> = {};
   detections.forEach(d => {

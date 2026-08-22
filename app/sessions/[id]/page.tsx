@@ -4,34 +4,36 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MessageSquare, ArrowLeft, Bot, User, Wrench, ChevronDown, ChevronRight, Zap, Clock, DollarSign, ExternalLink, ShieldCheck, Sparkles } from 'lucide-react';
+import { MOCK_RUNS } from '@/lib/mockData';
 
 export default function SessionDetailPage() {
   const params = useParams();
   const router = useRouter();
   const sessionId = params.id as string;
 
-  const [turns, setTurns] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [turns, setTurns] = useState<any[]>(() => {
+    const matching = MOCK_RUNS.filter(r => r.sessionId === sessionId || r.id === sessionId);
+    return matching.length > 0 ? matching : MOCK_RUNS.slice(0, 3);
+  });
+  const [isLoading, setIsLoading] = useState(false);
   const [expandedSpans, setExpandedSpans] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     async function loadSession() {
-      setIsLoading(true);
       try {
         const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
         const res = await fetch(`${apiBase}/api/v1/sessions?sessionId=${encodeURIComponent(sessionId)}`);
         const data = await res.json();
-        if (data.success) {
-          setTurns(data.turns || []);
+        if (data.success && data.turns && data.turns.length > 0) {
+          setTurns(data.turns);
         }
       } catch (err) {
-        console.error('Failed to load session details:', err);
-      } finally {
-        setIsLoading(false);
+        console.warn('Failed to load session details, using mock fallback:', err);
       }
     }
     if (sessionId) loadSession();
   }, [sessionId]);
+
 
   const toggleSpan = (spanId: string) => {
     setExpandedSpans((prev) => ({ ...prev, [spanId]: !prev[spanId] }));

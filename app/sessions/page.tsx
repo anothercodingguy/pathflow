@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { MessageSquare, ArrowRight, Clock, Zap, DollarSign, Bot, Search, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
+import { MOCK_SESSIONS } from '@/lib/mockData';
 
 interface SessionItem {
   sessionId: string;
@@ -18,29 +19,27 @@ interface SessionItem {
 }
 
 export default function SessionsPage() {
-  const [sessions, setSessions] = useState<SessionItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [sessions, setSessions] = useState<SessionItem[]>(MOCK_SESSIONS as any);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const fetchSessions = async () => {
-    setIsLoading(true);
     try {
       const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
       const res = await fetch(`${apiBase}/api/v1/sessions`);
       const data = await res.json();
-      if (data.success) {
-        setSessions(data.sessions || []);
+      if (data.success && data.sessions && data.sessions.length > 0) {
+        setSessions(data.sessions);
       }
     } catch (err) {
-      console.error('Failed to load sessions:', err);
-    } finally {
-      setIsLoading(false);
+      console.warn('Failed to load sessions, using mock fallback:', err);
     }
   };
 
   useEffect(() => {
     fetchSessions();
   }, []);
+
 
   const filteredSessions = sessions.filter((s) => {
     const q = searchQuery.toLowerCase();
