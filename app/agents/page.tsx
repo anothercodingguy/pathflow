@@ -163,7 +163,7 @@ export default function AgentsPage() {
                       <Link key={run.id} href={`/runs/${run.id}`} className="flex items-center justify-between px-4 py-2 hover:bg-white/[0.03] transition-colors group">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className={`inline-block w-1.5 h-1.5 rounded-full ${run.status === 'failed' ? 'bg-red-400' : run.status === 'running' ? 'bg-blue-400 animate-pulse' : 'bg-emerald-400'}`} />
-                          <span className="text-[11px] text-zinc-300 truncate group-hover:text-white font-sans font-medium">{run.title.replace('[Demo] ', '')}</span>
+                          <span className="text-[11px] text-zinc-300 truncate group-hover:text-white font-sans font-medium">{run.title.replace('', '')}</span>
                         </div>
                         <div className="flex items-center gap-2.5 shrink-0 text-[10px] text-zinc-500 font-mono">
                           <span>{(run.wallClockMs / 1000).toFixed(1)}s</span>

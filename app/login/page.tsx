@@ -18,12 +18,13 @@ function LoginContent() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      await signIn('google', { callbackUrl });
+      await signIn('google', { callbackUrl, redirectTo: callbackUrl });
     } catch (err) {
       console.error('Sign in error:', err);
       setIsLoading(false);
     }
   };
+
 
   const handleApiKeySubmit = (e: React.FormEvent) => {
     e.preventDefault();

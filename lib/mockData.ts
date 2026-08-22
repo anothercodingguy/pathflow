@@ -3,7 +3,7 @@ import { PathData } from './data';
 export const MOCK_RUNS: PathData[] = [
   {
     id: 'path-1',
-    title: '[Demo] Resolved Pytest async timeout bug in 12s',
+    title: 'Resolved Pytest async timeout bug in 12s',
     description: 'Diagnosed async loop closure leak in test_runner.py, reflected on AST context, generated patch, and verified sandbox tests.',
     status: 'COMPLETED',
     durationMs: 12400,
@@ -140,7 +140,7 @@ export const MOCK_RUNS: PathData[] = [
   },
   {
     id: 'path-2',
-    title: '[Demo] Autonomous E-Commerce Checkout Pipeline',
+    title: 'Autonomous E-Commerce Checkout Pipeline',
     description: 'Extracted product specs, navigated checkout steps via headless browser, filled shipping forms, and executed payment authorization.',
     status: 'COMPLETED',
     durationMs: 18200,
@@ -226,7 +226,7 @@ export const MOCK_RUNS: PathData[] = [
   },
   {
     id: 'path-3',
-    title: '[Demo] Deep Research: Market Analysis Breakdown',
+    title: 'Deep Research: Market Analysis Breakdown',
     description: 'Multi-step web search and paper synthesis pipeline for EV battery manufacturing cost projections through 2030.',
     status: 'FAILED',
     durationMs: 42100,
@@ -325,7 +325,7 @@ export const MOCK_RUNS: PathData[] = [
   },
   {
     id: 'path-4',
-    title: '[Demo] Customer Support Ticket Auto-Triage & Response',
+    title: 'Customer Support Ticket Auto-Triage & Response',
     description: 'Ingested high-priority billing inquiry, queried Stripe records, verified plan eligibility, and drafted tailored response with discount offer.',
     status: 'COMPLETED',
     durationMs: 7800,
@@ -411,7 +411,7 @@ export const MOCK_RUNS: PathData[] = [
   },
   {
     id: 'path-5',
-    title: '[Demo] Microservice Migration Planner',
+    title: 'Microservice Migration Planner',
     description: 'Analyzed monolithic repo dependency graph, identified cyclic imports, and attempted automated Kubernetes manifest generation.',
     status: 'FAILED',
     durationMs: 34200,
@@ -503,7 +503,7 @@ export const MOCK_RUNS: PathData[] = [
   },
   {
     id: 'path-6',
-    title: '[Demo] Insurance Claim Multi-Source Verification',
+    title: 'Insurance Claim Multi-Source Verification',
     description: 'Cross-checked accident photo metadata, police report OCR text, and policy coverage limits to approve $4,200 payout.',
     status: 'COMPLETED',
     durationMs: 12400,
@@ -585,7 +585,7 @@ export const MOCK_RUNS: PathData[] = [
   },
   {
     id: 'path-7',
-    title: '[Demo] Full Codebase Security Audit',
+    title: 'Full Codebase Security Audit',
     description: 'Scanned 142 repository files for hardcoded secrets, SQL injection vectors, and missing CSRF headers. Created 3 PRs with automated fixes.',
     status: 'COMPLETED',
     durationMs: 89200,
@@ -814,25 +814,25 @@ export const MOCK_ANALYTICS = {
     { id: 'agent-support', name: 'SupportTicket Agent', runs: 1, successRate: 100, avgLatency: 7800, avgCost: 0.028, totalCost: 0.028, avgTokens: 9400, avgQuality: 84 }
   ],
   expensiveRuns: [
-    { id: 'path-7', title: '[Demo] Full Codebase Security Audit', cost: 0.840, tokens: 270400, duration: 89200, status: 'completed' },
-    { id: 'path-3', title: '[Demo] Deep Research: Market Analysis Breakdown', cost: 0.142, tokens: 94200, duration: 42100, status: 'failed' },
-    { id: 'path-5', title: '[Demo] Microservice Migration Planner', cost: 0.094, tokens: 58200, duration: 34200, status: 'failed' },
-    { id: 'path-1', title: '[Demo] Resolved Pytest async timeout bug in 12s', cost: 0.038, tokens: 18400, duration: 12400, status: 'completed' },
-    { id: 'path-6', title: '[Demo] Insurance Claim Multi-Source Verification', cost: 0.032, tokens: 28400, duration: 12400, status: 'completed' },
+    { id: 'path-7', title: 'Full Codebase Security Audit', cost: 0.840, tokens: 270400, duration: 89200, status: 'completed' },
+    { id: 'path-3', title: 'Deep Research: Market Analysis Breakdown', cost: 0.142, tokens: 94200, duration: 42100, status: 'failed' },
+    { id: 'path-5', title: 'Microservice Migration Planner', cost: 0.094, tokens: 58200, duration: 34200, status: 'failed' },
+    { id: 'path-1', title: 'Resolved Pytest async timeout bug in 12s', cost: 0.038, tokens: 18400, duration: 12400, status: 'completed' },
+    { id: 'path-6', title: 'Insurance Claim Multi-Source Verification', cost: 0.032, tokens: 28400, duration: 12400, status: 'completed' },
   ],
   slowestRuns: [
-    { id: 'path-7', title: '[Demo] Full Codebase Security Audit', duration: 89200, cost: 0.840, status: 'completed' },
-    { id: 'path-3', title: '[Demo] Deep Research: Market Analysis Breakdown', duration: 42100, cost: 0.142, status: 'failed' },
-    { id: 'path-5', title: '[Demo] Microservice Migration Planner', duration: 34200, cost: 0.094, status: 'failed' },
-    { id: 'path-2', title: '[Demo] Autonomous E-Commerce Checkout Pipeline', duration: 18200, cost: 0.031, status: 'completed' },
-    { id: 'path-1', title: '[Demo] Resolved Pytest async timeout bug in 12s', duration: 12400, cost: 0.038, status: 'completed' },
+    { id: 'path-7', title: 'Full Codebase Security Audit', duration: 89200, cost: 0.840, status: 'completed' },
+    { id: 'path-3', title: 'Deep Research: Market Analysis Breakdown', duration: 42100, cost: 0.142, status: 'failed' },
+    { id: 'path-5', title: 'Microservice Migration Planner', duration: 34200, cost: 0.094, status: 'failed' },
+    { id: 'path-2', title: 'Autonomous E-Commerce Checkout Pipeline', duration: 18200, cost: 0.031, status: 'completed' },
+    { id: 'path-1', title: 'Resolved Pytest async timeout bug in 12s', duration: 12400, cost: 0.038, status: 'completed' },
   ]
 };
 
 export const MOCK_DETECTIONS = [
   {
     runId: 'path-5',
-    runTitle: '[Demo] Microservice Migration Planner',
+    runTitle: 'Microservice Migration Planner',
     runStatus: 'failed',
     detection: {
       type: 'TOOL_LOOP',
@@ -850,7 +850,7 @@ export const MOCK_DETECTIONS = [
   },
   {
     runId: 'path-3',
-    runTitle: '[Demo] Deep Research: Market Analysis Breakdown',
+    runTitle: 'Deep Research: Market Analysis Breakdown',
     runStatus: 'failed',
     detection: {
       type: 'TIMEOUT',
@@ -867,7 +867,7 @@ export const MOCK_DETECTIONS = [
   },
   {
     runId: 'path-4',
-    runTitle: '[Demo] Customer Support Ticket Auto-Triage & Response',
+    runTitle: 'Customer Support Ticket Auto-Triage & Response',
     runStatus: 'completed',
     detection: {
       type: 'HIGH_LATENCY',
@@ -884,7 +884,7 @@ export const MOCK_DETECTIONS = [
   },
   {
     runId: 'path-7',
-    runTitle: '[Demo] Full Codebase Security Audit',
+    runTitle: 'Full Codebase Security Audit',
     runStatus: 'completed',
     detection: {
       type: 'TOKEN_EXPLOSION',

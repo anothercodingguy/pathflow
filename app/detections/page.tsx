@@ -191,7 +191,7 @@ export default function DetectionsPage() {
                     onClick={(e) => e.stopPropagation()}
                     className="flex items-center gap-1 text-[10px] text-zinc-400 hover:text-blue-400 transition-colors shrink-0 font-mono"
                   >
-                    <span className="truncate max-w-[120px]">{item.runTitle.replace('[Demo] ', '')}</span>
+                    <span className="truncate max-w-[120px]">{item.runTitle.replace('', '')}</span>
                     <ArrowUpRight className="h-3 w-3" />
                   </Link>
 
