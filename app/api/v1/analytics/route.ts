@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { validateAuthToken } from '@/lib/auth';
 
 export async function GET(request: Request) {
   try {
+    const user = await validateAuthToken(request);
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const env = searchParams.get('env') || '';
     const project = searchParams.get('project') || '';
@@ -12,6 +18,7 @@ export async function GET(request: Request) {
     since.setDate(since.getDate() - days);
 
     const where: any = {
+      userId: user.id,
       createdAt: { gte: since }
     };
     if (env && env !== 'ALL') where.env = env;
@@ -200,6 +207,6 @@ export async function GET(request: Request) {
     });
   } catch (error: any) {
     console.error('API Error /api/v1/analytics:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

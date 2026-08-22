@@ -1,15 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateAuthToken } from "@/lib/auth";
 
 export async function GET(request: Request) {
   try {
+    const user = await validateAuthToken(request);
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get("sessionId") || searchParams.get("id");
 
     if (sessionId) {
-      // Get all turns in this session
+      // Get all turns in this session for the authenticated user
       const runs = await prisma.run.findMany({
         where: {
+          userId: user.id,
           OR: [
             { sessionId },
             { id: sessionId },
@@ -27,8 +34,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, sessionId, turns: runs });
     }
 
-    // Aggregate sessions
+    // Aggregate sessions for authenticated user
     const allRuns = await prisma.run.findMany({
+      where: { userId: user.id },
       include: { agent: true, spans: true },
       orderBy: { createdAt: "desc" },
       take: 100,
@@ -48,7 +56,7 @@ export async function GET(request: Request) {
     }>();
 
     for (const run of allRuns) {
-      const sId = run.sessionId || `session_${run.id.substring(0, 8)}`;
+      const sId = run.sessionId || ("session_" + run.id.substring(0, 8));
       if (!sessionsMap.has(sId)) {
         let preview = run.title;
         try {
@@ -88,6 +96,7 @@ export async function GET(request: Request) {
       sessions,
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("API Error /api/v1/sessions:", error);
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

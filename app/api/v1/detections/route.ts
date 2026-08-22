@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { validateAuthToken } from '@/lib/auth';
 import { formatRunToPathData } from '@/lib/data';
 import { runDetections } from '@/lib/detections';
 
 export async function GET(request: Request) {
   try {
+    const user = await validateAuthToken(request);
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const runId = searchParams.get('runId') || '';
     const type = searchParams.get('type') || '';
@@ -12,8 +18,14 @@ export async function GET(request: Request) {
 
     // If runId is provided, run detections on-demand for that trace
     if (runId) {
-      const run = await prisma.run.findUnique({
-        where: { id: runId },
+      const run = await prisma.run.findFirst({
+        where: {
+          id: runId,
+          OR: [
+            { userId: user.id },
+            { isDemo: true }
+          ]
+        },
         include: { agent: true, spans: { orderBy: { createdAt: 'asc' } } }
       });
       if (!run) {
@@ -29,8 +41,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, runId, count: detections.length, detections });
     }
 
-    // Otherwise, run detections across all recent runs
+    // Otherwise, run detections across the authenticated user's recent runs
     const runs = await prisma.run.findMany({
+      where: { userId: user.id },
       orderBy: { createdAt: 'desc' },
       take: 100,
       include: { agent: true, spans: { orderBy: { createdAt: 'asc' } } }
@@ -64,6 +77,6 @@ export async function GET(request: Request) {
     });
   } catch (error: any) {
     console.error('API Error /api/v1/detections:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

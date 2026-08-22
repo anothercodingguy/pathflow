@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 import { verifyRazorpaySignature } from "@/lib/razorpay";
 
 export async function POST(request: Request) {
   try {
+    const user = await getCurrentUser();
     const body = await request.json();
     const razorpayOrderId = body.razorpay_order_id || body.orderId;
     const razorpayPaymentId = body.razorpay_payment_id || body.paymentId;
@@ -28,7 +30,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Idempotency: If already success, return
+    // Check ownership if user session is available
+    if (user && order.userId !== user.id) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: Order belongs to another account." },
+        { status: 403 }
+      );
+    }
+
+    // Idempotency: If already success, return success
     if (order.status === "SUCCESS") {
       return NextResponse.json({
         success: true,
@@ -41,7 +51,7 @@ export async function POST(request: Request) {
     // Verify signature
     const isValid = verifyRazorpaySignature({
       razorpayOrderId,
-      razorpayPaymentId: razorpayPaymentId || `pay_mock_${Date.now()}`,
+      razorpayPaymentId: razorpayPaymentId || ('pay_mock_' + Date.now()),
       razorpaySignature: razorpaySignature || "mock_sig",
     });
 
@@ -55,7 +65,6 @@ export async function POST(request: Request) {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-    // Transactional Activation
     await prisma.$transaction([
       prisma.order.update({
         where: { id: order.id },
@@ -103,7 +112,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("[API Billing Verify POST Error]:", error);
     return NextResponse.json(
-      { success: false, error: error?.message || "Verification failed." },
+      { success: false, error: "Verification failed." },
       { status: 500 }
     );
   }
@@ -111,6 +120,11 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const orderId = searchParams.get("orderId");
 
@@ -133,65 +147,25 @@ export async function GET(request: Request) {
       );
     }
 
-    if (order.status === "SUCCESS") {
-      return NextResponse.json({
-        success: true,
-        status: "SUCCESS",
-        plan: order.plan,
-        amount: order.amount,
-        merchantOrderId: order.merchantOrderId,
-        alreadyProcessed: true,
-      });
+    if (order.userId !== user.id) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: Order belongs to another account." },
+        { status: 403 }
+      );
     }
-
-    // Auto-verify in simulation sandbox or mark completed
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-    await prisma.$transaction([
-      prisma.order.update({
-        where: { id: order.id },
-        data: {
-          status: "SUCCESS",
-          paidAt: now,
-          paymentDetails: JSON.stringify({ verified: true, mode: "GET_VERIFICATION" }),
-        },
-      }),
-      prisma.user.update({
-        where: { id: order.userId },
-        data: {
-          plan: order.plan,
-          planStatus: "ACTIVE",
-          planStartedAt: now,
-          planExpiresAt: expiresAt,
-        },
-      }),
-      prisma.subscription.create({
-        data: {
-          userId: order.userId,
-          plan: order.plan,
-          status: "ACTIVE",
-          billingCycle: "MONTHLY",
-          amount: order.amount,
-          currency: order.currency,
-          merchantOrderId: order.merchantOrderId,
-          startDate: now,
-          endDate: expiresAt,
-        },
-      }),
-    ]);
 
     return NextResponse.json({
       success: true,
-      status: "SUCCESS",
+      status: order.status,
       plan: order.plan,
       amount: order.amount,
       merchantOrderId: order.merchantOrderId,
+      paidAt: order.paidAt,
     });
   } catch (error: any) {
     console.error("[API Billing Verify GET Error]:", error);
     return NextResponse.json(
-      { success: false, error: error?.message || "Failed to verify order status." },
+      { success: false, error: "Failed to verify order status." },
       { status: 500 }
     );
   }

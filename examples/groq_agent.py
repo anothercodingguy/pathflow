@@ -7,7 +7,7 @@ Requirements:
 Environment Setup:
     export GROQ_API_KEY="gsk_..."
     export PATHFLOW_API_KEY="pf_live_..."
-    export PATHFLOW_ENDPOINT="https://app.pathflow.dev/api/v1"
+    export PATHFLOW_ENDPOINT="https://thepathflow.online/app/api/v1"
 """
 
 import os

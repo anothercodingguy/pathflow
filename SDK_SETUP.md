@@ -126,7 +126,7 @@ pip install pathflow
    ```bash
    export GROQ_API_KEY="gsk_..."
    export PATHFLOW_API_KEY="pf_live_secret_key"
-   export PATHFLOW_ENDPOINT="https://app.pathflow.dev/api/v1"
+   export PATHFLOW_ENDPOINT="https://thepathflow.online/app/api/v1"
    ```
 
 2. Run the Groq agent example script:
@@ -134,7 +134,7 @@ pip install pathflow
    python3 examples/groq_agent.py
    ```
 
-3. Open **`https://app.pathflow.dev/runs`** to view your Groq execution trace, span waterfall, tokens, and cost metrics live!
+3. Open **`https://thepathflow.online/app/runs`** to view your Groq execution trace, span waterfall, tokens, and cost metrics live!
 
 ---
 

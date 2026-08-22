@@ -99,7 +99,7 @@ GOOGLE_CLIENT_SECRET="GOCSPX-xxxx"
 | `GOOGLE_CLIENT_ID` | `xxxx.apps.googleusercontent.com` | Production, Preview, Development |
 | `GOOGLE_CLIENT_SECRET` | `GOCSPX-xxxx` | Production, Preview, Development |
 | `AUTH_SECRET` | `your_random_auth_secret_key` | Production, Preview, Development |
-| `NEXTAUTH_URL` | `https://app.pathflow.dev` | Production, Preview, Development |
+| `NEXTAUTH_URL` | `https://thepathflow.online/app` | Production, Preview, Development |
 
 4. Click **Save**.
 5. Go to **Deployments** → Click **Redeploy** on your latest build.
@@ -108,7 +108,7 @@ GOOGLE_CLIENT_SECRET="GOCSPX-xxxx"
 
 ## 4. Verifying Authentication Flow
 
-1. Open `http://localhost:3000/login` (or `https://app.pathflow.dev/login`).
+1. Open `http://localhost:3000/login` (or `https://thepathflow.online/app/login`).
 2. Click **Continue with Google**.
 3. Select your Google account on the consent screen.
 4. You will be redirected to **`/runs`** with an authenticated session!

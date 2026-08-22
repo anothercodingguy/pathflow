@@ -60,31 +60,40 @@ function KpiCard({
   color?: string 
 }) {
   return (
-    <TiltCard maxTilt={8} className="p-4 space-y-2 bg-[#111115] border-white/10">
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider font-mono">{label}</span>
-        <div className="flex size-6 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.06]">
-          <Icon className="h-3.5 w-3.5 text-zinc-400" />
+    <TiltCard maxTilt={8} className="p-4 bg-[#111115] border-white/10 flex flex-col justify-between h-full min-h-[114px]">
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider font-mono">{label}</span>
+          <div className="flex size-6 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.06]">
+            <Icon className="h-3.5 w-3.5 text-zinc-400" />
+          </div>
+        </div>
+        <div className={`text-xl font-bold font-mono ${color}`}>
+          {numValue !== undefined ? (
+            <NumberAnimation value={numValue} prefix={prefix} suffix={suffix} decimals={decimals} />
+          ) : (
+            value
+          )}
         </div>
       </div>
-      <div className={`text-xl font-bold font-mono ${color}`}>
-        {numValue !== undefined ? (
-          <NumberAnimation value={numValue} prefix={prefix} suffix={suffix} decimals={decimals} />
-        ) : (
-          value
-        )}
+      <div className="text-[11px] text-zinc-500 font-mono leading-tight min-h-[16px] mt-2">
+        {subValue || <span className="opacity-0 select-none">-</span>}
       </div>
-      {subValue && <div className="text-[11px] text-zinc-500 font-mono leading-tight">{subValue}</div>}
     </TiltCard>
   );
 }
 
 function SkeletonCard() {
   return (
-    <div className="border border-white/[0.07] rounded-2xl bg-[#111115] p-4 space-y-2 animate-pulse">
-      <div className="h-3 w-20 bg-zinc-800 rounded" />
-      <div className="h-6 w-16 bg-zinc-800 rounded" />
-      <div className="h-3 w-24 bg-zinc-800 rounded" />
+    <div className="border border-white/[0.07] rounded-2xl bg-[#111115] p-4 flex flex-col justify-between h-full min-h-[114px] animate-pulse">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="h-3 w-20 bg-zinc-800 rounded" />
+          <div className="size-6 bg-zinc-800 rounded-lg" />
+        </div>
+        <div className="h-6 w-16 bg-zinc-800 rounded" />
+      </div>
+      <div className="h-3 w-24 bg-zinc-800 rounded min-h-[16px] mt-2" />
     </div>
   );
 }
@@ -138,12 +147,17 @@ export default function AnalyticsPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 items-stretch">
         {isLoading ? (
           Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)
         ) : kpis ? (
           <>
-            <KpiCard label="Total Runs" numValue={kpis.totalRuns} icon={Activity} />
+            <KpiCard 
+              label="Total Runs" 
+              numValue={kpis.totalRuns} 
+              subValue={kpis.runningRuns > 0 ? `${kpis.runningRuns} active` : 'Total executions'} 
+              icon={Activity} 
+            />
             <KpiCard
               label="Success Rate"
               numValue={kpis.successRate}
@@ -173,6 +187,7 @@ export default function AnalyticsPage() {
               numValue={kpis.p99Latency / 1000}
               decimals={1}
               suffix="s"
+              subValue={`P50: ${(kpis.p50Latency / 1000).toFixed(1)}s`}
               icon={Clock}
               color="text-zinc-300"
             />
@@ -185,6 +200,7 @@ export default function AnalyticsPage() {
             <KpiCard
               label="Avg Tokens"
               numValue={kpis.avgTokens}
+              subValue="Per execution run"
               icon={Zap}
               color="text-zinc-300"
             />
@@ -202,6 +218,7 @@ export default function AnalyticsPage() {
               numValue={kpis.avgCost}
               prefix="$"
               decimals={4}
+              subValue="Per execution run"
               icon={DollarSign}
               color="text-emerald-400"
             />

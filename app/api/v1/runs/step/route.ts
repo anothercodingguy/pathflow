@@ -17,17 +17,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Missing run_id' }, { status: 400 });
     }
 
-    const run = await prisma.run.findUnique({ where: { id: runId } });
+    const run = await prisma.run.findFirst({
+      where: { id: runId, userId: user.id }
+    });
     if (!run) {
-      return NextResponse.json({ success: true, message: 'Run not found, continuing' });
+      return NextResponse.json({ success: false, error: 'Run not found or unauthorized' }, { status: 404 });
     }
 
-    // Save span if provided
     if (spanData) {
       await prisma.span.create({
         data: {
           runId: run.id,
-          spanId: spanData.spanId || `sp_${Date.now()}`,
+          spanId: spanData.spanId || ('sp_' + Date.now()),
           parentSpanId: spanData.parentSpanId || null,
           name: spanData.name || 'Span Step',
           type: spanData.type || 'LLMCall',
@@ -49,6 +50,6 @@ export async function POST(request: Request) {
     });
   } catch (err: any) {
     console.error('Error in /api/v1/runs/step:', err);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

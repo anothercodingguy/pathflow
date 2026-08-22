@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, validateAuthToken } from '@/lib/auth';
 import { formatRunToPathData } from '@/lib/data';
 
 export async function GET(request: Request) {
   try {
-    const currentUser = await getCurrentUser();
+    const currentUser = (await validateAuthToken(request)) || (await getCurrentUser());
+    if (!currentUser) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q') || '';
     const status = searchParams.get('status') || '';
@@ -15,23 +19,14 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200);
 
-    const userIds = currentUser ? [currentUser.id] : [];
-    const defaultAdmin = await prisma.user.findFirst({
-      where: { OR: [{ apiKey: 'pf_live_suyash_secret_9942' }, { email: 'admin@pathflow.dev' }] }
-    });
-    if (defaultAdmin && !userIds.includes(defaultAdmin.id)) {
-      userIds.push(defaultAdmin.id);
-    }
-
-    const andConditions: any[] = [];
-    if (userIds.length > 0) {
-      andConditions.push({
+    const andConditions: any[] = [
+      {
         OR: [
-          { userId: { in: userIds } },
+          { userId: currentUser.id },
           { isDemo: true }
         ]
-      });
-    }
+      }
+    ];
 
     if (status && status !== 'ALL') {
       andConditions.push({ status: status.toLowerCase() });
@@ -56,7 +51,7 @@ export async function GET(request: Request) {
       });
     }
 
-    const where = andConditions.length > 0 ? { AND: andConditions } : {};
+    const where = { AND: andConditions };
 
     const [runs, total] = await Promise.all([
       prisma.run.findMany({
@@ -87,26 +82,36 @@ export async function GET(request: Request) {
     });
   } catch (error: any) {
     console.error('API Error /api/paths:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
+    const currentUser = (await validateAuthToken(request)) || (await getCurrentUser());
+    if (!currentUser) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { title, description, modelFamily, durationMs, tokens, cost, tps, spans } = body;
 
-    const defaultUser = await prisma.user.findFirst();
-    const defaultAgent = await prisma.agent.findFirst();
-
-    if (!defaultUser) {
-      return NextResponse.json({ success: false, error: 'Database uninitialized' }, { status: 400 });
+    let agent = await prisma.agent.findFirst({ where: { userId: currentUser.id } });
+    if (!agent) {
+      agent = await prisma.agent.create({
+        data: {
+          userId: currentUser.id,
+          name: 'Custom Agent',
+          framework: 'Custom',
+          modelFamily: modelFamily || 'Claude 3.5 Sonnet',
+        }
+      });
     }
 
     const run = await prisma.run.create({
       data: {
-        userId: defaultUser.id,
-        agentId: defaultAgent?.id,
+        userId: currentUser.id,
+        agentId: agent.id,
         title: title || 'New Agent Execution Trace',
         description: description || 'Automated agent execution trace logged via API',
         modelFamily: modelFamily || 'Claude 3.5 Sonnet',
@@ -118,7 +123,7 @@ export async function POST(request: Request) {
         status: 'completed',
         spans: spans ? {
           create: spans.map((s: any, idx: number) => ({
-            spanId: s.spanId || `sp_${Date.now()}_${idx}`,
+            spanId: s.spanId || ('sp_' + Date.now() + '_' + idx),
             parentSpanId: s.parentSpanId || (idx > 0 ? spans[idx - 1].spanId : null),
             name: s.name || s.type || 'Step',
             type: s.type || 'LLMCall',
@@ -136,6 +141,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, run });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('API Error POST /api/paths:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

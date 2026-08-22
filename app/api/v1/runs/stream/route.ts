@@ -1,9 +1,18 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateAuthToken, getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const user = (await validateAuthToken(request)) || (await getCurrentUser());
+  if (!user) {
+    return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+
   const { searchParams } = new URL(request.url);
   const runId = searchParams.get("runId");
 
@@ -13,7 +22,6 @@ export async function GET(request: NextRequest) {
 
   let isActive = true;
 
-  // Cleanup on abort
   request.signal.addEventListener("abort", () => {
     isActive = false;
     writer.close().catch(() => {});
@@ -22,7 +30,7 @@ export async function GET(request: NextRequest) {
   const sendEvent = async (event: string, data: any) => {
     if (!isActive) return;
     try {
-      const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+      const message = 'event: ' + event + '\ndata: ' + JSON.stringify(data) + '\n\n';
       await writer.write(encoder.encode(message));
     } catch {
       isActive = false;
@@ -31,19 +39,16 @@ export async function GET(request: NextRequest) {
 
   (async () => {
     try {
-      // Send initial heartbeat
       await sendEvent("connected", { timestamp: Date.now() });
 
       let lastChecked = new Date(Date.now() - 5000);
 
-      // Poll every 1.5s and stream updates
       for (let i = 0; i < 40; i++) {
         if (!isActive) break;
 
         if (runId) {
-          // Stream single run updates
-          const run = await prisma.run.findUnique({
-            where: { id: runId },
+          const run = await prisma.run.findFirst({
+            where: { id: runId, userId: user.id },
             include: { spans: true, detections: true, evaluation: true },
           });
           if (run) {
@@ -60,9 +65,11 @@ export async function GET(request: NextRequest) {
             });
           }
         } else {
-          // Stream latest runs overview
           const recentRuns = await prisma.run.findMany({
-            where: { updatedAt: { gte: lastChecked } },
+            where: {
+              userId: user.id,
+              updatedAt: { gte: lastChecked }
+            },
             include: { agent: true, spans: true },
             orderBy: { updatedAt: "desc" },
             take: 5,

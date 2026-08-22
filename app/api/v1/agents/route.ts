@@ -1,11 +1,19 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { validateAuthToken } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = await validateAuthToken(request);
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const agents = await prisma.agent.findMany({
+      where: { userId: user.id },
       include: {
         runs: {
+          where: { userId: user.id },
           orderBy: { createdAt: 'desc' },
           select: {
             id: true,
@@ -62,12 +70,11 @@ export async function GET() {
       };
     });
 
-    // Sort by run count descending
     formattedAgents.sort((a, b) => b.runs - a.runs);
 
     return NextResponse.json({ success: true, agents: formattedAgents });
   } catch (error: any) {
     console.error('API Error /api/v1/agents:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

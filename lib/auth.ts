@@ -26,8 +26,8 @@ export async function getCurrentUser(): Promise<UserSession | null> {
       const user = await prisma.user.findFirst({
         where: {
           OR: [
-            { id: session.user.id },
-            { email: session.user.email || '' }
+            ...(session.user.id ? [{ id: session.user.id }] : []),
+            ...(session.user.email ? [{ email: session.user.email }] : [])
           ]
         }
       });
@@ -75,21 +75,6 @@ export async function getCurrentUser(): Promise<UserSession | null> {
     } catch {
       // cookies() might not be available in all execution contexts
     }
-
-    // 3. Fallback to existing workspace database user
-    const defaultUser = await prisma.user.findFirst();
-    if (defaultUser) {
-      return {
-        id: defaultUser.id,
-        email: defaultUser.email || 'admin@pathflow.dev',
-        name: defaultUser.name || 'Developer',
-        apiKey: defaultUser.apiKey,
-        plan: defaultUser.plan || 'FREE',
-        planStatus: defaultUser.planStatus || 'ACTIVE',
-        planExpiresAt: defaultUser.planExpiresAt,
-        image: defaultUser.image,
-      };
-    }
   } catch (err) {
     console.error('Error fetching current user session:', err);
   }
@@ -98,41 +83,45 @@ export async function getCurrentUser(): Promise<UserSession | null> {
 }
 
 /**
- * Validates Python SDK Authorization header (Bearer pf_live_...) for telemetry endpoints
+ * Validates Python SDK Authorization header (Bearer pf_live_...) or X-PathFlow-Key for telemetry endpoints
  */
 export async function validateAuthToken(request: Request): Promise<UserSession | null> {
-  const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
-  
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const apiKey = authHeader.substring(7).trim();
-    const user = await prisma.user.findUnique({
-      where: { apiKey }
-    });
-    if (user) {
-      return {
-        id: user.id,
-        email: user.email || 'user@pathflow.dev',
-        name: user.name || 'Developer',
-        apiKey: user.apiKey
-      };
+  try {
+    const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
+    const xApiKey = request.headers.get('X-PathFlow-Key') || request.headers.get('x-pathflow-key');
+    
+    let apiKey: string | null = null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      apiKey = authHeader.substring(7).trim();
+    } else if (xApiKey) {
+      apiKey = xApiKey.trim();
     }
-  }
 
-  // Fallback to NextAuth Session
-  const currentUser = await getCurrentUser();
-  if (currentUser) {
-    return currentUser;
-  }
+    if (apiKey) {
+      const user = await prisma.user.findUnique({
+        where: { apiKey }
+      });
+      if (user) {
+        return {
+          id: user.id,
+          email: user.email || 'user@pathflow.dev',
+          name: user.name || 'Developer',
+          apiKey: user.apiKey,
+          plan: user.plan || 'FREE',
+          planStatus: user.planStatus || 'ACTIVE',
+          planExpiresAt: user.planExpiresAt,
+          image: user.image
+        };
+      }
+    }
 
-  // Fallback to primary developer account if initial setup
-  const defaultUser = await prisma.user.findFirst();
-  if (defaultUser) {
-    return {
-      id: defaultUser.id,
-      email: defaultUser.email || 'admin@pathflow.dev',
-      name: defaultUser.name || 'Admin',
-      apiKey: defaultUser.apiKey
-    };
+    // Fallback to active NextAuth / cookie Session
+    const currentUser = await getCurrentUser();
+    if (currentUser) {
+      return currentUser;
+    }
+  } catch (err) {
+    console.error('Error validating auth token:', err);
   }
 
   return null;

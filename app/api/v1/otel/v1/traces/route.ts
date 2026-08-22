@@ -25,8 +25,7 @@ export async function POST(request: Request) {
         const otelSpans = ss.spans || [];
         if (otelSpans.length === 0) continue;
 
-        // Group by traceId
-        const traceId = otelSpans[0].traceId || `otel_${Date.now()}`;
+        const traceId = otelSpans[0].traceId || ('otel_' + Date.now());
         const runTitle = otelSpans[0].name || serviceName;
         
         let totalWallClockMs = 0;
@@ -40,7 +39,6 @@ export async function POST(request: Request) {
           const latencyMs = Number((endNs - startNs) / BigInt(1_000_000)) || 100;
           totalWallClockMs += latencyMs;
 
-          // Extract attributes
           let promptTokens = 0;
           let completionTokens = 0;
           let model = "Claude 3.5 Sonnet";
@@ -73,7 +71,7 @@ export async function POST(request: Request) {
           totalCost += spanCost;
 
           spansToCreate.push({
-            spanId: span.spanId || `sp_${Date.now()}`,
+            spanId: span.spanId || ('sp_' + Date.now()),
             parentSpanId: span.parentSpanId || null,
             name: span.name || "OTel Step",
             type: span.name?.toLowerCase().includes("tool") ? "tool" : "LLMCall",
@@ -87,7 +85,6 @@ export async function POST(request: Request) {
           });
         }
 
-        // Find or create Run
         const existingRun = await prisma.run.findUnique({
           where: { id: traceId },
         });
@@ -109,8 +106,7 @@ export async function POST(request: Request) {
               },
             },
           });
-        } else {
-          // Append spans
+        } else if (existingRun.userId === user.id) {
           for (const s of spansToCreate) {
             await prisma.span.create({
               data: {
@@ -126,6 +122,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ partialSuccess: {} }, { status: 200 });
   } catch (error: any) {
     console.error("[OTel Ingestion Error]:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

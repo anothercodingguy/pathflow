@@ -56,7 +56,7 @@ export default function TiltCard({
   };
 
   return (
-    <div style={{ perspective: 1000 }} className="h-full">
+    <div style={{ perspective: 1000 }} className="h-full w-full flex flex-col">
       <motion.div
         ref={cardRef}
         onClick={onClick}
@@ -70,7 +70,7 @@ export default function TiltCard({
         }}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className={`relative overflow-hidden rounded-2xl border border-white/10 bg-[#111115] transition-shadow duration-300 hover:shadow-2xl hover:border-white/20 ${
+        className={`relative overflow-hidden rounded-2xl border border-white/10 bg-[#111115] transition-shadow duration-300 hover:shadow-2xl hover:border-white/20 h-full w-full flex-1 flex flex-col ${
           onClick ? 'cursor-pointer' : ''
         } ${className}`}
       >
@@ -84,7 +84,7 @@ export default function TiltCard({
             }}
           />
         )}
-        <div className="relative z-10 h-full">{children}</div>
+        <div className="relative z-10 h-full w-full flex flex-col flex-1">{children}</div>
       </motion.div>
     </div>
   );

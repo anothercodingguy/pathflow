@@ -33,7 +33,7 @@ class PathFlow:
         self.api_key = api_key or os.getenv("PATHFLOW_API_KEY")
         
         # Default endpoint points to deployed production service or local fallback
-        raw_endpoint = endpoint or os.getenv("PATHFLOW_ENDPOINT", "https://app.pathflow.dev/api/v1")
+        raw_endpoint = endpoint or os.getenv("PATHFLOW_ENDPOINT", "https://thepathflow.online/app/api/v1")
         self.endpoint = raw_endpoint.rstrip('/')
         
         self.default_project = os.getenv("PATHFLOW_PROJECT", default_project)

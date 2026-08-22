@@ -51,7 +51,7 @@ export class PathFlow {
 
   constructor(config: PathFlowConfig = {}) {
     this.apiKey = config.apiKey || process.env.PATHFLOW_API_KEY || "";
-    const rawEndpoint = config.endpoint || process.env.PATHFLOW_ENDPOINT || "http://localhost:3000/app/api/v1";
+    const rawEndpoint = config.endpoint || process.env.PATHFLOW_ENDPOINT || (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/v1` : "https://thepathflow.online/app/api/v1");
     this.endpoint = rawEndpoint.replace(/\/$/, "");
     this.project = config.defaultProject || process.env.PATHFLOW_PROJECT || "default";
     this.env = config.defaultEnv || process.env.PATHFLOW_ENV || "production";

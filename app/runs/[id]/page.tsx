@@ -23,20 +23,7 @@ export default async function RunInspectorPage({ params }: RunInspectorPageProps
   });
 
   if (!run) {
-    // Try fallback to first run
-    const fallbackRun = await prisma.run.findFirst({
-      include: {
-        user: true,
-        agent: true,
-        spans: { orderBy: { createdAt: 'asc' } }
-      }
-    });
-
-    if (!fallbackRun) {
-      notFound();
-    }
-
-    return <TraceHeroInspector run={formatRunToPathData(fallbackRun)} />;
+    notFound();
   }
 
   return <TraceHeroInspector run={formatRunToPathData(run)} />;

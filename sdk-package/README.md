@@ -22,7 +22,7 @@ Set your credentials via environment variables:
 export PATHFLOW_API_KEY="pf_live_..."
 
 # Optional (only if self-hosting or using custom endpoint)
-export PATHFLOW_ENDPOINT="https://app.pathflow.dev/api/v1"
+export PATHFLOW_ENDPOINT="https://thepathflow.online/app/api/v1"
 ```
 
 Or pass them explicitly into the constructor:
@@ -32,7 +32,7 @@ from pathflow import PathFlow
 
 pf = PathFlow(
     api_key="pf_live_...",
-    endpoint="https://app.pathflow.dev/api/v1"
+    endpoint="https://thepathflow.online/app/api/v1"
 )
 ```
 
