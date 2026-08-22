@@ -377,12 +377,13 @@ run_agent()`;
 
           <Link
             href="/settings/billing"
-            className="w-full flex items-center gap-2 px-3 py-2 rounded text-xs font-mono transition-colors text-left text-purple-300 hover:text-white hover:bg-[#16161A] border border-purple-500/20 bg-purple-500/5"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded text-xs font-mono transition-colors text-left text-purple-600 dark:text-purple-300 hover:text-purple-900 dark:hover:text-white hover:bg-purple-500/10 border border-purple-500/30 bg-purple-500/5"
           >
-            <Zap className="h-3.5 w-3.5 text-purple-400" />
+            <Zap className="h-3.5 w-3.5 text-purple-500 dark:text-purple-400" />
             <span>Billing & Plans</span>
-            <span className="ml-auto text-[10px] px-1 rounded bg-purple-500/20 text-purple-300 font-bold">PRO</span>
+            <span className="ml-auto text-[10px] px-1 rounded bg-purple-500/20 text-purple-700 dark:text-purple-300 font-bold">PRO</span>
           </Link>
+
 
           <button
             onClick={() => setActiveTab('theme')}
