@@ -56,6 +56,9 @@ export default function Navbar() {
     if (typeof window !== 'undefined') {
       const isLight = document.documentElement.classList.contains('light');
       setTheme(isLight ? 'light' : 'dark');
+      if (!isLight) {
+        document.documentElement.classList.add('dark');
+      }
     }
   }, []);
 
@@ -64,12 +67,15 @@ export default function Navbar() {
     setTheme(nextTheme);
     if (nextTheme === 'light') {
       document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
       localStorage.setItem('pathflow_theme', 'light');
     } else {
       document.documentElement.classList.remove('light');
+      document.documentElement.classList.add('dark');
       localStorage.setItem('pathflow_theme', 'dark');
     }
   };
+
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

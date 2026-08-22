@@ -39,8 +39,9 @@ export default function SessionDetailPage() {
     setExpandedSpans((prev) => ({ ...prev, [spanId]: !prev[spanId] }));
   };
 
-  const totalTokens = turns.reduce((acc, t) => acc + (t.totalTokens || 0), 0);
-  const totalCost = turns.reduce((acc, t) => acc + (t.totalCostUsd || 0), 0);
+  const totalTokens = turns.reduce((acc, t) => acc + (t.totalTokens ?? t.tokens ?? 0), 0);
+  const totalCost = turns.reduce((acc, t) => acc + (t.totalCostUsd ?? t.cost ?? 0), 0);
+
 
   return (
     <div className="w-full min-h-[calc(100vh-2.75rem)] bg-[#08080A] px-4 py-4 space-y-4 font-sans text-xs">
@@ -192,19 +193,20 @@ export default function SessionDetailPage() {
                     <div className="flex items-center gap-4 pt-2 border-t border-white/[0.05] text-[10px] font-mono text-zinc-400">
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3 text-zinc-500" />
-                        <span>{(turn.wallClockMs / 1000).toFixed(2)}s</span>
+                        <span>{(((turn.wallClockMs ?? turn.durationMs ?? 0) / 1000)).toFixed(2)}s</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Zap className="w-3 h-3 text-zinc-500" />
-                        <span>{turn.totalTokens.toLocaleString()} tokens</span>
+                        <span>{(turn.totalTokens ?? turn.tokens ?? 0).toLocaleString()} tokens</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <DollarSign className="w-3 h-3 text-zinc-500" />
-                        <span>${turn.totalCostUsd.toFixed(4)}</span>
+                        <span>${(turn.totalCostUsd ?? turn.cost ?? 0).toFixed(4)}</span>
                       </div>
                     </div>
                   </div>
                 </div>
+
 
               </div>
             );

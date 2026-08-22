@@ -174,17 +174,44 @@ html.light select option {
   color: #09090B !important;
 }
 
-/* Table Row Hovers */
+/* Table Row Hovers & Alpha Backgrounds */
 html.light tr.group:hover,
 html.light .hover\:bg-\[\#16161F\]:hover,
 html.light .hover\:bg-\[\#121215\]:hover,
-html.light .hover\:bg-\[\#18181B\]:hover {
+html.light .hover\:bg-\[\#18181B\]:hover,
+html.light .hover\:bg-\[\#1A1A22\]:hover {
   background-color: #F4F4F5 !important;
 }
 
 html.light tr.group:hover .group-hover\:text-blue-400 {
   color: #2563EB !important;
 }
+
+html.light pre,
+html.light code:not(.dark-only) {
+  background-color: #EFEFF2 !important;
+  color: #18181B !important;
+}
+
+html.light .bg-white\/5,
+html.light .bg-white\/\[0\.02\],
+html.light .bg-white\/\[0\.03\],
+html.light .bg-white\/\[0\.04\],
+html.light .bg-white\/\[0\.05\],
+html.light .bg-white\/\[0\.06\],
+html.light .bg-white\/\[0\.07\],
+html.light .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+html.light .hover\:bg-white\/\[0\.02\]:hover,
+html.light .hover\:bg-white\/\[0\.04\]:hover,
+html.light .hover\:bg-white\/\[0\.08\]:hover,
+html.light .hover\:bg-white\/10:hover,
+html.light .hover\:bg-white\/15:hover {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
 
 /* React Flow Nodes in Light Mode */
 html.light .react-flow {
