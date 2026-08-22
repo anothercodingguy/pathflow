@@ -102,14 +102,15 @@ export default function SessionDetailPage() {
 
                 {/* 1. User Prompt Bubble */}
                 <div className="flex items-start gap-3 justify-end pl-12">
-                  <div className="bg-zinc-800 dark:bg-[#1C1C24] border border-zinc-700/50 dark:border-white/10 rounded-2xl rounded-tr-sm p-4 max-w-2xl text-white dark:text-zinc-200 text-xs shadow-lg space-y-1">
-                    <div className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-300 dark:text-zinc-400">
-                      <User className="w-3 h-3 text-blue-400" />
-                      <span>User</span>
+                  <div className="bg-[#E4E4E7] dark:bg-[#1C1C24] border border-[#D4D4D8] dark:border-white/10 rounded-2xl rounded-tr-sm p-4 max-w-2xl text-[#09090B] dark:text-zinc-200 text-xs shadow-md space-y-1">
+                    <div className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-600 dark:text-zinc-400">
+                      <User className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                      <span className="font-semibold">User</span>
                     </div>
-                    <div className="leading-relaxed whitespace-pre-wrap font-sans text-[13px] text-white dark:text-zinc-100">{userPrompt}</div>
+                    <div className="leading-relaxed whitespace-pre-wrap font-sans text-[13px] text-[#09090B] dark:text-zinc-100">{userPrompt}</div>
                   </div>
                 </div>
+
 
 
                 {/* 2. Intermediate Tool Executions / Reasoning Spans */}

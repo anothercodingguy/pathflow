@@ -137,10 +137,19 @@ html.light .divide-white\/\[0\.07\] {
 }
 
 /* Typography & Colors */
-html.light .text-white,
-html.light .text-zinc-100 {
+html.light .text-white:not(.keep-white):not(button.bg-blue-600 *):not(a.bg-blue-600 *),
+html.light .text-zinc-100:not(.keep-white) {
   color: #09090B !important;
 }
+
+html.light .keep-white,
+html.light button.bg-blue-600,
+html.light a.bg-blue-600,
+html.light button.bg-blue-600 *,
+html.light a.bg-blue-600 * {
+  color: #FFFFFF !important;
+}
+
 
 html.light .text-zinc-200,
 html.light .text-zinc-300 {
