@@ -123,7 +123,7 @@ export default function SessionsPage() {
               </div>
 
               <div className="text-xs text-zinc-300 line-clamp-2 bg-white/[0.02] p-2 rounded-lg border border-white/[0.04] font-mono">
-                "{session.previewPrompt}"
+                &ldquo;{session.previewPrompt}&rdquo;
               </div>
 
               <div className="grid grid-cols-3 gap-2 pt-1 border-t border-white/[0.04] text-[10px] font-mono text-zinc-400">

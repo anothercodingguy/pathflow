@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { motion, useMotionValue, useSpring, useTransform, useMotionTemplate } from 'framer-motion';
 
 interface TiltCardProps {
   children: React.ReactNode;
@@ -35,6 +35,7 @@ export default function TiltCard({
 
   const glareX = useTransform(mouseX, [0, 1], ['0%', '100%']);
   const glareY = useTransform(mouseY, [0, 1], ['0%', '100%']);
+  const glareBackground = useMotionTemplate`radial-gradient(400px circle at ${glareX} ${glareY}, rgba(255,255,255,0.4), transparent 80%)`;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
@@ -77,10 +78,10 @@ export default function TiltCard({
         {/* Subtle dynamic sheen on hover */}
         {isHovered && (
           <motion.div
-            className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-300"
+            className="pointer-events-none absolute -inset-px rounded-2xl transition-opacity duration-300"
             style={{
               opacity: glareOpacity,
-              background: `radial-gradient(400px circle at ${glareX.get()} ${glareY.get()}, rgba(255,255,255,0.4), transparent 80%)`,
+              background: glareBackground,
             }}
           />
         )}

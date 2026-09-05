@@ -1012,7 +1012,7 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                   </div>
                   <h4 className="text-sm font-semibold text-zinc-100">AI Root Cause Investigation</h4>
                   <p className="text-xs text-zinc-400 mt-1 max-w-sm text-center">
-                    Click <strong>"Investigate"</strong> in the top header to run deep trace diagnosis, analyze anomaly propagation, and generate automated mitigations.
+                    Click <strong>&quot;Investigate&quot;</strong> in the top header to run deep trace diagnosis, analyze anomaly propagation, and generate automated mitigations.
                   </p>
                   <button
                     onClick={runInvestigation}

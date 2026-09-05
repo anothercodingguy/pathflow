@@ -435,7 +435,7 @@ run_agent()`;
               <div className="border-t border-[#1E1E24] pt-3 text-zinc-400 text-[11px] leading-relaxed">
                 Environment Variable export:
                 <pre className="mt-1 bg-[#08080A] border border-[#1E1E24] p-2.5 rounded text-zinc-300 font-mono">
-                  export PATHFLOW_API_KEY="{apiKey}"
+                  export PATHFLOW_API_KEY=&quot;{apiKey}&quot;
                 </pre>
               </div>
             </div>
