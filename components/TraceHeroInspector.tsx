@@ -160,11 +160,11 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
       });
       const data = await res.json();
       if (data.success) {
-        setEvalSavedMsg('✅ Evaluation saved!');
+        setEvalSavedMsg('Evaluation saved.');
         setTimeout(() => setEvalSavedMsg(null), 3000);
       }
     } catch {
-      setEvalSavedMsg('❌ Failed to save evaluation');
+      setEvalSavedMsg('Failed to save evaluation.');
     } finally {
       setIsSavingEval(false);
     }
@@ -481,7 +481,7 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                 onClick={() => { const idx = run.spans.findIndex(s => s.status === 'FAILED'); if (idx >= 0) goToSpan(idx); }}
                 className="px-2 py-0.5 rounded border border-red-500/30 bg-red-500/10 text-[10px] text-red-400 font-bold hover:bg-red-500/20 transition-colors"
               >
-                ⚡ Jump to Error
+                Jump to Error
               </button>
             )}
           </div>
@@ -837,7 +837,7 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                       activeTraceTab === tab ? 'border-blue-500 text-blue-400' : 'border-transparent text-zinc-500 hover:text-white'
                     }`}
                   >
-                    {tab === 'error' ? `Error ${run.error ? '⚠' : ''}` : `Trace ${tab}`}
+                    {tab === 'error' ? (run.error ? 'Error (!)' : 'Error') : `Trace ${tab}`}
                   </button>
                 ))}
               </div>

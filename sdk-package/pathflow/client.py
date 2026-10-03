@@ -157,7 +157,7 @@ class PathFlow:
                     total_tokens = sum(s.get("tokens", 0) for s in exported_spans)
                     total_cost = sum(s.get("cost", 0.0) for s in exported_spans)
 
-                    log_icon = "🔥" if status == "completed" else "💥"
+                    log_icon = "[OK]" if status == "completed" else "[ERR]"
                     print(f"{log_icon} [PathFlow Telemetry] Trace Finalized: '{trace_name}' | Latency: {duration_ms}ms | Spans: {len(exported_spans)} | Status: {status.upper()}")
 
                     # Flush telemetry to PathFlow server

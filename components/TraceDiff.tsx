@@ -223,7 +223,7 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
                   ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/40'
                   : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/40'
               }`}>
-                {latencyPct <= 0 ? '✓ Performance Improved' : '⚠ Performance Regression'}
+                {latencyPct <= 0 ? 'Performance Improved' : 'Performance Regression'}
               </span>
             </div>
 

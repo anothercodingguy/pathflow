@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       let payload: any;
       if (type === "SLACK") {
         payload = {
-          text: "✅ *[PathFlow Connection Test]* Webhook successfully connected to PathFlow!",
+          text: "*[PathFlow Connection Test]* Webhook successfully connected to PathFlow!",
           attachments: [
             {
               color: "#3B82F6",
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
         };
       } else if (type === "DISCORD") {
         payload = {
-          content: "✅ **PathFlow Connection Test:** Webhook successfully connected!",
+          content: "**PathFlow Connection Test:** Webhook successfully connected!",
           embeds: [
             {
               title: "PathFlow Observability Alerts",

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Mic, ArrowUp, ChevronDown, Sparkles, Command, Cpu, AtSign } from 'lucide-react';
+import { Plus, Check, Mic, ArrowUp, ChevronDown, Sparkles, Command, Cpu, AtSign } from 'lucide-react';
 
 interface PromptBarProps {
   onSend?: (query: string, model: string) => void;
@@ -132,7 +132,7 @@ export default function PromptBar({
                   }`}
                 >
                   <span>{m}</span>
-                  {selectedModel === m && <span className="text-[10px]">✓</span>}
+                  {selectedModel === m && <Check className="w-3 h-3 text-blue-400" />}
                 </button>
               ))}
             </div>

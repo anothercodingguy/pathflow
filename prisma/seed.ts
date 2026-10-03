@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding PathFlow Database with comprehensive demo data...');
+  console.log('[START] Seeding PathFlow Database with comprehensive demo data...');
 
   // Clean existing database records
   await prisma.subscription.deleteMany();
@@ -19,7 +19,7 @@ async function main() {
   let user;
   if (existingUser) {
     user = existingUser;
-    console.log('✅ Using existing user:', user.email);
+    console.log('[OK] Using existing user:', user.email);
   } else {
     user = await prisma.user.create({
       data: {
@@ -30,7 +30,7 @@ async function main() {
         apiKey: 'pf_live_suyash_secret_9942',
       },
     });
-    console.log('✅ Created Developer Account:', user.email, '| API Key:', user.apiKey);
+    console.log('[OK] Created Developer Account:', user.email, '| API Key:', user.apiKey);
   }
 
   // Create Agent Frameworks
@@ -870,13 +870,13 @@ async function main() {
     }
   });
 
-  console.log('✅ Seeded 7 demo runs:', [run1.id, run2.id, run3.id, run4.id, run5.id, run6.id, run7.id].join(', '));
-  console.log('🎉 PathFlow database seeding complete!');
+  console.log('[OK] Seeded 7 demo runs:', [run1.id, run2.id, run3.id, run4.id, run5.id, run6.id, run7.id].join(', '));
+  console.log('[DONE] PathFlow database seeding complete!');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Seeding failed:', e);
+    console.error('[ERROR] Seeding failed:', e);
     process.exit(1);
   })
   .finally(async () => {

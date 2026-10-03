@@ -6,7 +6,7 @@ It automatically captures execution traces, DAG parent/child span trees, duratio
 
 ---
 
-## 🚀 Installation
+## Installation
 
 ```bash
 pip install pathflow
@@ -14,7 +14,7 @@ pip install pathflow
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 Set your credentials via environment variables:
 
@@ -38,7 +38,7 @@ pf = PathFlow(
 
 ---
 
-## ⚡ Basic Usage: Function Decorator
+## Basic Usage: Function Decorator
 
 Wrap your main agent function with `@pf.trace()`:
 
@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
 ---
 
-## 🔍 Granular Spans & Context Management
+## Granular Spans & Context Management
 
 Create granular parent/child spans around LLM completions, database queries, and tool executions using `with pf.span(...)`:
 
@@ -98,12 +98,12 @@ def research_agent(topic: str):
 
 ---
 
-## 🔒 Secret Sanitization
+## Secret Sanitization
 
 PathFlow automatically redacts sensitive patterns (such as API keys `sk-`, `gsk_`, `pf_live_`, `Bearer `, passwords, and authorization tokens) from stringified raw inputs and outputs before transmission.
 
 ---
 
-## 📜 License
+## License
 
 MIT License. See [LICENSE](LICENSE) for details.

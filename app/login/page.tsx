@@ -3,7 +3,7 @@
 import React, { useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
-import { Key, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Key, ArrowRight, ShieldCheck, AlertCircle, Sparkles } from 'lucide-react';
 
 function LoginContent() {
   const searchParams = useSearchParams();
@@ -25,6 +25,12 @@ function LoginContent() {
     }
   };
 
+  const handleDemoGuestAccess = () => {
+    document.cookie = `pathflow_session=pf_demo_guest_session; path=/; max-age=2592000`;
+    localStorage.setItem('pathflow_api_key', 'pf_live_secret_key');
+    const targetUrl = callbackUrl.startsWith('/app') ? callbackUrl : `/app${callbackUrl.startsWith('/') ? '' : '/'}${callbackUrl}`;
+    window.location.href = targetUrl;
+  };
 
   const handleApiKeySubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +74,30 @@ function LoginContent() {
             <span>Authentication failed. Please check your Google OAuth credentials.</span>
           </div>
         )}
+
+        {/* 1-Click Instant Demo Workspace */}
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={handleDemoGuestAccess}
+            className="w-full h-12 flex items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-blue-600/25 active:scale-[0.99] transition-all duration-200 cursor-pointer"
+          >
+            <Sparkles className="h-4 w-4 text-blue-200 animate-pulse" />
+            <span>Launch Instant Demo Workspace</span>
+            <ArrowRight className="h-4 w-4 ml-0.5" />
+          </button>
+          <p className="text-[11px] text-center text-zinc-500 font-mono">
+            Explore live traces, DAGs, flame graphs & detections with zero setup
+          </p>
+        </div>
+
+        {/* Subtle Divider */}
+        <div className="relative flex items-center justify-center my-4">
+          <div className="w-full border-t border-zinc-200 dark:border-white/10" />
+          <span className="absolute bg-white dark:bg-[#111113] px-3 text-xs text-zinc-500 font-medium">
+            or Sign in with Account
+          </span>
+        </div>
 
         {/* Primary CTA: Continue with Google */}
         <div className="space-y-3">

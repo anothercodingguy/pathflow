@@ -6,7 +6,7 @@ PathFlow is a high-density, lightweight **Execution Profiler, Debugger, and Perf
 
 ---
 
-## ⚡ Quick Start Onboarding
+## Quick Start Onboarding
 
 ### 1. Install SDK
 ```bash
@@ -40,11 +40,11 @@ if __name__ == "__main__":
     run_agent()
 ```
 
-> 🛡️ **Assurance**: No changes to your agent logic are required. PathFlow only instruments execution and does not modify agent behavior.
+> **Assurance**: No changes to your agent logic are required. PathFlow only instruments execution and does not modify agent behavior.
 
 ---
 
-## 🔍 What PathFlow Automatically Collects
+## What PathFlow Automatically Collects
 
 When your function runs, PathFlow automatically captures:
 - Trace
@@ -62,7 +62,7 @@ When your function runs, PathFlow automatically captures:
 
 ---
 
-## 🚀 Run & Inspect
+## Run & Inspect
 
 Run your agent normally:
 
@@ -84,7 +84,7 @@ Open PathFlow to inspect:
 
 ---
 
-## 🛠️ Self-Hosting & Local Profiler Setup
+## Self-Hosting & Local Profiler Setup
 
 ```bash
 git clone https://github.com/anothercodingguy/pathflow.git

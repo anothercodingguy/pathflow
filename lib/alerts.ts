@@ -40,7 +40,7 @@ export async function dispatchAlertToWebhooks(payload: AlertPayload, userId?: st
         let body: any;
         if (webhook.type === "SLACK") {
           body = {
-            text: `🚨 *[PathFlow Alert]* ${payload.title}`,
+            text: `*[PathFlow Alert]* ${payload.title}`,
             attachments: [
               {
                 color: payload.severity === "CRITICAL" ? "#EF4444" : "#F59E0B",
@@ -60,7 +60,7 @@ export async function dispatchAlertToWebhooks(payload: AlertPayload, userId?: st
           };
         } else if (webhook.type === "DISCORD") {
           body = {
-            content: `🚨 **PathFlow Alert:** ${payload.title}`,
+            content: `**PathFlow Alert:** ${payload.title}`,
             embeds: [
               {
                 title: payload.title,

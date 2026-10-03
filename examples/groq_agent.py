@@ -171,4 +171,4 @@ def run_agent(user_query: str):
 if __name__ == "__main__":
     print("--- Running PathFlow Groq Agent Example ---", flush=True)
     ans = run_agent("What is 145 multiplied by 82?")
-    print("\n🤖 Final Agent Answer:", ans, flush=True)
+    print("\nFinal Agent Answer:", ans, flush=True)

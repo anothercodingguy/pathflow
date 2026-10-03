@@ -12,11 +12,11 @@ const dbType = isPostgres ? 'PostgreSQL' : 'SQLite';
 console.log(`[PathFlow DB Prep] Target Database: ${dbType} | URL: ${databaseUrl.split('@')[0]}...`);
 
 if (isPostgres) {
-  console.log('🐘 Activating Prisma schema for PostgreSQL production...');
+  console.log('[PostgreSQL] Activating Prisma schema for PostgreSQL production...');
   const postgresSchema = fs.readFileSync(schemaPostgresPath, 'utf8');
   fs.writeFileSync(activeSchemaPath, postgresSchema);
 } else {
-  console.log('📁 Activating Prisma schema for SQLite development...');
+  console.log('[SQLite] Activating Prisma schema for SQLite development...');
   const sqliteSchema = fs.readFileSync(schemaSqlitePath, 'utf8');
   fs.writeFileSync(activeSchemaPath, sqliteSchema);
 }

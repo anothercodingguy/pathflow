@@ -162,12 +162,12 @@ export default function SettingsPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setTestAlertStatus('✅ Test alert sent successfully!');
+        setTestAlertStatus('Test alert sent successfully.');
       } else {
-        setTestAlertStatus(`❌ Failed: ${data.error}`);
+        setTestAlertStatus(`Failed: ${data.error}`);
       }
     } catch (err: any) {
-      setTestAlertStatus('❌ Network error sending alert');
+      setTestAlertStatus('Network error sending alert.');
     }
     setTimeout(() => setTestAlertStatus(null), 4000);
   };
@@ -189,10 +189,10 @@ export default function SettingsPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setBudgetSaveMessage('✅ Budget and circuit breaker saved successfully!');
+        setBudgetSaveMessage('Budget and circuit breaker saved successfully.');
       }
     } catch {
-      setBudgetSaveMessage('❌ Failed to update budget.');
+      setBudgetSaveMessage('Failed to update budget.');
     } finally {
       setIsSavingBudget(false);
       setTimeout(() => setBudgetSaveMessage(null), 3000);
