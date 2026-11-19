@@ -149,42 +149,42 @@ export function formatRunToPathData(run: any): PathData {
   };
 }
 
-import { MOCK_RUNS } from './mockData';
-
 /**
- * Client API Fetchers for Automatic Telemetry Data
+ * Client API fetchers.
+ *
+ * These THROW when the request fails. They used to return the built-in mock
+ * runs on any failure, which showed sample data as if it were real. Callers
+ * must catch the error and render an error state with a Retry button.
+ *
+ * Note: the API itself (app/api/paths/route.ts) still answers with the sample
+ * runs when an account has no runs. Those are flagged `isDemo: true`, and the
+ * UI labels them (see lib/demo.ts).
  */
+function clientApiBase(): string {
+  return typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+}
+
 export async function fetchRunsFromApi(query: string = '', status: string = ''): Promise<PathData[]> {
-  try {
-    const params = new URLSearchParams();
-    if (query) params.append('q', query);
-    if (status && status !== 'ALL') params.append('status', status);
+  const params = new URLSearchParams();
+  if (query) params.append('q', query);
+  if (status && status !== 'ALL') params.append('status', status);
 
-    const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
-    const url = `${apiBase}/api/paths${params.toString() ? `?${params.toString()}` : ''}`;
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) return MOCK_RUNS;
+  const url = `${clientApiBase()}/api/paths${params.toString() ? `?${params.toString()}` : ''}`;
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`The runs API answered with HTTP ${res.status}.`);
 
-    const data = await res.json();
-    if (data.paths && data.paths.length > 0) return data.paths;
-    return MOCK_RUNS;
-  } catch (err) {
-    console.warn('Error fetching execution runs, using mock fallback:', err);
-    return MOCK_RUNS;
-  }
+  const data = await res.json();
+  return Array.isArray(data.paths) ? data.paths : [];
 }
 
+/** Returns null when the run does not exist. Throws when the request fails. */
 export async function fetchRunByIdFromApi(id: string): Promise<PathData | null> {
-  try {
-    const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
-    const res = await fetch(`${apiBase}/api/paths/${id}`, { cache: 'no-store' });
-    if (!res.ok) return MOCK_RUNS.find(r => r.id === id) || MOCK_RUNS[0];
+  const res = await fetch(`${clientApiBase()}/api/paths/${encodeURIComponent(id)}`, { cache: 'no-store' });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`The run API answered with HTTP ${res.status}.`);
 
-    const data = await res.json();
-    return data.path || MOCK_RUNS.find(r => r.id === id) || MOCK_RUNS[0];
-  } catch (err) {
-    console.warn(`Error fetching run ${id}, using mock fallback:`, err);
-    return MOCK_RUNS.find(r => r.id === id) || MOCK_RUNS[0];
-  }
+  const data = await res.json();
+  // The API falls back to a different sample run for unknown ids; do not
+  // present another run as the one that was asked for.
+  return data.path && data.path.id === id ? data.path : null;
 }
-

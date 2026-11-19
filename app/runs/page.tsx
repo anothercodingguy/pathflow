@@ -1,14 +1,17 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { PathData, formatCurrency, CurrencyMode, fetchRunsFromApi } from '@/lib/data';
-import {
-  Search, CheckCircle2, AlertTriangle, RefreshCw, Terminal,
-  Loader2, BarChart3, ArrowUpRight, XCircle, Clock, DollarSign, Zap, X
-} from 'lucide-react';
+import { Search, CheckCircle2, RefreshCw, Terminal, XCircle, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import FilterPills from '@/components/ui/FilterPills';
-import LoadingState from '@/components/ui/LoadingState';
+import { PageShell, PageHeader } from '@/components/ui/Page';
+import { Button, ButtonLink } from '@/components/ui/Button';
+import { Input, Select } from '@/components/ui/Field';
+import { Card, TableWrap, th, theadRow } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { DemoBadge, DemoNotice, EmptyState, ErrorState, InlineError } from '@/components/ui/States';
+import { demoScope, isDemoRun } from '@/lib/demo';
 
 function formatAge(dateStr: string): string {
   if (!dateStr) return '';
@@ -32,60 +35,81 @@ function formatAge(dateStr: string): string {
 }
 
 function SkeletonRow() {
+  const bar = 'h-3.5 rounded bg-tint/10';
   return (
-    <tr className="animate-pulse">
-      <td className="py-3 px-4"><div className="h-4 w-10 bg-zinc-800 rounded mx-auto" /></td>
-      <td className="py-3 px-4"><div className="h-4 w-48 bg-zinc-800 rounded" /></td>
-      <td className="py-3 px-4"><div className="h-4 w-20 bg-zinc-800 rounded" /></td>
-      <td className="py-3 px-4"><div className="h-4 w-16 bg-zinc-800 rounded" /></td>
-      <td className="py-3 px-4"><div className="h-4 w-12 bg-zinc-800 rounded ml-auto" /></td>
-      <td className="py-3 px-4"><div className="h-4 w-14 bg-zinc-800 rounded ml-auto" /></td>
-      <td className="py-3 px-4"><div className="h-4 w-12 bg-zinc-800 rounded ml-auto" /></td>
-      <td className="py-3 px-4"><div className="h-4 w-10 bg-zinc-800 rounded ml-auto" /></td>
-      <td className="py-3 px-4"><div className="h-4 w-14 bg-zinc-800 rounded ml-auto" /></td>
+    <tr className="animate-pulse" aria-hidden>
+      <td className="px-3 py-3"><div className={`${bar} w-5`} /></td>
+      <td className="px-3 py-3"><div className={`${bar} w-48 max-w-full`} /></td>
+      <td className="px-3 py-3"><div className={`${bar} w-20`} /></td>
+      <td className="px-3 py-3"><div className={`${bar} w-24`} /></td>
+      <td className="px-3 py-3"><div className={`${bar} ml-auto w-12`} /></td>
+      <td className="px-3 py-3"><div className={`${bar} ml-auto w-12`} /></td>
+      <td className="px-3 py-3"><div className={`${bar} ml-auto w-12`} /></td>
+      <td className="px-3 py-3"><div className={`${bar} ml-auto w-8`} /></td>
+      <td className="px-3 py-3"><div className={`${bar} ml-auto w-12`} /></td>
     </tr>
   );
 }
 
+type PollInterval = 'OFF' | '2s' | '5s' | '10s';
+type StatusFilter = 'ALL' | 'completed' | 'failed';
+
 export default function RunsPage() {
   const [runs, setRuns] = useState<PathData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'completed' | 'failed'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [modelFilter, setModelFilter] = useState<string>('ALL');
   const [frameworkFilter, setFrameworkFilter] = useState<string>('ALL');
   const [minDurationFilter, setMinDurationFilter] = useState<number>(0);
   const [currency, setCurrency] = useState<CurrencyMode>('USD');
   const [isLoading, setIsLoading] = useState(true);
+  // `error`: the first load failed, nothing to show. `refreshError`: a
+  // background refresh failed, the rows on screen are from the last good load.
+  const [error, setError] = useState<string | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
-  const [pollInterval, setPollInterval] = useState<'OFF' | '2s' | '5s' | '10s'>('5s');
+  const [pollInterval, setPollInterval] = useState<PollInterval>('5s');
 
-  // Read URL query params
+  // Read URL query params (the global search sends ?q=...)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const q = params.get('q');
     if (q) setSearchQuery(q);
   }, []);
 
-  const loadRuns = async (silent = false) => {
+  const loadRuns = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
-    const data = await fetchRunsFromApi('', statusFilter === 'ALL' ? '' : statusFilter);
-    setRuns(data);
-    if (!silent) setIsLoading(false);
-  };
+    try {
+      const data = await fetchRunsFromApi('', statusFilter === 'ALL' ? '' : statusFilter);
+      setRuns(data);
+      setError(null);
+      setRefreshError(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'The request failed.';
+      if (silent) {
+        setRefreshError(message);
+      } else {
+        setRuns([]);
+        setError(message);
+      }
+    } finally {
+      if (!silent) setIsLoading(false);
+    }
+  }, [statusFilter]);
 
   useEffect(() => {
     loadRuns();
-  }, [statusFilter]);
+  }, [loadRuns]);
 
-  // Live Auto-Refresh Polling
+  // Auto-refresh (polling)
   useEffect(() => {
-    if (pollInterval === 'OFF') return;
+    if (pollInterval === 'OFF' || error) return;
     const ms = pollInterval === '2s' ? 2000 : pollInterval === '5s' ? 5000 : 10000;
     const interval = setInterval(() => {
       loadRuns(true);
     }, ms);
     return () => clearInterval(interval);
-  }, [pollInterval, statusFilter]);
+  }, [pollInterval, loadRuns, error]);
 
   useEffect(() => {
     const updateCurrency = () => {
@@ -139,7 +163,7 @@ export default function RunsPage() {
     });
   }, [runs, searchQuery, modelFilter, frameworkFilter, minDurationFilter]);
 
-  // Compute summary stats
+  // Summary stats
   const totalRuns = filteredRuns.length;
   const failedCount = filteredRuns.filter(r => r.status.toUpperCase() === 'FAILED').length;
   const successCount = filteredRuns.filter(r => r.status.toUpperCase() === 'COMPLETED').length;
@@ -149,214 +173,240 @@ export default function RunsPage() {
   const availableModels = [...new Set(runs.map(r => r.modelFamily))];
   const availableFrameworks = [...new Set(runs.map(r => r.agent?.framework || 'Custom'))];
 
-  return (
-    <div className="w-full min-h-[calc(100vh-2.75rem)] bg-[#08080A] px-4 py-3 space-y-3 font-mono">
-      
-      {/* Header */}
-      <div className="flex items-baseline justify-between border-b border-white/[0.07] pb-2.5">
-        <div>
-          <h1 className="text-xl font-bold text-white font-sans tracking-tight uppercase">Runs</h1>
-          <p className="text-xs text-zinc-400 font-sans mt-0.5">
-            {isLoading ? 'Loading execution traces...' : `${totalRuns} traces • ${successCount} passed • ${failedCount} failed • $${totalCost.toFixed(2)} total cost`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Live stream status */}
-          <div className="flex items-center gap-1 bg-[#121217] border border-white/[0.07] rounded px-2 py-0.5 text-[10px]">
-            <span className={`w-1.5 h-1.5 rounded-full ${pollInterval !== 'OFF' ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} />
-            <span className="text-zinc-400 font-mono">Stream:</span>
-            <select
-              value={pollInterval}
-              onChange={(e) => setPollInterval(e.target.value as any)}
-              className="bg-transparent text-white focus:outline-none cursor-pointer font-mono"
-            >
-              <option value="2s" className="bg-[#121217] text-white">Live (2s)</option>
-              <option value="5s" className="bg-[#121217] text-white">5s</option>
-              <option value="10s" className="bg-[#121217] text-white">10s</option>
-              <option value="OFF" className="bg-[#121217] text-zinc-400">Paused</option>
-            </select>
-          </div>
+  // Is what we are showing the built-in sample data?
+  const demo = demoScope(filteredRuns, isDemoRun);
 
-          <button
-            onClick={() => loadRuns(false)}
-            disabled={isLoading}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-white/[0.07] bg-[#121217] text-zinc-400 text-[11px] font-mono hover:text-white transition-colors"
-          >
-            <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin text-blue-400' : ''}`} />
-            Refresh
-          </button>
-        </div>
-      </div>
+  const hasFilters = !!searchQuery || modelFilter !== 'ALL' || frameworkFilter !== 'ALL' || minDurationFilter > 0 || statusFilter !== 'ALL';
+  const clearFilters = () => {
+    setSearchQuery('');
+    setModelFilter('ALL');
+    setFrameworkFilter('ALL');
+    setMinDurationFilter(0);
+    setStatusFilter('ALL');
+  };
+
+  return (
+    <PageShell>
+      <PageHeader
+        title="Runs"
+        badge={demo !== 'none' ? <DemoBadge scope={demo} /> : undefined}
+        description={
+          isLoading
+            ? 'Loading runs…'
+            : error
+              ? 'Runs could not be loaded.'
+              : `${totalRuns} runs · ${successCount} passed · ${failedCount} failed · ${totalCost > 0 ? formatCurrency(totalCost, currency) : '$0'} total cost`
+        }
+        actions={
+          <>
+            <label className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line bg-surface pl-2.5 font-mono text-2xs text-ink-2">
+              <span
+                aria-hidden
+                className={`size-1.5 rounded-full ${pollInterval !== 'OFF' && !refreshError ? 'bg-ok animate-pulse' : refreshError ? 'bg-bad' : 'bg-ink-3'}`}
+              />
+              <span>Auto-refresh</span>
+              <select
+                value={pollInterval}
+                onChange={(e) => setPollInterval(e.target.value as PollInterval)}
+                className="h-full cursor-pointer rounded-r-md bg-transparent pr-1 font-mono text-ink"
+              >
+                <option value="2s">2s</option>
+                <option value="5s">5s</option>
+                <option value="10s">10s</option>
+                <option value="OFF">Paused</option>
+              </select>
+            </label>
+
+            <Button onClick={() => loadRuns(false)} disabled={isLoading}>
+              {isLoading ? <Loader2 className="animate-spin" aria-hidden /> : <RefreshCw aria-hidden />}
+              Refresh
+            </Button>
+          </>
+        }
+      />
+
+      <DemoNotice scope={demo} what="runs" />
+
+      {refreshError && (
+        <InlineError onRetry={() => loadRuns(true)}>
+          Auto-refresh failed: {refreshError} The list below is from the last successful load.
+        </InlineError>
+      )}
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2 bg-[#121217] border border-white/[0.07] rounded-lg p-2.5">
-        {/* Search */}
-        <div className="relative flex-1 min-w-[220px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
-          <input
+      <Card className="flex flex-wrap items-center gap-2 p-2">
+        <div className="relative min-w-0 flex-1 basis-56">
+          <label htmlFor="runs-search" className="sr-only">Search runs</label>
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-ink-3" aria-hidden />
+          <Input
+            id="runs-search"
             type="text"
-            placeholder="Search by title, agent, error, ID... (status:error, cost>0.05)"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="Title, agent, error, ID… or status:failed  cost>0.05"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#0C0C0F] border border-white/[0.07] rounded-md pl-8 pr-8 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500"
+            className="pl-8 pr-8 font-mono"
           />
           {searchQuery && (
             <button
+              type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+              aria-label="Clear search"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-ink-3 hover:text-ink"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="size-3.5" aria-hidden />
             </button>
           )}
         </div>
 
-        {/* Beautiful UI Status Filter Pills */}
         <FilterPills
+          label="Filter by status"
           items={[
             { id: 'ALL', label: 'All', count: totalRuns },
             { id: 'completed', label: 'Passed', count: successCount, dotColor: '#10B981' },
             { id: 'failed', label: 'Failed', count: failedCount, dotColor: '#EF4444' },
           ]}
           selectedId={statusFilter}
-          onSelect={(id) => setStatusFilter(id as any)}
+          onSelect={(id) => setStatusFilter(id as StatusFilter)}
         />
 
-        {/* Model */}
-        <select
-          value={modelFilter}
-          onChange={(e) => setModelFilter(e.target.value)}
-          className="bg-[#0C0C0F] border border-white/[0.07] text-zinc-300 rounded-md px-2 py-1.5 text-[10px] focus:outline-none focus:border-blue-500"
-        >
-          <option value="ALL">All Models</option>
-          {availableModels.map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select aria-label="Filter by model" value={modelFilter} onChange={(e) => setModelFilter(e.target.value)} className="max-w-[11rem] font-mono">
+            <option value="ALL">All models</option>
+            {availableModels.map(m => <option key={m} value={m}>{m}</option>)}
+          </Select>
 
-        {/* Framework */}
-        <select
-          value={frameworkFilter}
-          onChange={(e) => setFrameworkFilter(e.target.value)}
-          className="bg-[#0C0C0F] border border-white/[0.07] text-zinc-300 rounded-md px-2 py-1.5 text-[10px] focus:outline-none focus:border-blue-500"
-        >
-          <option value="ALL">All Frameworks</option>
-          {availableFrameworks.map(f => <option key={f} value={f}>{f}</option>)}
-        </select>
+          <Select aria-label="Filter by framework" value={frameworkFilter} onChange={(e) => setFrameworkFilter(e.target.value)} className="max-w-[11rem] font-mono">
+            <option value="ALL">All frameworks</option>
+            {availableFrameworks.map(f => <option key={f} value={f}>{f}</option>)}
+          </Select>
 
-        {/* Duration */}
-        <select
-          value={minDurationFilter}
-          onChange={(e) => setMinDurationFilter(parseInt(e.target.value, 10))}
-          className="bg-[#0C0C0F] border border-white/[0.07] text-zinc-300 rounded-md px-2 py-1.5 text-[10px] focus:outline-none focus:border-blue-500"
-        >
-          <option value="0">All Durations</option>
-          <option value="5000">&gt; 5s</option>
-          <option value="15000">&gt; 15s</option>
-          <option value="30000">&gt; 30s</option>
-        </select>
-      </div>
-
-      {/* Table */}
-      <div className="w-full border border-white/[0.07] rounded-lg overflow-hidden bg-[#121217]">
-        <div className="w-full overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[1000px]">
-            <thead>
-              <tr className="border-b border-white/[0.07] bg-[#0C0C0F] text-[9px] uppercase font-bold text-zinc-500 tracking-wider font-mono">
-                <th className="py-2 px-4 w-14 text-center">Status</th>
-                <th className="py-2 px-4 min-w-[240px]">Trace</th>
-                <th className="py-2 px-4 w-28">Agent</th>
-                <th className="py-2 px-4 w-32">Model</th>
-                <th className="py-2 px-4 w-20 text-right">Duration</th>
-                <th className="py-2 px-4 w-20 text-right">Tokens</th>
-                <th className="py-2 px-4 w-20 text-right">Cost</th>
-                <th className="py-2 px-4 w-16 text-right">Quality</th>
-                <th className="py-2 px-4 w-20 text-right pr-4">Time</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.04] text-xs">
-              {isLoading ? (
-                Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)
-              ) : filteredRuns.length > 0 ? (
-                filteredRuns.map((run) => {
-                  const isFailed = run.status.toUpperCase() === 'FAILED';
-                  return (
-                    <tr key={run.id} className="group hover:bg-white/[0.02] cursor-pointer transition-colors">
-                      <td className="py-2.5 px-4 text-center">
-                        {isFailed ? (
-                          <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-red-500/10">
-                            <XCircle className="h-3 w-3 text-red-400" />
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-emerald-500/10">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-400" />
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="py-2.5 px-4">
-                        <Link href={`/runs/${run.id}`} className="block group/link">
-                          <span className="font-semibold text-white group-hover/link:text-blue-400 transition-colors text-[11px] font-sans truncate block max-w-[300px]">
-                            {run.title}
-                          </span>
-                          {run.error && (
-                            <span className="text-[10px] text-red-400/60 truncate block max-w-[300px]">{run.error.substring(0, 60)}...</span>
-                          )}
-                        </Link>
-                      </td>
-
-                      <td className="py-2.5 px-4 text-zinc-400 text-[11px]">
-                        {run.agent?.name || '—'}
-                      </td>
-
-                      <td className="py-2.5 px-4 text-zinc-300 text-[11px]">
-                        {run.modelFamily}
-                      </td>
-
-                      <td className="py-2.5 px-4 text-right font-mono text-white text-[11px]">
-                        {run.durationMs < 1000 ? `${run.durationMs}ms` : `${(run.durationMs / 1000).toFixed(1)}s`}
-                      </td>
-
-                      <td className="py-2.5 px-4 text-right font-mono text-zinc-300 text-[11px]">
-                        {run.tokens >= 1000 ? `${(run.tokens / 1000).toFixed(0)}K` : run.tokens}
-                      </td>
-
-                      <td className="py-2.5 px-4 text-right font-mono text-emerald-400 font-bold text-[11px]">
-                        {run.cost > 0 ? formatCurrency(run.cost, currency) : <span className="text-zinc-600 font-normal">—</span>}
-                      </td>
-
-                      <td className="py-2.5 px-4 text-right font-mono text-[11px]">
-                        {run.qualityScore != null ? (
-                          <span className={
-                            run.qualityScore >= 80 ? 'text-emerald-400' :
-                            run.qualityScore >= 60 ? 'text-amber-400' :
-                            'text-red-400'
-                          }>
-                            {run.qualityScore}
-                          </span>
-                        ) : (
-                          <span className="text-zinc-600">—</span>
-                        )}
-                      </td>
-
-                      <td className="py-2.5 px-4 text-right text-zinc-500 text-[10px] pr-4">
-                        {formatAge(run.createdAt)}
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={9} className="py-16 text-center">
-                    <Terminal className="h-6 w-6 text-zinc-600 mx-auto mb-2" />
-                    <h3 className="text-xs font-bold text-white font-sans">No Matching Traces</h3>
-                    <p className="text-[11px] text-zinc-500 mt-1 max-w-sm mx-auto">
-                      {searchQuery ? 'Try adjusting your search criteria.' : 'Ingest traces via the SDK to see them here.'}
-                    </p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          <Select aria-label="Filter by minimum duration" value={minDurationFilter} onChange={(e) => setMinDurationFilter(parseInt(e.target.value, 10))} className="font-mono">
+            <option value="0">Any duration</option>
+            <option value="5000">&gt; 5s</option>
+            <option value="15000">&gt; 15s</option>
+            <option value="30000">&gt; 30s</option>
+          </Select>
         </div>
-      </div>
-    </div>
+      </Card>
+
+      {/* Results */}
+      {error ? (
+        <ErrorState title="Could not load runs" message={error} onRetry={() => loadRuns(false)} />
+      ) : !isLoading && runs.length === 0 && !hasFilters ? (
+        <EmptyState
+          icon={<Terminal />}
+          title="No runs yet"
+          action={<ButtonLink href="/settings" variant="primary">Set up the SDK</ButtonLink>}
+        >
+          Runs appear here as soon as an agent sends a trace with the PathFlow SDK.
+        </EmptyState>
+      ) : !isLoading && filteredRuns.length === 0 ? (
+        <EmptyState
+          icon={<Search />}
+          title="No runs match these filters"
+          action={<Button onClick={clearFilters}>Clear filters</Button>}
+        >
+          Try a broader search, or clear the filters to see every run.
+        </EmptyState>
+      ) : (
+        <Card className="overflow-hidden">
+          <TableWrap label="Runs table">
+            <table className="w-full min-w-[820px] border-collapse text-left" aria-busy={isLoading}>
+              <thead>
+                <tr className={theadRow}>
+                  <th scope="col" className={`${th} w-12`}><span className="sr-only">Status</span></th>
+                  <th scope="col" className={th}>Run</th>
+                  <th scope="col" className={th}>Agent</th>
+                  <th scope="col" className={th}>Model</th>
+                  <th scope="col" className={`${th} text-right`}>Duration</th>
+                  <th scope="col" className={`${th} text-right`}>Tokens</th>
+                  <th scope="col" className={`${th} text-right`}>Cost</th>
+                  <th scope="col" className={`${th} text-right`}>Quality</th>
+                  <th scope="col" className={`${th} text-right`}>When</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line text-xs">
+                {isLoading ? (
+                  Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)
+                ) : (
+                  filteredRuns.map((run) => {
+                    const isFailed = run.status.toUpperCase() === 'FAILED';
+                    return (
+                      // `relative` + the link's ::after overlay make the whole row clickable
+                      // while keeping a single real link for keyboard and screen-reader users.
+                      <tr key={run.id} className="group relative transition-colors hover:bg-tint/[0.03]">
+                        <td className="px-3 py-2.5">
+                          {isFailed ? (
+                            <span className="inline-flex size-5 items-center justify-center rounded bg-bad/10">
+                              <XCircle className="size-3 text-bad" aria-hidden />
+                              <span className="sr-only">Failed</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex size-5 items-center justify-center rounded bg-ok/10">
+                              <CheckCircle2 className="size-3 text-ok" aria-hidden />
+                              <span className="sr-only">Passed</span>
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="max-w-[340px] px-3 py-2.5">
+                          <Link href={`/runs/${run.id}`} className="block after:absolute after:inset-0 after:content-['']">
+                            <span className="flex items-center gap-2">
+                              <span className="truncate font-sans text-xs font-semibold text-ink transition-colors group-hover:text-accent-ink">
+                                {run.title}
+                              </span>
+                              {demo === 'some' && isDemoRun(run) && <Badge tone="warn">Demo</Badge>}
+                            </span>
+                            {run.error && (
+                              <span className="block truncate font-mono text-2xs text-bad">{run.error}</span>
+                            )}
+                          </Link>
+                        </td>
+
+                        <td className="whitespace-nowrap px-3 py-2.5 font-mono text-2xs text-ink-2">
+                          {run.agent?.name || '—'}
+                        </td>
+
+                        <td className="whitespace-nowrap px-3 py-2.5 font-mono text-2xs text-ink-2">
+                          {run.modelFamily}
+                        </td>
+
+                        <td className="px-3 py-2.5 text-right font-mono text-2xs tabular-nums text-ink">
+                          {run.durationMs < 1000 ? `${run.durationMs}ms` : `${(run.durationMs / 1000).toFixed(1)}s`}
+                        </td>
+
+                        <td className="px-3 py-2.5 text-right font-mono text-2xs tabular-nums text-ink-2">
+                          {run.tokens >= 1000 ? `${(run.tokens / 1000).toFixed(0)}K` : run.tokens}
+                        </td>
+
+                        <td className="px-3 py-2.5 text-right font-mono text-2xs font-semibold tabular-nums text-ink">
+                          {run.cost > 0 ? formatCurrency(run.cost, currency) : <span className="font-normal text-ink-3">—</span>}
+                        </td>
+
+                        <td className="px-3 py-2.5 text-right font-mono text-2xs tabular-nums">
+                          {run.qualityScore != null ? (
+                            <span className={run.qualityScore >= 80 ? 'text-ok' : run.qualityScore >= 60 ? 'text-warn' : 'text-bad'}>
+                              {run.qualityScore}
+                            </span>
+                          ) : (
+                            <span className="text-ink-3">—</span>
+                          )}
+                        </td>
+
+                        <td className="whitespace-nowrap px-3 py-2.5 text-right font-mono text-2xs text-ink-3">
+                          {formatAge(run.createdAt)}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </TableWrap>
+        </Card>
+      )}
+    </PageShell>
   );
 }
