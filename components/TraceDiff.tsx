@@ -129,12 +129,12 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
   }, [leftTrace, rightTrace, latencyPct, costPct, structuralChanges]);
 
   return (
-    <div className="w-full min-h-[calc(100vh-2.5rem)] bg-[#08080A] px-4 py-3 space-y-4 font-mono text-xs">
+    <div className="w-full min-h-[calc(100vh-2.5rem)] bg-canvas px-4 py-3 space-y-4 font-mono text-xs">
       
       {/* 1. Header Bar */}
-      <div className="flex items-baseline justify-between border-b border-[#1E1E24] pb-2.5">
-        <h1 className="text-dev-title text-white font-sans uppercase">Compare Runs</h1>
-        <span className="text-xs text-zinc-500 font-mono">
+      <div className="flex items-baseline justify-between border-b border-line pb-2.5">
+        <h1 className="text-dev-title text-ink font-sans uppercase">Compare Runs</h1>
+        <span className="text-xs text-ink-3 font-mono">
           {isLoading ? 'Loading database traces...' : 'Trace Diff & Performance Regression Engine'}
         </span>
       </div>
@@ -143,14 +143,14 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
         <>
           {/* 2. Run Selectors (Baseline vs Comparison) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="border border-[#1E1E24] rounded bg-[#0F0F12] p-2.5">
-              <label className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block mb-1">
+            <div className="border border-line rounded bg-surface p-2.5">
+              <label className="text-2xs font-mono text-ink-3 uppercase tracking-wider block mb-1">
                 Baseline Execution (Run A)
               </label>
               <select
                 value={leftId}
                 onChange={(e) => setLeftId(e.target.value)}
-                className="w-full rounded border border-[#1E1E24] bg-[#08080A] px-2.5 py-1 text-xs font-mono text-white focus:border-blue-500 focus:outline-none"
+                className="w-full rounded border border-line bg-canvas px-2.5 py-1 text-xs font-mono text-ink focus:border-blue-500"
               >
                 {runs.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -160,14 +160,14 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
               </select>
             </div>
 
-            <div className="border border-[#1E1E24] rounded bg-[#0F0F12] p-2.5">
-              <label className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block mb-1">
+            <div className="border border-line rounded bg-surface p-2.5">
+              <label className="text-2xs font-mono text-ink-3 uppercase tracking-wider block mb-1">
                 Comparison Execution (Run B)
               </label>
               <select
                 value={rightId}
                 onChange={(e) => setRightId(e.target.value)}
-                className="w-full rounded border border-[#1E1E24] bg-[#08080A] px-2.5 py-1 text-xs font-mono text-white focus:border-blue-500 focus:outline-none"
+                className="w-full rounded border border-line bg-canvas px-2.5 py-1 text-xs font-mono text-ink focus:border-blue-500"
               >
                 {runs.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -185,26 +185,26 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
                 ? 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200'
                 : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200'
             }`}>
-              <div className="flex items-center justify-between mb-1.5 font-mono text-[11px]">
+              <div className="flex items-center justify-between mb-1.5 font-mono text-2xs">
                 <div className="flex items-center gap-2 font-bold uppercase tracking-wider">
-                  <Sparkles className="h-4 w-4 text-amber-400" />
+                  <Sparkles className="h-4 w-4 text-warn" />
                   <span>AUTOMATED REGRESSION ANALYSIS</span>
                 </div>
                 <div className="flex items-center gap-2 font-telemetry">
-                  <span>Latency: <strong className={regressionSummary.latencyPct > 0 ? 'text-amber-400' : 'text-emerald-400'}>
+                  <span>Latency: <strong className={regressionSummary.latencyPct > 0 ? 'text-warn' : 'text-ok'}>
                     {regressionSummary.latencyPct > 0 ? `+${regressionSummary.latencyPct}%` : `${regressionSummary.latencyPct}%`}
                   </strong></span>
                   <span>•</span>
-                  <span>Cost: <strong className={regressionSummary.costPct > 0 ? 'text-amber-400' : 'text-emerald-400'}>
+                  <span>Cost: <strong className={regressionSummary.costPct > 0 ? 'text-warn' : 'text-ok'}>
                     {regressionSummary.costPct > 0 ? `+${regressionSummary.costPct}%` : `${regressionSummary.costPct}%`}
                   </strong></span>
                 </div>
               </div>
 
-              <div className="space-y-1 font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
+              <div className="space-y-1 font-mono text-2xs text-zinc-700 dark:text-zinc-300">
                 {regressionSummary.reasons.map((reason, i) => (
                   <div key={i} className="flex items-start gap-1.5">
-                    <span className="text-amber-400">•</span>
+                    <span className="text-warn">•</span>
                     <span>{reason}</span>
                   </div>
                 ))}
@@ -215,10 +215,10 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
           {/* 4. BEFORE vs AFTER Metrics Comparison Cards */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-[11px] font-mono font-bold text-zinc-400 uppercase tracking-wider">
+              <h2 className="text-2xs font-mono font-bold text-ink-2 uppercase tracking-wider">
                 Performance Comparison (Before vs After)
               </h2>
-              <span className={`px-2.5 py-0.5 rounded text-[11px] font-mono font-bold border ${
+              <span className={`px-2.5 py-0.5 rounded text-2xs font-mono font-bold border ${
                 latencyPct <= 0
                   ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/40'
                   : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/40'
@@ -229,42 +229,42 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {/* Latency Card */}
-              <div className="border border-[#1E1E24] rounded bg-[#0F0F12] p-3 space-y-1">
-                <span className="text-[10px] text-zinc-500 font-mono uppercase block">Latency</span>
+              <div className="border border-line rounded bg-surface p-3 space-y-1">
+                <span className="text-2xs text-ink-3 font-mono uppercase block">Latency</span>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-zinc-400 font-mono text-xs">{(leftTrace.durationMs / 1000).toFixed(1)}s</span>
-                  <span className="text-zinc-600 font-mono">→</span>
-                  <span className="text-white font-bold font-mono text-sm">{(rightTrace.durationMs / 1000).toFixed(1)}s</span>
+                  <span className="text-ink-2 font-mono text-xs">{(leftTrace.durationMs / 1000).toFixed(1)}s</span>
+                  <span className="text-ink-3 font-mono">→</span>
+                  <span className="text-ink font-bold font-mono text-sm">{(rightTrace.durationMs / 1000).toFixed(1)}s</span>
                 </div>
-                <div className={`text-[11px] font-mono font-bold flex items-center justify-end gap-1 ${latencyPct <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                <div className={`text-2xs font-mono font-bold flex items-center justify-end gap-1 ${latencyPct <= 0 ? 'text-ok' : 'text-warn'}`}>
                   {latencyPct <= 0 ? `↓ ${Math.abs(Math.round(latencyPct))}%` : `↑ ${Math.round(latencyPct)}%`}
                 </div>
               </div>
 
               {/* Tokens Card */}
-              <div className="border border-[#1E1E24] rounded bg-[#0F0F12] p-3 space-y-1">
-                <span className="text-[10px] text-zinc-500 font-mono uppercase block">Tokens</span>
+              <div className="border border-line rounded bg-surface p-3 space-y-1">
+                <span className="text-2xs text-ink-3 font-mono uppercase block">Tokens</span>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-zinc-400 font-mono text-xs">{leftTrace.tokens.toLocaleString()}</span>
-                  <span className="text-zinc-600 font-mono">→</span>
-                  <span className="text-white font-bold font-mono text-sm">{rightTrace.tokens.toLocaleString()}</span>
+                  <span className="text-ink-2 font-mono text-xs">{leftTrace.tokens.toLocaleString()}</span>
+                  <span className="text-ink-3 font-mono">→</span>
+                  <span className="text-ink font-bold font-mono text-sm">{rightTrace.tokens.toLocaleString()}</span>
                 </div>
-                <div className={`text-[11px] font-mono font-bold flex items-center justify-end gap-1 ${tokenPct <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                <div className={`text-2xs font-mono font-bold flex items-center justify-end gap-1 ${tokenPct <= 0 ? 'text-ok' : 'text-warn'}`}>
                   {tokenPct <= 0 ? `↓ ${Math.abs(Math.round(tokenPct))}%` : `↑ ${Math.round(tokenPct)}%`}
                 </div>
               </div>
 
               {/* Cost Card */}
-              <div className="border border-[#1E1E24] rounded bg-[#0F0F12] p-3 space-y-1">
-                <span className="text-[10px] text-zinc-500 font-mono uppercase block">Cost</span>
+              <div className="border border-line rounded bg-surface p-3 space-y-1">
+                <span className="text-2xs text-ink-3 font-mono uppercase block">Cost</span>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-zinc-400 font-mono text-xs">{leftTrace.cost > 0 ? `$${leftTrace.cost.toFixed(3)}` : '—'}</span>
-                  <span className="text-zinc-600 font-mono">→</span>
-                  <span className="text-white font-bold font-mono text-sm">{rightTrace.cost > 0 ? `$${rightTrace.cost.toFixed(3)}` : '—'}</span>
+                  <span className="text-ink-2 font-mono text-xs">{leftTrace.cost > 0 ? `$${leftTrace.cost.toFixed(3)}` : '—'}</span>
+                  <span className="text-ink-3 font-mono">→</span>
+                  <span className="text-ink font-bold font-mono text-sm">{rightTrace.cost > 0 ? `$${rightTrace.cost.toFixed(3)}` : '—'}</span>
                 </div>
-                <div className="text-[10px] font-mono text-zinc-500 text-right">
+                <div className="text-2xs font-mono text-ink-3 text-right">
                   {leftTrace.cost > 0 && rightTrace.cost > 0 ? (
-                    <span className={costPct <= 0 ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
+                    <span className={costPct <= 0 ? 'text-ok font-bold' : 'text-warn font-bold'}>
                       {costPct <= 0 ? `↓ ${Math.abs(Math.round(costPct))}%` : `↑ ${Math.round(costPct)}%`}
                     </span>
                   ) : (
@@ -274,15 +274,15 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
               </div>
 
               {/* Tool Calls Card */}
-              <div className="border border-[#1E1E24] rounded bg-[#0F0F12] p-3 space-y-1">
-                <span className="text-[10px] text-zinc-500 font-mono uppercase block">Tool Calls / Spans</span>
+              <div className="border border-line rounded bg-surface p-3 space-y-1">
+                <span className="text-2xs text-ink-3 font-mono uppercase block">Tool Calls / Spans</span>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-zinc-400 font-mono text-xs">{leftTrace.spans.length}</span>
-                  <span className="text-zinc-600 font-mono">→</span>
-                  <span className="text-white font-bold font-mono text-sm">{rightTrace.spans.length}</span>
+                  <span className="text-ink-2 font-mono text-xs">{leftTrace.spans.length}</span>
+                  <span className="text-ink-3 font-mono">→</span>
+                  <span className="text-ink font-bold font-mono text-sm">{rightTrace.spans.length}</span>
                 </div>
-                <div className={`text-[11px] font-mono font-bold flex items-center justify-end gap-1 ${
-                  rightTrace.spans.length <= leftTrace.spans.length ? 'text-emerald-400' : 'text-amber-400'
+                <div className={`text-2xs font-mono font-bold flex items-center justify-end gap-1 ${
+                  rightTrace.spans.length <= leftTrace.spans.length ? 'text-ok' : 'text-warn'
                 }`}>
                   {rightTrace.spans.length <= leftTrace.spans.length ? `↓ ${leftTrace.spans.length - rightTrace.spans.length} spans` : `↑ ${rightTrace.spans.length - leftTrace.spans.length} spans`}
                 </div>
@@ -292,26 +292,26 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
 
           {/* 5. Structural Execution Changes */}
           <div className="space-y-1.5">
-            <h2 className="text-[11px] font-mono font-bold text-zinc-400 uppercase tracking-wider">
+            <h2 className="text-2xs font-mono font-bold text-ink-2 uppercase tracking-wider">
               Execution Structure & Span Diff
             </h2>
 
-            <div className="border border-[#1E1E24] bg-[#0F0F12] p-3 rounded space-y-2">
+            <div className="border border-line bg-surface p-3 rounded space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 {structuralChanges.added.map((type) => (
-                  <span key={type} className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-bold text-[11px]">
+                  <span key={type} className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-ok font-bold text-2xs">
                     <Plus className="h-3 w-3" /> Added {type}
                   </span>
                 ))}
 
                 {structuralChanges.removed.map((type) => (
-                  <span key={type} className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 font-bold text-[11px]">
+                  <span key={type} className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-warn font-bold text-2xs">
                     <Minus className="h-3 w-3" /> Removed {type}
                   </span>
                 ))}
 
                 {structuralChanges.isRetry && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-red-500/30 bg-red-500/10 text-red-400 font-bold text-[11px]">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-red-500/30 bg-red-500/10 text-bad font-bold text-2xs">
                     <AlertTriangle className="h-3 w-3" /> Step Failure Present
                   </span>
                 )}
@@ -319,14 +319,14 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
 
               {/* Span Latency Shift Details */}
               {structuralChanges.changedSpans.length > 0 && (
-                <div className="space-y-1 border-t border-[#1E1E24] pt-2">
-                  <span className="text-[10px] text-zinc-500 uppercase font-bold block">Span Latency Shifts:</span>
+                <div className="space-y-1 border-t border-line pt-2">
+                  <span className="text-2xs text-ink-3 uppercase font-bold block">Span Latency Shifts:</span>
                   {structuralChanges.changedSpans.map((sp, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-zinc-300 font-mono text-[11px]">
+                    <div key={idx} className="flex items-center justify-between text-ink-2 font-mono text-2xs">
                       <span>• {sp.name} ({sp.type}):</span>
                       <span className="font-telemetry">
-                        {sp.oldLatency}ms → <strong className="text-white">{sp.newLatency}ms</strong>
-                        <span className={`ml-2 font-bold ${sp.diffPct > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                        {sp.oldLatency}ms → <strong className="text-ink">{sp.newLatency}ms</strong>
+                        <span className={`ml-2 font-bold ${sp.diffPct > 0 ? 'text-warn' : 'text-ok'}`}>
                           ({sp.diffPct > 0 ? `+${sp.diffPct}%` : `${sp.diffPct}%`})
                         </span>
                       </span>
@@ -338,8 +338,8 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
           </div>
         </>
       ) : (
-        <div className="p-8 border border-[#1E1E24] rounded bg-[#0F0F12] text-center space-y-2">
-          <p className="text-xs text-zinc-400">At least 2 database traces required to compute execution diffs.</p>
+        <div className="p-8 border border-line rounded bg-surface text-center space-y-2">
+          <p className="text-xs text-ink-2">At least 2 database traces required to compute execution diffs.</p>
         </div>
       )}
 

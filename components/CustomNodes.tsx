@@ -13,14 +13,14 @@ export function CustomSpanNode({ data, selected }: NodeProps) {
     <div
       className={`min-w-[240px] rounded-lg border p-3 font-mono text-xs transition-all ${
         selected
-          ? 'border-blue-500 bg-[#16161F] shadow-lg ring-1 ring-blue-500'
+          ? 'border-blue-500 bg-raised shadow-lg ring-1 ring-blue-500'
           : isFailed
           ? 'border-red-500/60 bg-red-950/20 text-red-200'
           : isBottleneck
           ? 'border-amber-500/60 bg-amber-950/20 text-amber-200'
           : isCritical
-          ? 'border-blue-500/40 bg-[#14141B] text-zinc-100'
-          : 'border-white/[0.08] bg-[#121217] text-zinc-200 hover:border-white/15'
+          ? 'border-blue-500/40 bg-surface text-ink'
+          : 'border-line bg-surface text-ink hover:border-line-strong'
       }`}
     >
       {/* React Flow Target Handle */}
@@ -31,8 +31,8 @@ export function CustomSpanNode({ data, selected }: NodeProps) {
       />
 
       {/* Header Row: Indicator dot, Type, Latency */}
-      <div className="flex items-center justify-between text-[11px] mb-1">
-        <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-zinc-400">
+      <div className="flex items-center justify-between text-2xs mb-1">
+        <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-ink-2">
           <span
             className={`h-2 w-2 rounded-full inline-block ${
               isFailed
@@ -47,21 +47,21 @@ export function CustomSpanNode({ data, selected }: NodeProps) {
           <span>{span.type}</span>
         </div>
 
-        <span className="text-zinc-400 font-telemetry">{durationStr}</span>
+        <span className="text-ink-2 font-telemetry">{durationStr}</span>
       </div>
 
       {/* Span Name (Sans proportional font for high readability) */}
-      <div className="font-sans font-semibold text-xs text-white truncate my-1">
+      <div className="font-sans font-semibold text-xs text-ink truncate my-1">
         {span.name}
       </div>
 
       {/* Footer Metrics Row */}
-      <div className="flex items-center justify-between text-[10px] text-zinc-500 pt-1 border-t border-white/[0.06] font-telemetry">
+      <div className="flex items-center justify-between text-2xs text-ink-3 pt-1 border-t border-line font-telemetry">
         <span>{span.tokens > 0 ? `${span.tokens.toLocaleString()} tokens` : '0 tokens'}</span>
         {span.cost > 0 ? (
-          <span className="text-emerald-400">${span.cost.toFixed(4)}</span>
+          <span className="text-ok">${span.cost.toFixed(4)}</span>
         ) : (
-          <span className="text-zinc-600">—</span>
+          <span className="text-ink-3">—</span>
         )}
       </div>
 

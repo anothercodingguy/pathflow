@@ -49,20 +49,20 @@ export default function RecommendationCard({
   };
 
   return (
-    <div className={`w-full overflow-hidden rounded-2xl border border-white/10 bg-[#111115] shadow-2xl transition-all ${className}`}>
+    <div className={`w-full overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl transition-all ${className}`}>
       {/* Content Area */}
       <div className="p-4">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-blue-400 shrink-0" />
-          <span className="text-[13px] font-semibold text-zinc-100">{title}</span>
+          <Sparkles className="h-4 w-4 text-accent-ink shrink-0" />
+          <span className="text-[13px] font-semibold text-ink">{title}</span>
         </div>
 
-        <p className="mt-2 text-[13px] leading-relaxed text-zinc-300">
+        <p className="mt-2 text-[13px] leading-relaxed text-ink-2">
           {description}
           {codeSnippet && (
             <>
               {' '}
-              <code className="rounded bg-blue-500/10 px-1.5 py-0.5 font-mono text-[12px] text-blue-300 border border-blue-500/20">
+              <code className="rounded bg-blue-500/10 px-1.5 py-0.5 font-mono text-[12px] text-accent-ink border border-blue-500/20">
                 {codeSnippet}
               </code>
             </>
@@ -79,24 +79,24 @@ export default function RecommendationCard({
         }}
       >
         <div className="overflow-hidden">
-          <div className="border-t border-white/10 bg-[#0c0c0f] px-3 py-2">
-            <p className="px-1 pb-1 text-[11px] font-medium text-zinc-400">Other suggested options</p>
+          <div className="border-t border-line bg-inset px-3 py-2">
+            <p className="px-1 pb-1 text-2xs font-medium text-ink-2">Other suggested options</p>
             <div className="flex flex-col gap-1">
               {alternatives.map((alt, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => onSelectAlternative?.(alt)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors duration-150 hover:bg-white/[0.06]"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors duration-150 hover:bg-tint/[0.06]"
                 >
                   <span className="flex items-end gap-0.5">
                     <span className={`w-1 rounded-full ${alt.confidence === 'high' ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ height: '10px' }} />
                     <span className={`w-1 rounded-full ${alt.confidence === 'high' ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ height: '10px' }} />
-                    <span className="w-1 rounded-full bg-zinc-700" style={{ height: '10px' }} />
+                    <span className="w-1 rounded-full bg-tint/[0.15]" style={{ height: '10px' }} />
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-[12.5px] text-zinc-200">{alt.title}</span>
+                  <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink">{alt.title}</span>
                   {alt.badge && (
-                    <span className="shrink-0 rounded bg-white/[0.06] px-1.5 py-0.5 text-[10.5px] text-zinc-400 font-mono">
+                    <span className="shrink-0 rounded bg-tint/[0.06] px-1.5 py-0.5 text-2xs text-ink-2 font-mono">
                       {alt.badge}
                     </span>
                   )}
@@ -108,7 +108,7 @@ export default function RecommendationCard({
       </div>
 
       {/* Footer & Confidence Meter */}
-      <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-[#0c0c0f] px-4 py-2.5">
+      <div className="flex items-center justify-between gap-3 border-t border-line bg-inset px-4 py-2.5">
         {/* 3-Bar Confidence Indicator */}
         <div className="flex items-center gap-2">
           <span className="flex items-end gap-0.5">
@@ -116,7 +116,7 @@ export default function RecommendationCard({
               className={`w-1 rounded-full transition-colors ${
                 confidence === 'high' || confidence === 'medium' || confidence === 'low'
                   ? currentConf.bar
-                  : 'bg-zinc-700'
+                  : 'bg-tint/[0.15]'
               }`}
               style={{ height: '10px' }}
             />
@@ -124,18 +124,18 @@ export default function RecommendationCard({
               className={`w-1 rounded-full transition-colors ${
                 confidence === 'high' || confidence === 'medium'
                   ? currentConf.bar
-                  : 'bg-zinc-700'
+                  : 'bg-tint/[0.15]'
               }`}
               style={{ height: '10px' }}
             />
             <span
               className={`w-1 rounded-full transition-colors ${
-                confidence === 'high' ? currentConf.bar : 'bg-zinc-700'
+                confidence === 'high' ? currentConf.bar : 'bg-tint/[0.15]'
               }`}
               style={{ height: '10px' }}
             />
           </span>
-          <span className="text-[12px] font-medium text-zinc-300">{currentConf.label}</span>
+          <span className="text-[12px] font-medium text-ink-2">{currentConf.label}</span>
         </div>
 
         {/* Action Buttons */}
@@ -144,7 +144,7 @@ export default function RecommendationCard({
             <button
               type="button"
               onClick={() => setShowAlternatives(!showAlternatives)}
-              className="h-7 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 text-[12px] font-medium text-zinc-300 hover:bg-white/[0.08] active:scale-95 transition-all"
+              className="h-7 rounded-lg border border-line bg-tint/[0.04] px-2.5 text-[12px] font-medium text-ink-2 hover:bg-tint/[0.08] active:scale-95 transition-all"
             >
               Alternatives
             </button>
@@ -154,7 +154,7 @@ export default function RecommendationCard({
             type="button"
             onClick={handleAccept}
             disabled={isAccepted}
-            className={`h-7 rounded-lg px-3 text-[12px] font-medium text-white shadow transition-all active:scale-95 flex items-center gap-1.5 ${
+            className={`h-7 rounded-lg px-3 text-[12px] font-medium text-ink shadow transition-all active:scale-95 flex items-center gap-1.5 ${
               isAccepted
                 ? 'bg-emerald-600'
                 : 'bg-blue-600 hover:bg-blue-500'

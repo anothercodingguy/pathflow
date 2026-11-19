@@ -57,12 +57,12 @@ export default function LoadingState({
   const { delays, dur, round } = PATTERNS[variant] ?? PATTERNS.Drive;
 
   return (
-    <div className={`flex w-fit items-center gap-2.5 ${className}`}>
+    <div role="status" aria-live="polite" className={`flex w-fit max-w-full items-center gap-2.5 ${className}`}>
       <span aria-hidden className="grid grid-cols-[repeat(3,4px)] gap-[1.5px] shrink-0">
         {delays.map((d, i) => (
           <span
             key={i}
-            className={`size-[4px] bg-blue-500 dark:bg-blue-400 ${round ? 'rounded-full' : 'rounded-[1px]'}`}
+            className={`size-[4px] bg-accent ${round ? 'rounded-full' : 'rounded-[1px]'}`}
             style={{
               opacity: d === null ? 0.15 : 0.25,
               animation:
@@ -75,7 +75,7 @@ export default function LoadingState({
         className="bg-clip-text text-[13px] font-medium text-transparent"
         style={{
           backgroundImage:
-            'linear-gradient(90deg, #71717a 30%, #f4f4f5 50%, #71717a 70%)',
+            'linear-gradient(90deg, rgb(var(--ink-2)) 30%, rgb(var(--ink)) 50%, rgb(var(--ink-2)) 70%)',
           backgroundSize: '200% 100%',
           animation: 'shimmer-text 1.5s linear infinite',
         }}
@@ -83,7 +83,7 @@ export default function LoadingState({
         {label}
       </span>
       {showElapsed && (
-        <span className="font-mono text-[12px] text-zinc-400 tabular-nums">
+        <span aria-hidden className="font-mono text-[12px] text-ink-2 tabular-nums">
           {elapsed}
         </span>
       )}

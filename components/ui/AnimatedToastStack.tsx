@@ -53,13 +53,13 @@ export function AnimatedToastProvider({ children }: { children: React.ReactNode 
   const getIcon = (type: ToastItem['type']) => {
     switch (type) {
       case 'success':
-        return <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />;
+        return <CheckCircle2 className="h-4 w-4 text-ok shrink-0" aria-hidden />;
       case 'error':
-        return <XCircle className="h-4 w-4 text-red-400 shrink-0" />;
+        return <XCircle className="h-4 w-4 text-bad shrink-0" />;
       case 'warning':
-        return <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />;
+        return <AlertTriangle className="h-4 w-4 text-warn shrink-0" />;
       default:
-        return <Info className="h-4 w-4 text-blue-400 shrink-0" />;
+        return <Info className="h-4 w-4 text-accent-ink shrink-0" />;
     }
   };
 
@@ -81,7 +81,13 @@ export function AnimatedToastProvider({ children }: { children: React.ReactNode 
       {children}
 
       {/* Floating Toast Stack */}
-      <div className="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none max-w-sm w-full">
+      {/* aria-live: screen readers announce each toast as it appears */}
+      <div
+        role="region"
+        aria-label="Notifications"
+        aria-live="polite"
+        className="fixed bottom-4 left-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none sm:left-auto sm:right-5 sm:bottom-5 sm:w-full sm:max-w-sm"
+      >
         <AnimatePresence mode="popLayout">
           {toasts.map((item, index) => (
             <motion.div
@@ -94,24 +100,27 @@ export function AnimatedToastProvider({ children }: { children: React.ReactNode 
               style={{
                 zIndex: 100 - index,
               }}
-              className={`pointer-events-auto rounded-2xl bg-[#111115]/95 backdrop-blur-md border ${getBorder(
+              role={item.type === 'error' ? 'alert' : 'status'}
+              className={`pointer-events-auto rounded-lg bg-surface/95 backdrop-blur-md border ${getBorder(
                 item.type
-              )} p-3.5 shadow-2xl flex items-start gap-3`}
+              )} p-3 shadow-2xl flex items-start gap-3`}
             >
               {getIcon(item.type)}
               <div className="flex-1 min-w-0 font-sans">
-                <p className="text-xs font-semibold text-zinc-100">{item.title}</p>
+                <p className="text-xs font-semibold text-ink">{item.title}</p>
                 {item.description && (
-                  <p className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed truncate">
+                  <p className="text-2xs text-ink-2 mt-0.5 leading-relaxed break-words">
                     {item.description}
                   </p>
                 )}
               </div>
               <button
+                type="button"
                 onClick={() => removeToast(item.id)}
-                className="text-zinc-500 hover:text-zinc-300 p-1 rounded transition-colors"
+                aria-label="Dismiss notification"
+                className="text-ink-3 hover:text-ink p-1 rounded transition-colors"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3.5 w-3.5" aria-hidden />
               </button>
             </motion.div>
           ))}

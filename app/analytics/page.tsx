@@ -48,7 +48,7 @@ function KpiCard({
   decimals = 0,
   subValue, 
   icon: Icon, 
-  color = 'text-white' 
+  color = 'text-ink' 
 }: { 
   label: string; 
   value?: string; 
@@ -61,12 +61,12 @@ function KpiCard({
   color?: string 
 }) {
   return (
-    <TiltCard maxTilt={8} className="p-4 bg-[#111115] border-white/10 flex flex-col justify-between h-full min-h-[114px]">
+    <TiltCard maxTilt={8} className="p-4 bg-surface border-line flex flex-col justify-between h-full min-h-[114px]">
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider font-mono">{label}</span>
-          <div className="flex size-6 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.06]">
-            <Icon className="h-3.5 w-3.5 text-zinc-400" />
+          <span className="text-2xs text-ink-2 uppercase font-bold tracking-wider font-mono">{label}</span>
+          <div className="flex size-6 items-center justify-center rounded-lg bg-tint/[0.04] border border-line">
+            <Icon className="h-3.5 w-3.5 text-ink-2" />
           </div>
         </div>
         <div className={`text-xl font-bold font-mono ${color}`}>
@@ -77,7 +77,7 @@ function KpiCard({
           )}
         </div>
       </div>
-      <div className="text-[11px] text-zinc-500 font-mono leading-tight min-h-[16px] mt-2">
+      <div className="text-2xs text-ink-3 font-mono leading-tight min-h-[16px] mt-2">
         {subValue || <span className="opacity-0 select-none">-</span>}
       </div>
     </TiltCard>
@@ -86,15 +86,15 @@ function KpiCard({
 
 function SkeletonCard() {
   return (
-    <div className="border border-white/[0.07] rounded-2xl bg-[#111115] p-4 flex flex-col justify-between h-full min-h-[114px] animate-pulse">
+    <div className="border border-line rounded-2xl bg-surface p-4 flex flex-col justify-between h-full min-h-[114px] animate-pulse">
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <div className="h-3 w-20 bg-zinc-800 rounded" />
-          <div className="size-6 bg-zinc-800 rounded-lg" />
+          <div className="h-3 w-20 bg-tint/10 rounded" />
+          <div className="size-6 bg-tint/10 rounded-lg" />
         </div>
-        <div className="h-6 w-16 bg-zinc-800 rounded" />
+        <div className="h-6 w-16 bg-tint/10 rounded" />
       </div>
-      <div className="h-3 w-24 bg-zinc-800 rounded min-h-[16px] mt-2" />
+      <div className="h-3 w-24 bg-tint/10 rounded min-h-[16px] mt-2" />
     </div>
   );
 }
@@ -125,13 +125,13 @@ export default function AnalyticsPage() {
   const kpis = analytics?.kpis;
 
   return (
-    <div className="w-full min-h-[calc(100vh-2.75rem)] bg-[#08080A] px-4 py-4 space-y-5 font-mono text-xs">
+    <div className="w-full min-h-[calc(100vh-2.75rem)] bg-canvas px-4 py-4 space-y-5 font-mono text-xs">
       
       {/* Header */}
-      <div className="flex items-baseline justify-between border-b border-white/[0.07] pb-3">
+      <div className="flex items-baseline justify-between border-b border-line pb-3">
         <div>
-          <h1 className="text-xl font-bold text-white font-sans tracking-tight uppercase">Analytics</h1>
-          <p className="text-xs text-zinc-400 font-sans mt-0.5">Performance metrics and operational insights across all agent executions.</p>
+          <h1 className="text-xl font-bold text-ink font-sans tracking-tight uppercase">Analytics</h1>
+          <p className="text-xs text-ink-2 font-sans mt-0.5">Performance metrics and operational insights across all agent executions.</p>
         </div>
       </div>
 
@@ -153,7 +153,7 @@ export default function AnalyticsPage() {
               suffix="%"
               subValue={`${kpis.successfulRuns} successful`}
               icon={CheckCircle2}
-              color={kpis.successRate >= 90 ? 'text-emerald-400' : kpis.successRate >= 70 ? 'text-amber-400' : 'text-red-400'}
+              color={kpis.successRate >= 90 ? 'text-ok' : kpis.successRate >= 70 ? 'text-warn' : 'text-bad'}
             />
             <KpiCard
               label="Failure Rate"
@@ -161,7 +161,7 @@ export default function AnalyticsPage() {
               suffix="%"
               subValue={`${kpis.failedRuns} failed`}
               icon={XCircle}
-              color={kpis.failureRate <= 10 ? 'text-emerald-400' : kpis.failureRate <= 25 ? 'text-amber-400' : 'text-red-400'}
+              color={kpis.failureRate <= 10 ? 'text-ok' : kpis.failureRate <= 25 ? 'text-warn' : 'text-bad'}
             />
             <KpiCard
               label="Avg Latency"
@@ -178,7 +178,7 @@ export default function AnalyticsPage() {
               suffix="s"
               subValue={`P50: ${(kpis.p50Latency / 1000).toFixed(1)}s`}
               icon={Clock}
-              color="text-zinc-300"
+              color="text-ink-2"
             />
             <KpiCard
               label="Total Tokens"
@@ -191,7 +191,7 @@ export default function AnalyticsPage() {
               numValue={kpis.avgTokens}
               subValue="Per execution run"
               icon={Zap}
-              color="text-zinc-300"
+              color="text-ink-2"
             />
             <KpiCard
               label="Total Cost"
@@ -200,7 +200,7 @@ export default function AnalyticsPage() {
               decimals={2}
               subValue={`Avg: $${kpis.avgCost.toFixed(4)}/run`}
               icon={DollarSign}
-              color="text-emerald-400"
+              color="text-ok"
             />
             <KpiCard
               label="Avg Cost"
@@ -209,7 +209,7 @@ export default function AnalyticsPage() {
               decimals={4}
               subValue="Per execution run"
               icon={DollarSign}
-              color="text-emerald-400"
+              color="text-ok"
             />
             {kpis.avgQuality !== null && (
               <KpiCard
@@ -217,7 +217,7 @@ export default function AnalyticsPage() {
                 numValue={kpis.avgQuality}
                 subValue="PathFlow composite score"
                 icon={BarChart3}
-                color={kpis.avgQuality >= 80 ? 'text-emerald-400' : kpis.avgQuality >= 60 ? 'text-amber-400' : 'text-red-400'}
+                color={kpis.avgQuality >= 80 ? 'text-ok' : kpis.avgQuality >= 60 ? 'text-warn' : 'text-bad'}
               />
             )}
           </>
@@ -229,15 +229,15 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           
           {/* Model Usage */}
-          <div className="border border-white/[0.07] rounded-lg bg-[#121217] overflow-hidden">
-            <div className="px-4 py-3 border-b border-white/[0.07] flex items-center gap-2">
-              <Cpu className="h-3.5 w-3.5 text-blue-400" />
-              <h3 className="text-xs font-bold text-white font-sans uppercase">Model Usage</h3>
+          <div className="border border-line rounded-lg bg-surface overflow-hidden">
+            <div className="px-4 py-3 border-b border-line flex items-center gap-2">
+              <Cpu className="h-3.5 w-3.5 text-accent-ink" />
+              <h3 className="text-xs font-bold text-ink font-sans uppercase">Model Usage</h3>
             </div>
             {analytics.modelUsage.length > 0 ? (
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-white/[0.07] text-[10px] text-zinc-500 uppercase font-bold">
+                  <tr className="border-b border-line text-2xs text-ink-3 uppercase font-bold">
                     <th className="text-left px-4 py-2">Model</th>
                     <th className="text-right px-4 py-2">Runs</th>
                     <th className="text-right px-4 py-2">Tokens</th>
@@ -245,33 +245,33 @@ export default function AnalyticsPage() {
                     <th className="text-right px-4 py-2">Avg Latency</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/[0.05]">
+                <tbody className="divide-y divide-line">
                   {analytics.modelUsage.map((m) => (
-                    <tr key={m.model} className="hover:bg-white/[0.02]">
-                      <td className="px-4 py-2.5 text-white font-semibold">{m.model}</td>
-                      <td className="px-4 py-2.5 text-right text-zinc-300 font-mono">{m.runs}</td>
-                      <td className="px-4 py-2.5 text-right text-zinc-300 font-mono">{m.tokens.toLocaleString()}</td>
-                      <td className="px-4 py-2.5 text-right text-emerald-400 font-mono font-bold">${m.cost.toFixed(3)}</td>
-                      <td className="px-4 py-2.5 text-right text-zinc-300 font-mono">{(m.avgLatency / 1000).toFixed(1)}s</td>
+                    <tr key={m.model} className="hover:bg-tint/[0.02]">
+                      <td className="px-4 py-2.5 text-ink font-semibold">{m.model}</td>
+                      <td className="px-4 py-2.5 text-right text-ink-2 font-mono">{m.runs}</td>
+                      <td className="px-4 py-2.5 text-right text-ink-2 font-mono">{m.tokens.toLocaleString()}</td>
+                      <td className="px-4 py-2.5 text-right text-ok font-mono font-bold">${m.cost.toFixed(3)}</td>
+                      <td className="px-4 py-2.5 text-right text-ink-2 font-mono">{(m.avgLatency / 1000).toFixed(1)}s</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : (
-              <div className="px-4 py-8 text-center text-zinc-500 text-xs">No model data available yet.</div>
+              <div className="px-4 py-8 text-center text-ink-3 text-xs">No model data available yet.</div>
             )}
           </div>
 
           {/* Tool Performance */}
-          <div className="border border-white/[0.07] rounded-lg bg-[#121217] overflow-hidden">
-            <div className="px-4 py-3 border-b border-white/[0.07] flex items-center gap-2">
-              <Wrench className="h-3.5 w-3.5 text-amber-400" />
-              <h3 className="text-xs font-bold text-white font-sans uppercase">Tool Performance</h3>
+          <div className="border border-line rounded-lg bg-surface overflow-hidden">
+            <div className="px-4 py-3 border-b border-line flex items-center gap-2">
+              <Wrench className="h-3.5 w-3.5 text-warn" />
+              <h3 className="text-xs font-bold text-ink font-sans uppercase">Tool Performance</h3>
             </div>
             {analytics.toolUsage.length > 0 ? (
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-white/[0.07] text-[10px] text-zinc-500 uppercase font-bold">
+                  <tr className="border-b border-line text-2xs text-ink-3 uppercase font-bold">
                     <th className="text-left px-4 py-2">Tool</th>
                     <th className="text-right px-4 py-2">Calls</th>
                     <th className="text-right px-4 py-2">Success</th>
@@ -279,24 +279,24 @@ export default function AnalyticsPage() {
                     <th className="text-right px-4 py-2">Cost</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/[0.05]">
+                <tbody className="divide-y divide-line">
                   {analytics.toolUsage.map((t) => (
-                    <tr key={t.tool} className="hover:bg-white/[0.02]">
-                      <td className="px-4 py-2.5 text-white font-semibold truncate max-w-[200px]">{t.tool}</td>
-                      <td className="px-4 py-2.5 text-right text-zinc-300 font-mono">{t.calls}</td>
+                    <tr key={t.tool} className="hover:bg-tint/[0.02]">
+                      <td className="px-4 py-2.5 text-ink font-semibold truncate max-w-[200px]">{t.tool}</td>
+                      <td className="px-4 py-2.5 text-right text-ink-2 font-mono">{t.calls}</td>
                       <td className="px-4 py-2.5 text-right font-mono">
-                        <span className={t.successRate >= 90 ? 'text-emerald-400' : t.successRate >= 70 ? 'text-amber-400' : 'text-red-400'}>
+                        <span className={t.successRate >= 90 ? 'text-ok' : t.successRate >= 70 ? 'text-warn' : 'text-bad'}>
                           {t.successRate}%
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-right text-zinc-300 font-mono">{t.avgLatency < 1000 ? `${t.avgLatency}ms` : `${(t.avgLatency / 1000).toFixed(1)}s`}</td>
-                      <td className="px-4 py-2.5 text-right text-emerald-400 font-mono">${t.totalCost.toFixed(4)}</td>
+                      <td className="px-4 py-2.5 text-right text-ink-2 font-mono">{t.avgLatency < 1000 ? `${t.avgLatency}ms` : `${(t.avgLatency / 1000).toFixed(1)}s`}</td>
+                      <td className="px-4 py-2.5 text-right text-ok font-mono">${t.totalCost.toFixed(4)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : (
-              <div className="px-4 py-8 text-center text-zinc-500 text-xs">No tool data available yet.</div>
+              <div className="px-4 py-8 text-center text-ink-3 text-xs">No tool data available yet.</div>
             )}
           </div>
         </div>
@@ -307,23 +307,23 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           
           {/* Most Expensive */}
-          <div className="border border-white/[0.07] rounded-lg bg-[#121217] overflow-hidden">
-            <div className="px-4 py-3 border-b border-white/[0.07] flex items-center gap-2">
-              <DollarSign className="h-3.5 w-3.5 text-emerald-400" />
-              <h3 className="text-xs font-bold text-white font-sans uppercase">Most Expensive Runs</h3>
+          <div className="border border-line rounded-lg bg-surface overflow-hidden">
+            <div className="px-4 py-3 border-b border-line flex items-center gap-2">
+              <DollarSign className="h-3.5 w-3.5 text-ok" />
+              <h3 className="text-xs font-bold text-ink font-sans uppercase">Most Expensive Runs</h3>
             </div>
-            <div className="divide-y divide-white/[0.05]">
+            <div className="divide-y divide-line">
               {analytics.expensiveRuns.slice(0, 5).map((r) => (
-                <Link key={r.id} href={`/runs/${r.id}`} className="flex items-center justify-between px-4 py-2.5 hover:bg-white/[0.02] transition-colors group">
+                <Link key={r.id} href={`/runs/${r.id}`} className="flex items-center justify-between px-4 py-2.5 hover:bg-tint/[0.02] transition-colors group">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className={`inline-block text-[9px] font-bold px-1 py-0.5 rounded border uppercase ${r.status === 'failed' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
+                    <span className={`inline-block text-2xs font-bold px-1 py-0.5 rounded border uppercase ${r.status === 'failed' ? 'bg-red-500/10 text-bad border-red-500/20' : 'bg-emerald-500/10 text-ok border-emerald-500/20'}`}>
                       {r.status === 'failed' ? 'FAIL' : 'OK'}
                     </span>
-                    <span className="text-zinc-300 text-xs truncate group-hover:text-white transition-colors">{r.title}</span>
+                    <span className="text-ink-2 text-xs truncate group-hover:text-ink transition-colors">{r.title}</span>
                   </div>
                   <div className="flex items-center gap-3 shrink-0 font-mono">
-                    <span className="text-emerald-400 font-bold">${r.cost.toFixed(3)}</span>
-                    <ArrowUpRight className="h-3 w-3 text-zinc-600 group-hover:text-blue-400" />
+                    <span className="text-ok font-bold">${r.cost.toFixed(3)}</span>
+                    <ArrowUpRight className="h-3 w-3 text-ink-3 group-hover:text-accent-ink" />
                   </div>
                 </Link>
               ))}
@@ -331,23 +331,23 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Slowest Runs */}
-          <div className="border border-white/[0.07] rounded-lg bg-[#121217] overflow-hidden">
-            <div className="px-4 py-3 border-b border-white/[0.07] flex items-center gap-2">
-              <Clock className="h-3.5 w-3.5 text-amber-400" />
-              <h3 className="text-xs font-bold text-white font-sans uppercase">Slowest Runs</h3>
+          <div className="border border-line rounded-lg bg-surface overflow-hidden">
+            <div className="px-4 py-3 border-b border-line flex items-center gap-2">
+              <Clock className="h-3.5 w-3.5 text-warn" />
+              <h3 className="text-xs font-bold text-ink font-sans uppercase">Slowest Runs</h3>
             </div>
-            <div className="divide-y divide-white/[0.05]">
+            <div className="divide-y divide-line">
               {analytics.slowestRuns.slice(0, 5).map((r) => (
-                <Link key={r.id} href={`/runs/${r.id}`} className="flex items-center justify-between px-4 py-2.5 hover:bg-white/[0.02] transition-colors group">
+                <Link key={r.id} href={`/runs/${r.id}`} className="flex items-center justify-between px-4 py-2.5 hover:bg-tint/[0.02] transition-colors group">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className={`inline-block text-[9px] font-bold px-1 py-0.5 rounded border uppercase ${r.status === 'failed' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
+                    <span className={`inline-block text-2xs font-bold px-1 py-0.5 rounded border uppercase ${r.status === 'failed' ? 'bg-red-500/10 text-bad border-red-500/20' : 'bg-emerald-500/10 text-ok border-emerald-500/20'}`}>
                       {r.status === 'failed' ? 'FAIL' : 'OK'}
                     </span>
-                    <span className="text-zinc-300 text-xs truncate group-hover:text-white transition-colors">{r.title}</span>
+                    <span className="text-ink-2 text-xs truncate group-hover:text-ink transition-colors">{r.title}</span>
                   </div>
                   <div className="flex items-center gap-3 shrink-0 font-mono">
-                    <span className="text-white font-bold">{(r.duration / 1000).toFixed(1)}s</span>
-                    <ArrowUpRight className="h-3 w-3 text-zinc-600 group-hover:text-blue-400" />
+                    <span className="text-ink font-bold">{(r.duration / 1000).toFixed(1)}s</span>
+                    <ArrowUpRight className="h-3 w-3 text-ink-3 group-hover:text-accent-ink" />
                   </div>
                 </Link>
               ))}
@@ -358,14 +358,14 @@ export default function AnalyticsPage() {
 
       {/* Agent Stats */}
       {analytics && analytics.agentStats.length > 0 && (
-        <div className="border border-white/[0.07] rounded-lg bg-[#121217] overflow-hidden">
-          <div className="px-4 py-3 border-b border-white/[0.07] flex items-center gap-2">
-            <Activity className="h-3.5 w-3.5 text-blue-400" />
-            <h3 className="text-xs font-bold text-white font-sans uppercase">Agent Performance</h3>
+        <div className="border border-line rounded-lg bg-surface overflow-hidden">
+          <div className="px-4 py-3 border-b border-line flex items-center gap-2">
+            <Activity className="h-3.5 w-3.5 text-accent-ink" />
+            <h3 className="text-xs font-bold text-ink font-sans uppercase">Agent Performance</h3>
           </div>
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-white/[0.07] text-[10px] text-zinc-500 uppercase font-bold">
+              <tr className="border-b border-line text-2xs text-ink-3 uppercase font-bold">
                 <th className="text-left px-4 py-2">Agent</th>
                 <th className="text-right px-4 py-2">Runs</th>
                 <th className="text-right px-4 py-2">Success Rate</th>
@@ -375,26 +375,26 @@ export default function AnalyticsPage() {
                 <th className="text-right px-4 py-2">Quality</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.05]">
+            <tbody className="divide-y divide-line">
               {analytics.agentStats.map((a) => (
-                <tr key={a.id} className="hover:bg-white/[0.02]">
-                  <td className="px-4 py-2.5 text-white font-semibold">{a.name}</td>
-                  <td className="px-4 py-2.5 text-right text-zinc-300 font-mono">{a.runs}</td>
+                <tr key={a.id} className="hover:bg-tint/[0.02]">
+                  <td className="px-4 py-2.5 text-ink font-semibold">{a.name}</td>
+                  <td className="px-4 py-2.5 text-right text-ink-2 font-mono">{a.runs}</td>
                   <td className="px-4 py-2.5 text-right font-mono">
-                    <span className={a.successRate >= 90 ? 'text-emerald-400' : a.successRate >= 70 ? 'text-amber-400' : 'text-red-400'}>
+                    <span className={a.successRate >= 90 ? 'text-ok' : a.successRate >= 70 ? 'text-warn' : 'text-bad'}>
                       {a.successRate}%
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-right text-zinc-300 font-mono">{(a.avgLatency / 1000).toFixed(1)}s</td>
-                  <td className="px-4 py-2.5 text-right text-emerald-400 font-mono">${a.avgCost.toFixed(3)}</td>
-                  <td className="px-4 py-2.5 text-right text-zinc-300 font-mono">${a.totalCost.toFixed(3)}</td>
+                  <td className="px-4 py-2.5 text-right text-ink-2 font-mono">{(a.avgLatency / 1000).toFixed(1)}s</td>
+                  <td className="px-4 py-2.5 text-right text-ok font-mono">${a.avgCost.toFixed(3)}</td>
+                  <td className="px-4 py-2.5 text-right text-ink-2 font-mono">${a.totalCost.toFixed(3)}</td>
                   <td className="px-4 py-2.5 text-right font-mono">
                     {a.avgQuality !== null ? (
-                      <span className={a.avgQuality >= 80 ? 'text-emerald-400' : a.avgQuality >= 60 ? 'text-amber-400' : 'text-red-400'}>
+                      <span className={a.avgQuality >= 80 ? 'text-ok' : a.avgQuality >= 60 ? 'text-warn' : 'text-bad'}>
                         {a.avgQuality}
                       </span>
                     ) : (
-                      <span className="text-zinc-600">—</span>
+                      <span className="text-ink-3">—</span>
                     )}
                   </td>
                 </tr>

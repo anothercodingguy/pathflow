@@ -28,11 +28,11 @@ interface DetectionItem {
 }
 
 const severityColors: Record<string, { bg: string; text: string; border: string }> = {
-  CRITICAL: { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/30' },
-  HIGH: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/30' },
-  MEDIUM: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', border: 'border-yellow-500/30' },
-  LOW: { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/30' },
-  INFO: { bg: 'bg-zinc-500/10', text: 'text-zinc-400', border: 'border-zinc-500/30' },
+  CRITICAL: { bg: 'bg-red-500/10', text: 'text-bad', border: 'border-red-500/30' },
+  HIGH: { bg: 'bg-amber-500/10', text: 'text-warn', border: 'border-amber-500/30' },
+  MEDIUM: { bg: 'bg-yellow-500/10', text: 'text-warn', border: 'border-yellow-500/30' },
+  LOW: { bg: 'bg-blue-500/10', text: 'text-accent-ink', border: 'border-blue-500/30' },
+  INFO: { bg: 'bg-zinc-500/10', text: 'text-ink-2', border: 'border-zinc-500/30' },
 };
 
 const typeIcons: Record<string, any> = {
@@ -84,20 +84,20 @@ export default function DetectionsPage() {
   const types = [...new Set(detections.map(d => d.detection.type))];
 
   return (
-    <div className="w-full min-h-[calc(100vh-2.75rem)] bg-[#08080A] px-4 py-3 space-y-4 font-mono text-xs">
+    <div className="w-full min-h-[calc(100vh-2.75rem)] bg-canvas px-4 py-3 space-y-4 font-mono text-xs">
       
       {/* Header */}
-      <div className="flex items-baseline justify-between border-b border-white/[0.07] pb-2.5">
+      <div className="flex items-baseline justify-between border-b border-line pb-2.5">
         <div>
-          <h1 className="text-xl font-bold text-white font-sans tracking-tight uppercase">Detections</h1>
-          <p className="text-xs text-zinc-400 font-sans mt-0.5">Automatically detected execution issues across all agent runs.</p>
+          <h1 className="text-xl font-bold text-ink font-sans tracking-tight uppercase">Detections</h1>
+          <p className="text-xs text-ink-2 font-sans mt-0.5">Automatically detected execution issues across all agent runs.</p>
         </div>
         <div className="flex items-center gap-2">
           {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map(sev => {
             const count = severityCounts[sev] || 0;
             const colors = severityColors[sev];
             return (
-              <span key={sev} className={`px-2 py-0.5 rounded border text-[10px] font-bold ${colors.bg} ${colors.text} ${colors.border}`}>
+              <span key={sev} className={`px-2 py-0.5 rounded border text-2xs font-bold ${colors.bg} ${colors.text} ${colors.border}`}>
                 {count} {sev}
               </span>
             );
@@ -119,15 +119,15 @@ export default function DetectionsPage() {
           onSelect={(id) => setSelectedSeverity(id)}
         />
 
-        <div className="w-px h-4 bg-white/[0.07]" />
+        <div className="w-px h-4 bg-tint/[0.07]" />
 
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-zinc-500 uppercase font-bold">Type:</span>
+          <span className="text-2xs text-ink-3 uppercase font-bold">Type:</span>
         </div>
         <select
           value={selectedType}
           onChange={(e) => setSelectedType(e.target.value)}
-          className="px-2 py-1 rounded-lg border border-white/[0.1] bg-[#121217] text-[11px] text-zinc-300 font-mono focus:outline-none focus:border-blue-500"
+          className="px-2 py-1 rounded-lg border border-line bg-surface text-2xs text-ink-2 font-mono focus:border-blue-500"
         >
           <option value="">All Types</option>
           {types.map(t => (
@@ -140,16 +140,16 @@ export default function DetectionsPage() {
       {isLoading && (
         <div className="flex flex-col items-center justify-center py-20 space-y-3">
           <LoadingState label="Running AI anomaly detection engine…" variant="Drive" />
-          <span className="text-zinc-500 text-xs font-mono">Analyzing loops, timeouts, hallucination risks, and retry spikes</span>
+          <span className="text-ink-3 text-xs font-mono">Analyzing loops, timeouts, hallucination risks, and retry spikes</span>
         </div>
       )}
 
       {/* Empty State */}
       {!isLoading && detections.length === 0 && (
-        <div className="border border-white/[0.07] rounded-lg bg-[#121217] py-16 text-center">
-          <Shield className="h-8 w-8 text-emerald-400 mx-auto mb-3" />
-          <h3 className="text-sm font-bold text-white font-sans">All Clear</h3>
-          <p className="text-xs text-zinc-400 mt-1">No issues detected in recent runs.</p>
+        <div className="border border-line rounded-lg bg-surface py-16 text-center">
+          <Shield className="h-8 w-8 text-ok mx-auto mb-3" />
+          <h3 className="text-sm font-bold text-ink font-sans">All Clear</h3>
+          <p className="text-xs text-ink-2 mt-1">No issues detected in recent runs.</p>
         </div>
       )}
 
@@ -164,11 +164,11 @@ export default function DetectionsPage() {
             return (
               <div
                 key={`${item.runId}-${item.detection.type}-${i}`}
-                className={`border rounded-lg bg-[#121217] overflow-hidden transition-all ${colors.border}`}
+                className={`border rounded-lg bg-surface overflow-hidden transition-all ${colors.border}`}
               >
                 <button
                   onClick={() => setExpandedIndex(isExpanded ? null : i)}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-tint/[0.02] transition-colors text-left"
                 >
                   <div className={`p-1.5 rounded ${colors.bg}`}>
                     <TypeIcon className={`h-3.5 w-3.5 ${colors.text}`} />
@@ -176,39 +176,39 @@ export default function DetectionsPage() {
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase ${colors.bg} ${colors.text} ${colors.border}`}>
+                      <span className={`text-2xs font-bold px-1.5 py-0.5 rounded border uppercase ${colors.bg} ${colors.text} ${colors.border}`}>
                         {item.detection.severity}
                       </span>
-                      <span className="text-[10px] font-mono text-zinc-500 uppercase">
+                      <span className="text-2xs font-mono text-ink-3 uppercase">
                         {item.detection.type.replace(/_/g, ' ')}
                       </span>
                     </div>
-                    <p className="text-xs text-white font-semibold mt-0.5 truncate font-sans">{item.detection.title}</p>
+                    <p className="text-xs text-ink font-semibold mt-0.5 truncate font-sans">{item.detection.title}</p>
                   </div>
 
                   <Link
                     href={`/runs/${item.runId}`}
                     onClick={(e) => e.stopPropagation()}
-                    className="flex items-center gap-1 text-[10px] text-zinc-400 hover:text-blue-400 transition-colors shrink-0 font-mono"
+                    className="flex items-center gap-1 text-2xs text-ink-2 hover:text-accent-ink transition-colors shrink-0 font-mono"
                   >
                     <span className="truncate max-w-[120px]">{item.runTitle.replace('', '')}</span>
                     <ArrowUpRight className="h-3 w-3" />
                   </Link>
 
-                  <ChevronRight className={`h-3.5 w-3.5 text-zinc-600 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                  <ChevronRight className={`h-3.5 w-3.5 text-ink-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                 </button>
 
                 {isExpanded && (
-                  <div className="px-4 pb-4 space-y-3 border-t border-white/[0.05]">
-                    <div className="pt-3 text-xs text-zinc-300 font-sans leading-relaxed">
+                  <div className="px-4 pb-4 space-y-3 border-t border-line">
+                    <div className="pt-3 text-xs text-ink-2 font-sans leading-relaxed">
                       {item.detection.description}
                     </div>
                     
                     <div>
-                      <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Evidence</span>
+                      <span className="text-2xs text-ink-3 uppercase font-bold block mb-1">Evidence</span>
                       <div className="space-y-1">
                         {item.detection.evidence.map((ev, ei) => (
-                          <div key={ei} className="flex items-start gap-1.5 text-[11px] text-zinc-400 font-mono">
+                          <div key={ei} className="flex items-start gap-1.5 text-2xs text-ink-2 font-mono">
                             <span className={`${colors.text} mt-0.5`}>•</span>
                             <span>{ev}</span>
                           </div>
@@ -218,12 +218,12 @@ export default function DetectionsPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Impact</span>
-                        <p className="text-[11px] text-amber-600 dark:text-amber-300/80 font-mono">{item.detection.impact}</p>
+                        <span className="text-2xs text-ink-3 uppercase font-bold block mb-1">Impact</span>
+                        <p className="text-2xs text-amber-600 dark:text-amber-300/80 font-mono">{item.detection.impact}</p>
                       </div>
                       <div>
-                        <span className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Recommendation</span>
-                        <p className="text-[11px] text-emerald-600 dark:text-emerald-300/80 font-mono">{item.detection.recommendation}</p>
+                        <span className="text-2xs text-ink-3 uppercase font-bold block mb-1">Recommendation</span>
+                        <p className="text-2xs text-emerald-600 dark:text-emerald-300/80 font-mono">{item.detection.recommendation}</p>
                       </div>
                     </div>
                   </div>

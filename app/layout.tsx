@@ -2,6 +2,13 @@ import type { Metadata } from 'next';
 import './globals.css';
 import Navbar from '@/components/Navbar';
 import Providers from '@/components/Providers';
+import { Inter, JetBrains_Mono } from 'next/font/google';
+
+// next/font downloads the fonts at build time and serves them from this app
+// (no request to Google from the browser). Each font is exposed as a CSS
+// variable that tailwind.config.js uses for `font-sans` and `font-mono`.
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
+const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap' });
 
 export const metadata: Metadata = {
   title: 'PathFlow | DevTools for AI Agents',
@@ -29,21 +36,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    // The inline script below may swap `dark` for `light` before React hydrates,
+    // so the class list can legitimately differ from the server render.
+    <html lang="en" className={`dark ${inter.variable} ${mono.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: `try{if(localStorage.getItem('pathflow_theme')==='light'){document.documentElement.classList.add('light');document.documentElement.classList.remove('dark');}else{document.documentElement.classList.add('dark');document.documentElement.classList.remove('light');}}catch(e){}` }} />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
       </head>
-      <body className="min-h-screen bg-[#09090B] text-zinc-100 antialiased selection:bg-blue-600 selection:text-white flex flex-col">
+      <body className="min-h-screen bg-canvas text-ink font-sans antialiased flex flex-col">
         <Providers>
+          <a
+            href="#main"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[200] focus:rounded-md focus:bg-accent-strong focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+          >
+            Skip to content
+          </a>
           <Navbar />
-          <main className="flex-1 w-full">
+          <main id="main" className="flex-1 w-full min-w-0">
             {children}
           </main>
         </Providers>

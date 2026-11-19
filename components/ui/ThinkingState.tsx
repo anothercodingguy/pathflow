@@ -51,11 +51,11 @@ export default function ThinkingState({
         type="button"
         aria-expanded={expanded}
         onClick={() => setExpanded(!expanded)}
-        className="flex w-fit items-center gap-2 rounded-lg px-2 py-1 text-left transition-colors duration-150 hover:bg-white/[0.06] text-zinc-300"
+        className="flex w-fit items-center gap-2 rounded-lg px-2 py-1 text-left transition-colors duration-150 hover:bg-tint/[0.06] text-ink-2"
       >
         <Sparkles
           className={`h-4 w-4 shrink-0 transition-colors ${
-            isWorking ? 'text-blue-400 animate-pulse' : 'text-zinc-400'
+            isWorking ? 'text-accent-ink animate-pulse' : 'text-ink-2'
           }`}
         />
         {isWorking ? (
@@ -71,12 +71,12 @@ export default function ThinkingState({
             {activeTitle}
           </span>
         ) : (
-          <span className="text-[13px] font-medium text-zinc-200 whitespace-nowrap">
+          <span className="text-[13px] font-medium text-ink whitespace-nowrap">
             {completedTitle}
           </span>
         )}
         <ChevronDown
-          className="h-3.5 w-3.5 text-zinc-500 transition-transform duration-300"
+          className="h-3.5 w-3.5 text-ink-3 transition-transform duration-300"
           style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0)' }}
         />
       </button>
@@ -94,7 +94,7 @@ export default function ThinkingState({
             {/* Timeline Vertical Line */}
             <span
               aria-hidden
-              className="absolute left-[3px] w-px bg-white/10"
+              className="absolute left-[3px] w-px bg-tint/10"
               style={{
                 top: 0,
                 height: lineHeight ? `${lineHeight}px` : '0px',
@@ -104,8 +104,8 @@ export default function ThinkingState({
 
             <div ref={traceRef} className="flex flex-col gap-1.5 py-1">
               {query && (
-                <div className="flex h-6 items-center gap-2 px-1.5 text-xs text-zinc-400">
-                  <Search className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
+                <div className="flex h-6 items-center gap-2 px-1.5 text-xs text-ink-2">
+                  <Search className="h-3.5 w-3.5 text-ink-3 shrink-0" />
                   <span>{query}</span>
                 </div>
               )}
@@ -113,35 +113,35 @@ export default function ThinkingState({
               {rows.map((row, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-2 rounded-md px-1.5 py-0.5 text-xs text-zinc-300 hover:bg-white/[0.04] transition-colors"
+                  className="flex items-center gap-2 rounded-md px-1.5 py-0.5 text-xs text-ink-2 hover:bg-tint/[0.04] transition-colors"
                 >
                   {/* Icon / status */}
                   {row.status === 'running' || (isWorking && i === rows.length - 1) ? (
-                    <Loader2 className="h-3.5 w-3.5 text-blue-400 animate-spin shrink-0" />
+                    <Loader2 className="h-3.5 w-3.5 text-accent-ink animate-spin shrink-0" />
                   ) : (
-                    <span className="flex size-3.5 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+                    <span className="flex size-3.5 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-ok">
                       <Check className="h-2.5 w-2.5 stroke-[3]" />
                     </span>
                   )}
 
-                  <span className={`min-w-0 ${row.mono ? 'font-mono text-[11.5px]' : 'text-xs'}`}>
+                  <span className={`min-w-0 ${row.mono ? 'font-mono text-2xs' : 'text-xs'}`}>
                     {row.primary}
                   </span>
 
                   {row.secondary && (
-                    <span className="ml-auto font-mono text-[11px] text-zinc-500 truncate max-w-[140px]">
+                    <span className="ml-auto font-mono text-2xs text-ink-3 truncate max-w-[140px]">
                       {row.secondary}
                     </span>
                   )}
 
                   {/* Code Line Diffs (+74 / -41) */}
                   {(row.add !== undefined || row.del !== undefined) && (
-                    <span className="ml-auto flex items-center gap-1 font-mono text-[11px]">
+                    <span className="ml-auto flex items-center gap-1 font-mono text-2xs">
                       {row.add !== undefined && (
-                        <span className="text-emerald-400 font-semibold">+{row.add}</span>
+                        <span className="text-ok font-semibold">+{row.add}</span>
                       )}
                       {row.del !== undefined && (
-                        <span className="text-red-400 font-semibold">-{row.del}</span>
+                        <span className="text-bad font-semibold">-{row.del}</span>
                       )}
                     </span>
                   )}
@@ -151,7 +151,7 @@ export default function ThinkingState({
                       href={row.href}
                       target="_blank"
                       rel="noreferrer"
-                      className="ml-auto text-blue-400 hover:underline font-mono text-[11px]"
+                      className="ml-auto text-accent-ink hover:underline font-mono text-2xs"
                     >
                       source ↗
                     </a>

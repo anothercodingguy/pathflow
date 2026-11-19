@@ -206,27 +206,27 @@ function BillingContent() {
   };
 
   return (
-    <div className="w-full min-h-[calc(100vh-2.5rem)] bg-[#08080A] px-4 py-4 space-y-6 font-sans text-xs">
+    <div className="w-full min-h-[calc(100vh-2.5rem)] bg-canvas px-4 py-4 space-y-6 font-sans text-xs">
       
       {/* Top Breadcrumb Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#1E1E24] pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-3">
         <div className="flex items-center gap-3">
           <Link 
             href="/settings" 
-            className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-colors font-mono text-xs"
+            className="flex items-center gap-1.5 text-ink-2 hover:text-ink transition-colors font-mono text-xs"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Settings</span>
           </Link>
-          <span className="text-zinc-600">/</span>
-          <h1 className="text-sm font-semibold text-white uppercase tracking-wider font-mono">
+          <span className="text-ink-3">/</span>
+          <h1 className="text-sm font-semibold text-ink uppercase tracking-wider font-mono">
             Billing & Subscriptions
           </h1>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono text-[11px] font-semibold flex items-center gap-1.5">
-            <CreditCard className="w-3.5 h-3.5 text-blue-400" />
+          <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-accent-ink border border-blue-500/20 font-mono text-2xs font-semibold flex items-center gap-1.5">
+            <CreditCard className="w-3.5 h-3.5 text-accent-ink" />
             <span>INR Billing (One-Time Monthly)</span>
           </span>
         </div>
@@ -234,11 +234,11 @@ function BillingContent() {
 
       {/* Status Alert Banners */}
       {statusParam === "success" && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3 text-emerald-300">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3 text-ok">
+          <CheckCircle2 className="w-5 h-5 text-ok shrink-0 mt-0.5" />
           <div className="space-y-1">
             <div className="font-semibold text-sm">Payment Successful! Plan Activated.</div>
-            <p className="text-xs text-emerald-400/90 leading-relaxed font-mono">
+            <p className="text-xs text-ok/90 leading-relaxed font-mono">
               Thank you for subscribing to PathFlow {currentPlan.name}. Your account limits have been instantly updated and verified server-side.
             </p>
           </div>
@@ -246,11 +246,11 @@ function BillingContent() {
       )}
 
       {statusParam === "failed" && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-3 text-red-300">
-          <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-3 text-bad">
+          <AlertCircle className="w-5 h-5 text-bad shrink-0 mt-0.5" />
           <div className="space-y-1">
             <div className="font-semibold text-sm">Payment Declined or Cancelled</div>
-            <p className="text-xs text-red-400/90 leading-relaxed font-mono">
+            <p className="text-xs text-bad/90 leading-relaxed font-mono">
               The transaction was not completed. You have not been charged. You can retry with UPI, Credit/Debit Card, or NetBanking below.
             </p>
           </div>
@@ -258,11 +258,11 @@ function BillingContent() {
       )}
 
       {statusParam === "pending" && (
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 text-amber-300">
-          <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 text-warn">
+          <Clock className="w-5 h-5 text-warn shrink-0 mt-0.5" />
           <div className="space-y-1">
             <div className="font-semibold text-sm">Payment Pending Verification</div>
-            <p className="text-xs text-amber-400/90 leading-relaxed font-mono">
+            <p className="text-xs text-warn/90 leading-relaxed font-mono">
               Your payment is currently being processed by your bank. We will automatically update your subscription as soon as the gateway confirmation arrives.
             </p>
           </div>
@@ -270,7 +270,7 @@ function BillingContent() {
       )}
 
       {errorMsg && (
-        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-2 font-mono">
+        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-bad flex items-center gap-2 font-mono">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMsg}</span>
         </div>
@@ -281,45 +281,45 @@ function BillingContent() {
         
         {/* Left Column: Current Active Plan & Usage Details */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="bg-[#121217] border border-white/[0.08] rounded-2xl p-5 space-y-4">
+          <div className="bg-surface border border-line rounded-2xl p-5 space-y-4">
             
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+            <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
-                <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-400 font-semibold block">
+                <span className="text-2xs uppercase font-mono tracking-wider text-ink-2 font-semibold block">
                   Current Plan
                 </span>
-                <span className="text-xl font-bold text-white tracking-tight">
+                <span className="text-xl font-bold text-ink tracking-tight">
                   {currentPlan.name}
                 </span>
               </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-mono text-[11px] font-bold border border-emerald-500/20">
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-ok font-mono text-2xs font-bold border border-emerald-500/20">
                 {currentPlan.status}
               </span>
             </div>
 
-            <div className="space-y-2 text-xs font-mono text-zinc-300">
-              <div className="flex justify-between py-1 border-b border-white/[0.03]">
-                <span className="text-zinc-500">Price:</span>
-                <span className="text-white font-semibold">{currentPlan.displayPrice} {currentPlan.id !== "FREE" ? "/ month" : ""}</span>
+            <div className="space-y-2 text-xs font-mono text-ink-2">
+              <div className="flex justify-between py-1 border-b border-line">
+                <span className="text-ink-3">Price:</span>
+                <span className="text-ink font-semibold">{currentPlan.displayPrice} {currentPlan.id !== "FREE" ? "/ month" : ""}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-white/[0.03]">
-                <span className="text-zinc-500">Monthly Runs:</span>
-                <span className="text-white font-semibold">{currentPlan.limits.runsPerMonth.toLocaleString()}</span>
+              <div className="flex justify-between py-1 border-b border-line">
+                <span className="text-ink-3">Monthly Runs:</span>
+                <span className="text-ink font-semibold">{currentPlan.limits.runsPerMonth.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-white/[0.03]">
-                <span className="text-zinc-500">Trace Retention:</span>
-                <span className="text-white font-semibold">{currentPlan.limits.retentionDays} Days</span>
+              <div className="flex justify-between py-1 border-b border-line">
+                <span className="text-ink-3">Trace Retention:</span>
+                <span className="text-ink font-semibold">{currentPlan.limits.retentionDays} Days</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-white/[0.03]">
-                <span className="text-zinc-500">AI Root Cause:</span>
-                <span className={currentPlan.limits.aiRootCause ? "text-emerald-400 font-semibold" : "text-zinc-500"}>
+              <div className="flex justify-between py-1 border-b border-line">
+                <span className="text-ink-3">AI Root Cause:</span>
+                <span className={currentPlan.limits.aiRootCause ? "text-ok font-semibold" : "text-ink-3"}>
                   {currentPlan.limits.aiRootCause ? "Enabled" : "Disabled"}
                 </span>
               </div>
               {currentPlan.expiresAt && (
-                <div className="flex justify-between py-1 border-b border-white/[0.03]">
-                  <span className="text-zinc-500">Renews On:</span>
-                  <span className="text-blue-400 font-semibold">
+                <div className="flex justify-between py-1 border-b border-line">
+                  <span className="text-ink-3">Renews On:</span>
+                  <span className="text-accent-ink font-semibold">
                     {new Date(currentPlan.expiresAt).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}
                   </span>
                 </div>
@@ -327,12 +327,12 @@ function BillingContent() {
             </div>
 
             {/* Transparent Billing Note */}
-            <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
-              <div className="flex items-center gap-1.5 text-zinc-300 font-semibold text-[11px]">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <div className="p-3 rounded-xl bg-tint/[0.02] border border-line space-y-1">
+              <div className="flex items-center gap-1.5 text-ink-2 font-semibold text-2xs">
+                <ShieldCheck className="w-3.5 h-3.5 text-ok" />
                 <span>Transparent Subscription Billing</span>
               </div>
-              <p className="text-[11px] text-zinc-400 leading-relaxed">
+              <p className="text-2xs text-ink-2 leading-relaxed">
                 PathFlow billing uses one-time monthly payments with seamless manual renewal reminders. No hidden recurring auto-debits without your explicit approval.
               </p>
             </div>
@@ -340,14 +340,14 @@ function BillingContent() {
           </div>
 
           {/* Quick Support Card */}
-          <div className="bg-[#121217] border border-white/[0.08] rounded-2xl p-4 space-y-2 text-xs">
-            <div className="font-semibold text-white">Need a custom plan or GST invoice?</div>
-            <p className="text-zinc-400 text-[11px] leading-relaxed">
+          <div className="bg-surface border border-line rounded-2xl p-4 space-y-2 text-xs">
+            <div className="font-semibold text-ink">Need a custom plan or GST invoice?</div>
+            <p className="text-ink-2 text-2xs leading-relaxed">
               Email us with your company GSTIN and billing address for standard tax invoices.
             </p>
             <a 
               href="mailto:support@thepathflow.online?subject=PathFlow%20Invoice%20Inquiry" 
-              className="text-blue-400 hover:underline inline-flex items-center gap-1 text-[11px] font-mono font-semibold pt-1"
+              className="text-accent-ink hover:underline inline-flex items-center gap-1 text-2xs font-mono font-semibold pt-1"
             >
               <span>Contact Billing Support</span>
               <ExternalLink className="w-3 h-3" />
@@ -358,36 +358,36 @@ function BillingContent() {
         {/* Right Column: Available Plans Grid */}
         <div className="lg:col-span-8 space-y-4">
           <div className="flex items-center justify-between pb-1">
-            <h2 className="text-sm font-semibold text-white uppercase font-mono tracking-wider">
+            <h2 className="text-sm font-semibold text-ink uppercase font-mono tracking-wider">
               Available Plans & Upgrades
             </h2>
-            <span className="text-xs text-zinc-400 font-mono">Billed in Indian Rupees (INR)</span>
+            <span className="text-xs text-ink-2 font-mono">Billed in Indian Rupees (INR)</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             
             {/* Free Tier */}
-            <div className={`rounded-2xl border p-4 flex flex-col justify-between ${currentPlan.id === "FREE" ? "bg-[#14141A] border-white/20" : "bg-[#121217] border-white/[0.08]"}`}>
+            <div className={`rounded-2xl border p-4 flex flex-col justify-between ${currentPlan.id === "FREE" ? "bg-surface border-line-strong" : "bg-surface border-line"}`}>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-white text-sm">Free</span>
+                  <span className="font-bold text-ink text-sm">Free</span>
                   {currentPlan.id === "FREE" && (
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/10 text-white font-bold">CURRENT</span>
+                    <span className="text-2xs font-mono px-2 py-0.5 rounded bg-tint/10 text-ink font-bold">CURRENT</span>
                   )}
                 </div>
-                <div className="text-2xl font-black text-white">₹0</div>
-                <p className="text-zinc-400 text-[11px]">For personal testing and small prototypes.</p>
-                <ul className="space-y-2 text-zinc-300 font-mono text-[11px] pt-2 border-t border-white/5">
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400" /> 1 Project</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400" /> 500 runs / mo</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400" /> 7-day retention</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400" /> Core traces</li>
+                <div className="text-2xl font-black text-ink">₹0</div>
+                <p className="text-ink-2 text-2xs">For personal testing and small prototypes.</p>
+                <ul className="space-y-2 text-ink-2 font-mono text-2xs pt-2 border-t border-line">
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> 1 Project</li>
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> 500 runs / mo</li>
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> 7-day retention</li>
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> Core traces</li>
                 </ul>
               </div>
               <div className="pt-4">
                 <button 
                   disabled 
-                  className="w-full py-2 rounded-xl bg-white/5 text-zinc-500 text-xs font-semibold cursor-not-allowed"
+                  className="w-full py-2 rounded-xl bg-tint/5 text-ink-3 text-xs font-semibold cursor-not-allowed"
                 >
                   {currentPlan.id === "FREE" ? "Active Plan" : "Included"}
                 </button>
@@ -395,34 +395,34 @@ function BillingContent() {
             </div>
 
             {/* Pro Tier (Featured) */}
-            <div className={`rounded-2xl border-2 p-4 flex flex-col justify-between relative shadow-xl ${currentPlan.id === "PRO" ? "bg-blue-950/20 border-blue-500" : "bg-[#121217] border-blue-500/50"}`}>
-              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-blue-600 text-white font-mono text-[9px] font-bold uppercase tracking-wider">
+            <div className={`rounded-2xl border-2 p-4 flex flex-col justify-between relative shadow-xl ${currentPlan.id === "PRO" ? "bg-blue-950/20 border-blue-500" : "bg-surface border-blue-500/50"}`}>
+              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-blue-600 text-white font-mono text-2xs font-bold uppercase tracking-wider">
                 RECOMMENDED
               </div>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-white text-sm">Pro</span>
+                  <span className="font-bold text-ink text-sm">Pro</span>
                   {currentPlan.id === "PRO" && (
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold">CURRENT</span>
+                    <span className="text-2xs font-mono px-2 py-0.5 rounded bg-blue-500/20 text-accent-ink font-bold">CURRENT</span>
                   )}
                 </div>
-                <div className="text-2xl font-black text-white">
-                  ₹1,999 <span className="text-xs text-zinc-400 font-mono font-normal">/ mo</span>
+                <div className="text-2xl font-black text-ink">
+                  ₹1,999 <span className="text-xs text-ink-2 font-mono font-normal">/ mo</span>
                 </div>
-                <p className="text-zinc-300 text-[11px]">For developers running production services.</p>
-                <ul className="space-y-2 text-zinc-200 font-mono text-[11px] pt-2 border-t border-white/10">
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400" /> Unlimited projects</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400" /> 10,000 runs / mo</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400" /> 30-day retention</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400" /> AI Root Cause</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400" /> Git diff analysis</li>
+                <p className="text-ink-2 text-2xs">For developers running production services.</p>
+                <ul className="space-y-2 text-ink font-mono text-2xs pt-2 border-t border-line">
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> Unlimited projects</li>
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> 10,000 runs / mo</li>
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> 30-day retention</li>
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> AI Root Cause</li>
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> Git diff analysis</li>
                 </ul>
               </div>
               <div className="pt-4">
                 {currentPlan.id === "PRO" ? (
                   <button 
                     disabled 
-                    className="w-full py-2 rounded-xl bg-blue-500/20 text-blue-300 text-xs font-semibold cursor-not-allowed"
+                    className="w-full py-2 rounded-xl bg-blue-500/20 text-accent-ink text-xs font-semibold cursor-not-allowed"
                   >
                     Active Plan
                   </button>
@@ -446,30 +446,30 @@ function BillingContent() {
             </div>
 
             {/* Team Tier */}
-            <div className={`rounded-2xl border p-4 flex flex-col justify-between ${currentPlan.id === "TEAM" ? "bg-purple-950/20 border-purple-500" : "bg-[#121217] border-white/[0.08]"}`}>
+            <div className={`rounded-2xl border p-4 flex flex-col justify-between ${currentPlan.id === "TEAM" ? "bg-purple-950/20 border-purple-500" : "bg-surface border-line"}`}>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-white text-sm">Team</span>
+                  <span className="font-bold text-ink text-sm">Team</span>
                   {currentPlan.id === "TEAM" && (
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold">CURRENT</span>
+                    <span className="text-2xs font-mono px-2 py-0.5 rounded bg-purple-500/20 text-violet font-bold">CURRENT</span>
                   )}
                 </div>
-                <div className="text-2xl font-black text-white">
-                  ₹7,999 <span className="text-xs text-zinc-400 font-mono font-normal">/ mo</span>
+                <div className="text-2xl font-black text-ink">
+                  ₹7,999 <span className="text-xs text-ink-2 font-mono font-normal">/ mo</span>
                 </div>
-                <p className="text-zinc-400 text-[11px]">For engineering teams debugging together.</p>
-                <ul className="space-y-2 text-zinc-300 font-mono text-[11px] pt-2 border-t border-white/5">
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400" /> Everything in Pro</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400" /> Shared workspace</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400" /> 5 included seats</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400" /> 90-day retention</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-emerald-400" /> Alert webhooks</li>
+                <p className="text-ink-2 text-2xs">For engineering teams debugging together.</p>
+                <ul className="space-y-2 text-ink-2 font-mono text-2xs pt-2 border-t border-line">
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> Everything in Pro</li>
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> Shared workspace</li>
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> 5 included seats</li>
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> 90-day retention</li>
+                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> Alert webhooks</li>
                 </ul>
               </div>
               <div className="pt-4">
                 <button 
                   disabled 
-                  className="w-full py-2 rounded-xl bg-white/5 text-zinc-500 text-xs font-semibold cursor-not-allowed"
+                  className="w-full py-2 rounded-xl bg-tint/5 text-ink-3 text-xs font-semibold cursor-not-allowed"
                 >
                   Coming Soon
                 </button>
@@ -479,14 +479,14 @@ function BillingContent() {
           </div>
 
           {/* Payment Transaction History Table */}
-          <div className="bg-[#121217] border border-white/[0.08] rounded-2xl p-5 space-y-3 mt-6">
+          <div className="bg-surface border border-line rounded-2xl p-5 space-y-3 mt-6">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-white text-xs font-mono uppercase tracking-wider">
+              <h3 className="font-semibold text-ink text-xs font-mono uppercase tracking-wider">
                 Payment History & Orders
               </h3>
               <button 
                 onClick={fetchBillingInfo} 
-                className="text-zinc-400 hover:text-white p-1 rounded transition-colors"
+                className="text-ink-2 hover:text-ink p-1 rounded transition-colors"
                 title="Refresh order history"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
@@ -495,9 +495,9 @@ function BillingContent() {
 
             {billingData?.orders && billingData.orders.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-left font-mono text-[11px] border-collapse">
+                <table className="w-full text-left font-mono text-2xs border-collapse">
                   <thead>
-                    <tr className="border-b border-white/10 text-zinc-500 uppercase text-[10px]">
+                    <tr className="border-b border-line text-ink-3 uppercase text-2xs">
                       <th className="py-2 px-3">Date</th>
                       <th className="py-2 px-3">Order ID</th>
                       <th className="py-2 px-3">Plan</th>
@@ -505,19 +505,19 @@ function BillingContent() {
                       <th className="py-2 px-3">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-line">
                     {billingData.orders.map((ord) => (
-                      <tr key={ord.id} className="hover:bg-white/[0.02] text-zinc-300">
-                        <td className="py-2.5 px-3 text-zinc-400">
+                      <tr key={ord.id} className="hover:bg-tint/[0.02] text-ink-2">
+                        <td className="py-2.5 px-3 text-ink-2">
                           {new Date(ord.createdAt).toLocaleDateString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </td>
-                        <td className="py-2.5 px-3 font-semibold text-white truncate max-w-[180px]">
+                        <td className="py-2.5 px-3 font-semibold text-ink truncate max-w-[180px]">
                           {ord.merchantOrderId}
                         </td>
                         <td className="py-2.5 px-3">{ord.plan}</td>
                         <td className="py-2.5 px-3 font-semibold">₹{ord.amountINR.toLocaleString("en-IN")}</td>
                         <td className="py-2.5 px-3">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${ord.status === "SUCCESS" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : ord.status === "FAILED" ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-amber-500/10 text-amber-400 border border-amber-500/20"}`}>
+                          <span className={`px-2 py-0.5 rounded text-2xs font-bold ${ord.status === "SUCCESS" ? "bg-emerald-500/10 text-ok border border-emerald-500/20" : ord.status === "FAILED" ? "bg-red-500/10 text-bad border border-red-500/20" : "bg-amber-500/10 text-warn border border-amber-500/20"}`}>
                             {ord.status}
                           </span>
                         </td>
@@ -527,7 +527,7 @@ function BillingContent() {
                 </table>
               </div>
             ) : (
-              <div className="py-8 text-center text-zinc-500 font-mono text-xs">
+              <div className="py-8 text-center text-ink-3 font-mono text-xs">
                 No past transactions recorded yet.
               </div>
             )}
@@ -543,7 +543,7 @@ function BillingContent() {
 
 export default function BillingPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-white font-mono text-xs">Loading billing dashboard...</div>}>
+    <Suspense fallback={<div className="p-8 text-ink font-mono text-xs">Loading billing dashboard...</div>}>
       <BillingContent />
     </Suspense>
   );

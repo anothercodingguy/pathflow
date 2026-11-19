@@ -2,343 +2,181 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * DESIGN TOKENS: the single source of colour for the app.
+ *
+ * Each value is three space-separated RGB channels (not a hex colour) so that
+ * Tailwind can apply opacity: `bg-surface/95` becomes rgb(var(--surface) / 0.95).
+ * tailwind.config.js maps every variable to a class name (bg-canvas, text-ink-2,
+ * border-line, ...). Light mode only swaps the values below; components do not
+ * need any light-mode classes or overrides.
+ */
 @layer base {
   :root {
-    --dev-bg: #0C0C0F;
-    --dev-surface: #121217;
-    --dev-border: rgba(255, 255, 255, 0.07);
-    --dev-blue: #3B82F6;
-    --dev-emerald: #10B981;
-    --dev-red: #EF4444;
-    --dev-amber: #F59E0B;
+    color-scheme: dark;
 
-    --text-primary: #F4F4F5;
-    --text-secondary: #A1A1AA;
-    --text-muted: #71717A;
+    /* Surfaces */
+    --canvas: 9 9 11;        /* page background */
+    --inset: 12 12 15;       /* recessed: nav bar, table headers, inputs, code wells */
+    --surface: 18 18 23;     /* cards and panels */
+    --raised: 26 26 33;      /* hover / selected / menus */
 
-    /* Beautiful UI Tokens */
-    --canvas: #09090b;
-    --surface: #111115;
-    --inset: #0c0c0f;
-    --field: #18181f;
-    --hover: rgba(255, 255, 255, 0.05);
-    --hover-2: rgba(255, 255, 255, 0.08);
-    --line: rgba(255, 255, 255, 0.08);
-    --line-strong: rgba(255, 255, 255, 0.16);
-    --ink: #f4f4f5;
-    --ink-2: #a1a1aa;
-    --ink-3: #71717a;
-    --accent: #3b82f6;
-    --accent-tint: rgba(59, 130, 246, 0.12);
-    --accent-ink: #60a5fa;
-    --green: #10b981;
-    --green-tint: rgba(16, 185, 129, 0.12);
-    --orange: #f59e0b;
-    --red: #ef4444;
-    --shadow-hairline: 0 0 0 1px var(--line);
-    --shadow-card: 0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px var(--line);
-    --shadow-btn: 0 1px 2px rgba(0,0,0,0.2), 0 0 0 1px var(--line);
-    --shadow-raised: 0 4px 12px rgba(0,0,0,0.4), 0 0 0 1px var(--line);
-    --shadow-overlay: 0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px var(--line-strong);
+    /* Hairlines */
+    --line: 34 34 40;
+    --line-strong: 56 56 66;
+
+    /* Neutral overlay for subtle fills (bg-tint/5) */
+    --tint: 255 255 255;
+
+    /* Text. ink-3 is the dimmest text allowed: 5.2:1 on --raised, 5.9:1 on --surface */
+    --ink: 244 244 245;
+    --ink-2: 180 180 189;
+    --ink-3: 142 142 153;
+
+    /* Accent (blue) */
+    --accent: 59 130 246;
+    --accent-strong: 37 99 235;
+    --accent-ink: 96 165 250;
+
+    /* Status */
+    --ok: 52 211 153;
+    --warn: 251 191 36;
+    --bad: 248 113 113;
+    --violet: 192 132 252;
   }
 
   html.light {
-    --dev-bg: #F4F4F5;
-    --dev-surface: #FFFFFF;
-    --dev-border: #E4E4E7;
-    --text-primary: #09090B;
-    --text-secondary: #52525B;
-    --text-muted: #A1A1AA;
+    color-scheme: light;
 
-    /* Beautiful UI Tokens Light */
-    --canvas: #f4f4f5;
-    --surface: #ffffff;
-    --inset: #f0f0f2;
-    --field: #e4e4e7;
-    --hover: rgba(0, 0, 0, 0.04);
-    --hover-2: rgba(0, 0, 0, 0.07);
-    --line: rgba(0, 0, 0, 0.08);
-    --line-strong: rgba(0, 0, 0, 0.18);
-    --ink: #09090b;
-    --ink-2: #52525b;
-    --ink-3: #a1a1aa;
-    --accent: #2563eb;
-    --accent-tint: rgba(37, 99, 235, 0.08);
-    --accent-ink: #1d4ed8;
-    --green: #059669;
-    --green-tint: rgba(5, 150, 105, 0.1);
-    --orange: #d97706;
-    --red: #dc2626;
-    --shadow-hairline: 0 0 0 1px var(--line);
-    --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px var(--line);
-    --shadow-btn: 0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px var(--line);
-    --shadow-raised: 0 4px 12px rgba(0,0,0,0.08), 0 0 0 1px var(--line);
-    --shadow-overlay: 0 8px 24px rgba(0,0,0,0.12), 0 0 0 1px var(--line-strong);
+    --canvas: 244 244 245;
+    --inset: 238 238 241;
+    --surface: 255 255 255;
+    --raised: 232 232 236;
+
+    --line: 220 220 225;
+    --line-strong: 190 190 198;
+
+    --tint: 0 0 0;
+
+    --ink: 9 9 11;
+    --ink-2: 63 63 70;
+    --ink-3: 92 92 102;
+
+    --accent: 37 99 235;
+    --accent-strong: 37 99 235;
+    --accent-ink: 29 78 216;
+
+    --ok: 6 95 70;
+    --warn: 146 64 14;
+    --bad: 185 28 28;
+    --violet: 126 34 206;
+  }
+
+  body {
+    background-color: rgb(var(--canvas));
+    color: rgb(var(--ink));
+    font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /*
+   * Keyboard focus. One ring for every interactive element; it only appears
+   * for keyboard users (:focus-visible), not on mouse clicks. Never add
+   * `outline-none` to a component without giving it another visible focus style.
+   */
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent-ink));
+    outline-offset: 2px;
+  }
+
+  /* Text inputs show focus on their border instead of a floating ring. */
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid rgb(var(--accent-ink));
+    outline-offset: 0;
+  }
+
+  /* For an input that sits inside a wrapper which draws the focus style itself. */
+  .focus-bare:focus-visible {
+    outline: none;
+  }
+
+  ::placeholder {
+    color: rgb(var(--ink-3));
+    opacity: 1;
+  }
+
+  ::selection {
+    background-color: rgb(var(--accent-strong));
+    color: #fff;
+  }
+
+  pre,
+  code {
+    font-family: var(--font-mono), 'JetBrains Mono', ui-monospace, Menlo, monospace;
   }
 }
 
-body {
-  background-color: var(--dev-bg);
-  color: var(--text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Comprehensive Light Theme Overrides */
-html.light body {
-  background-color: #F4F4F5;
-  color: #09090B;
-}
-
-/* Backgrounds */
-html.light .bg-\[\#08080A\],
-html.light .bg-\[\#09090B\],
-html.light .bg-\[\#0C0C0F\],
-html.light .bg-\[\#0D0D11\],
-html.light .bg-\[\#09090C\] {
-  background-color: #F4F4F5 !important;
-}
-
-html.light .bg-\[\#0F0F12\],
-html.light .bg-\[\#121217\],
-html.light .bg-\[\#131318\],
-html.light .bg-\[\#14141A\],
-html.light .bg-\[\#14141B\],
-html.light .bg-\[\#111113\],
-html.light .bg-\[\#111115\],
-html.light .bg-\[\#101014\],
-html.light .bg-\[\#121218\],
-html.light .bg-\[\#0E0E12\],
-html.light .bg-\[\#0A0A0C\] {
-  background-color: #FFFFFF !important;
-}
-
-html.light .bg-\[\#121215\],
-html.light .bg-\[\#16161A\],
-html.light .bg-\[\#16161F\],
-html.light .bg-\[\#18181B\],
-html.light .bg-\[\#1C1C26\],
-html.light .bg-\[\#1A1A22\] {
-  background-color: #E4E4E7 !important;
-}
-
-/* Borders */
-html.light .border-\[\#1E1E24\],
-html.light .border-white\/\[0\.05\],
-html.light .border-white\/\[0\.06\],
-html.light .border-white\/\[0\.07\],
-html.light .border-white\/\[0\.08\],
-html.light .border-white\/10,
-html.light .border-white\/15,
-html.light .divide-white\/\[0\.05\],
-html.light .divide-white\/\[0\.07\] {
-  border-color: #D4D4D8 !important;
-}
-
-/* Typography & Colors */
-html.light .text-white:not(.keep-white):not(button.bg-blue-600 *):not(a.bg-blue-600 *),
-html.light .text-zinc-100:not(.keep-white) {
-  color: #09090B !important;
-}
-
-html.light .keep-white,
-html.light button.bg-blue-600,
-html.light a.bg-blue-600,
-html.light button.bg-blue-600 *,
-html.light a.bg-blue-600 * {
-  color: #FFFFFF !important;
-}
-
-
-html.light .text-zinc-200,
-html.light .text-zinc-300 {
-  color: #18181B !important;
-}
-
-html.light .text-zinc-400 {
-  color: #3F3F46 !important;
-}
-
-html.light .text-zinc-500,
-html.light .text-zinc-600 {
-  color: #71717A !important;
-}
-
-/* Form Controls (Inputs & Select Dropdowns) */
-html.light input,
-html.light select,
-html.light textarea {
-  background-color: #FFFFFF !important;
-  color: #09090B !important;
-  border-color: #D4D4D8 !important;
-}
-
-html.light input::placeholder {
-  color: #A1A1AA !important;
-}
-
-html.light select option {
-  background-color: #FFFFFF !important;
-  color: #09090B !important;
-}
-
-/* Table Row Hovers & Alpha Backgrounds */
-html.light tr.group:hover,
-html.light .hover\:bg-\[\#16161F\]:hover,
-html.light .hover\:bg-\[\#121215\]:hover,
-html.light .hover\:bg-\[\#18181B\]:hover,
-html.light .hover\:bg-\[\#1A1A22\]:hover {
-  background-color: #F4F4F5 !important;
-}
-
-html.light tr.group:hover .group-hover\:text-blue-400 {
-  color: #2563EB !important;
-}
-
-html.light pre,
-html.light code:not(.dark-only) {
-  background-color: #EFEFF2 !important;
-  color: #18181B !important;
-}
-
-html.light .bg-white\/5,
-html.light .bg-white\/\[0\.02\],
-html.light .bg-white\/\[0\.03\],
-html.light .bg-white\/\[0\.04\],
-html.light .bg-white\/\[0\.05\],
-html.light .bg-white\/\[0\.06\],
-html.light .bg-white\/\[0\.07\],
-html.light .bg-white\/10 {
-  background-color: rgba(0, 0, 0, 0.04) !important;
-}
-
-html.light .hover\:bg-white\/\[0\.02\]:hover,
-html.light .hover\:bg-white\/\[0\.04\]:hover,
-html.light .hover\:bg-white\/\[0\.08\]:hover,
-html.light .hover\:bg-white\/10:hover,
-html.light .hover\:bg-white\/15:hover {
-  background-color: rgba(0, 0, 0, 0.06) !important;
-}
-
-
-/* React Flow Nodes in Light Mode */
-html.light .react-flow {
-  background-color: #F4F4F5 !important;
-}
-
-html.light .react-flow__node {
-  color: #09090B !important;
-}
-
-/* Linear & LangSmith Typography Hierarchy */
-.text-dev-title {
-  font-size: 25px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-.text-dev-subtitle {
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.text-dev-meta {
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.text-dev-label {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-/* Dense Monospaced Telemetry */
+/* Dense monospaced telemetry numbers */
 .font-telemetry {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono), 'JetBrains Mono', ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
-/* Linear Restrained Button Utility */
-.linear-btn {
-  display: inline-flex;
-  items-center: center;
-  gap: 0.375rem;
-  padding-left: 0.625rem;
-  padding-right: 0.625rem;
-  padding-top: 0.25rem;
-  padding-bottom: 0.25rem;
-  border-radius: 0.25rem;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid #1E1E24;
-  background-color: #0F0F12;
-  color: #FAFAFA;
-  transition: all 0.15s ease;
-}
-
-html.light .linear-btn {
-  border-color: #D4D4D8;
-  background-color: #FFFFFF;
-  color: #09090B;
-}
-
-.linear-btn:hover {
-  background-color: #16161A;
-  border-color: #3B82F6;
-}
-
-/* DevTools Scrollbar */
+/* Scrollbars */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #08080A;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1E1E24;
-  border-radius: 2px;
+  background: rgb(var(--line-strong));
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3B82F6;
+  background: rgb(var(--ink-3));
 }
 
-/* React Flow Custom LangSmith Theme */
+/* React Flow (the DAG view on the run page) */
 .react-flow {
-  background-color: #08080A !important;
+  background-color: rgb(var(--canvas)) !important;
+}
+
+.react-flow__node {
+  color: rgb(var(--ink));
 }
 
 .react-flow__controls {
-  background-color: #0F0F12 !important;
-  border: 1px solid #1E1E24 !important;
+  background-color: rgb(var(--surface)) !important;
+  border: 1px solid rgb(var(--line)) !important;
   border-radius: 4px !important;
 }
 
 .react-flow__controls-button {
-  background-color: #0F0F12 !important;
-  border-bottom: 1px solid #1E1E24 !important;
-  color: #8E8E93 !important;
-  fill: #8E8E93 !important;
+  background-color: rgb(var(--surface)) !important;
+  border-bottom: 1px solid rgb(var(--line)) !important;
+  color: rgb(var(--ink-2)) !important;
+  fill: rgb(var(--ink-2)) !important;
 }
 
 .react-flow__controls-button:hover {
-  background-color: #16161A !important;
-  color: #3B82F6 !important;
-  fill: #3B82F6 !important;
+  background-color: rgb(var(--raised)) !important;
+  color: rgb(var(--accent-ink)) !important;
+  fill: rgb(var(--accent-ink)) !important;
 }
 
 .animated-edge .react-flow__edge-path {
   stroke-dasharray: 6;
   animation: dashdraw 0.8s linear infinite;
-  stroke: #3B82F6 !important;
+  stroke: rgb(var(--accent)) !important;
 }
 
 @keyframes dashdraw {
@@ -346,7 +184,7 @@ html.light .linear-btn {
   to { stroke-dashoffset: 0; }
 }
 
-/* Beautiful UI Animation Primitives */
+/* Animation primitives used by components/ui */
 @keyframes pixel-on {
   0%, 100% { opacity: 0.15; }
   50% { opacity: 0.95; }
@@ -363,13 +201,22 @@ html.light .linear-btn {
   100% { transform: scale(1); opacity: 1; }
 }
 
-@keyframes fade-up {
-  0% { opacity: 0; transform: translateY(6px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
+/*
+ * Reduced motion. People who ask their OS for less motion get no looping or
+ * decorative animation. (Framer Motion animations are handled separately by
+ * <MotionConfig reducedMotion="user"> in components/Providers.tsx.)
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 
-@keyframes fade-in {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+  .animated-edge .react-flow__edge-path {
+    animation: none;
+  }
 }
-

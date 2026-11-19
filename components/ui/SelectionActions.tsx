@@ -75,15 +75,15 @@ export default function SelectionActions({
   return (
     <div
       ref={toolbarRef}
-      className="fixed z-50 -translate-x-1/2 select-none animate-in fade-in zoom-in-95 duration-150"
+      className="fixed z-50 -translate-x-1/2 select-none animate-fade-in"
       style={{
         left: `${position.x}px`,
         top: `${Math.max(10, position.y)}px`,
       }}
     >
-      <div className="flex h-9 items-center gap-1 overflow-hidden rounded-full border border-white/15 bg-[#111115]/95 px-1.5 shadow-2xl backdrop-blur-md">
+      <div className="flex h-9 items-center gap-1 overflow-hidden rounded-full border border-line-strong bg-surface/95 px-1.5 shadow-2xl backdrop-blur-md">
         {activeActionFeedback ? (
-          <div className="flex items-center gap-2 px-3 text-xs font-medium text-blue-400">
+          <div className="flex items-center gap-2 px-3 text-xs font-medium text-accent-ink">
             <Sparkles className="h-3.5 w-3.5 animate-spin" />
             <span>{activeActionFeedback}</span>
           </div>
@@ -93,31 +93,31 @@ export default function SelectionActions({
             <button
               type="button"
               onClick={() => handleTrigger('Explain')}
-              className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-zinc-200 transition-colors hover:bg-white/10"
+              className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-ink transition-colors hover:bg-tint/10"
             >
-              <HelpCircle className="h-3.5 w-3.5 text-zinc-400" />
+              <HelpCircle className="h-3.5 w-3.5 text-ink-2" />
               Explain
             </button>
 
             <button
               type="button"
               onClick={() => handleTrigger('Diagnose')}
-              className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-zinc-200 transition-colors hover:bg-white/10"
+              className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-ink transition-colors hover:bg-tint/10"
             >
-              <Bug className="h-3.5 w-3.5 text-amber-400" />
+              <Bug className="h-3.5 w-3.5 text-warn" />
               Diagnose
             </button>
 
             <button
               type="button"
               onClick={() => handleTrigger('Optimize')}
-              className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-zinc-200 transition-colors hover:bg-white/10"
+              className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-ink transition-colors hover:bg-tint/10"
             >
-              <Zap className="h-3.5 w-3.5 text-blue-400" />
+              <Zap className="h-3.5 w-3.5 text-accent-ink" />
               Optimize
             </button>
 
-            <span className="mx-0.5 h-3.5 w-px bg-white/15" />
+            <span className="mx-0.5 h-3.5 w-px bg-tint/15" />
 
             {/* Custom Input */}
             <form
@@ -133,7 +133,7 @@ export default function SelectionActions({
                 placeholder="Ask AI…"
                 value={customInput}
                 onChange={(e) => setCustomInput(e.target.value)}
-                className="h-6 w-24 bg-transparent px-2 text-[12px] text-zinc-100 outline-none placeholder:text-zinc-500 focus:w-36 transition-all"
+                className="h-6 w-24 bg-transparent px-2 text-[12px] text-ink placeholder:text-ink-3 focus:w-36 transition-all"
               />
               <button
                 type="submit"
@@ -147,7 +147,7 @@ export default function SelectionActions({
             <button
               type="button"
               onClick={() => setPosition(null)}
-              className="ml-0.5 flex size-6 items-center justify-center rounded-full text-zinc-500 hover:text-zinc-300"
+              className="ml-0.5 flex size-6 items-center justify-center rounded-full text-ink-3 hover:text-ink"
             >
               <X className="h-3 w-3" />
             </button>

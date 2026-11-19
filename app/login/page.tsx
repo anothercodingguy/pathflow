@@ -44,24 +44,24 @@ function LoginContent() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-[#09090B] flex items-center justify-center p-4 sm:p-8 font-sans selection:bg-blue-500/30 selection:text-white">
+    <div className="w-full min-h-screen bg-canvas flex items-center justify-center p-4 sm:p-8 font-sans selection:bg-blue-500/30 selection:text-ink">
       
       {/* Main Auth Card Container (Max Width 440px) */}
-      <main className="w-full max-w-[440px] border border-white/10 bg-[#111113] rounded-2xl p-6 sm:p-8 shadow-2xl transition-all duration-200 hover:border-white/15 space-y-6">
+      <main className="w-full max-w-[440px] border border-line bg-surface rounded-2xl p-6 sm:p-8 shadow-2xl transition-all duration-200 hover:border-line-strong space-y-6">
         
         {/* Branding & Heading */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <span className="font-extrabold tracking-tight text-white text-base uppercase font-sans">
+            <span className="font-extrabold tracking-tight text-ink text-base uppercase font-sans">
               PATH<span className="text-blue-500">FLOW</span>
             </span>
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-2xl sm:text-[30px] font-bold text-white tracking-tight leading-tight font-sans">
+            <h1 className="text-2xl sm:text-[30px] font-bold text-ink tracking-tight leading-tight font-sans">
               Sign in to PathFlow
             </h1>
-            <p className="text-zinc-400 text-sm leading-relaxed">
+            <p className="text-ink-2 text-sm leading-relaxed">
               Execution intelligence & profiler platform for AI agents.
             </p>
           </div>
@@ -69,8 +69,8 @@ function LoginContent() {
 
         {/* Error Alert */}
         {errorParam && (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
+          <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-bad flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0 text-bad" />
             <span>Authentication failed. Please check your Google OAuth credentials.</span>
           </div>
         )}
@@ -86,7 +86,7 @@ function LoginContent() {
             <span>Launch Instant Demo Workspace</span>
             <ArrowRight className="h-4 w-4 ml-0.5" />
           </button>
-          <p className="text-[11px] text-center text-zinc-500 font-mono">
+          <p className="text-2xs text-center text-ink-3 font-mono">
             Explore live traces, DAGs, flame graphs & detections with zero setup
           </p>
         </div>
@@ -94,7 +94,7 @@ function LoginContent() {
         {/* Subtle Divider */}
         <div className="relative flex items-center justify-center my-4">
           <div className="w-full border-t border-zinc-200 dark:border-white/10" />
-          <span className="absolute bg-white dark:bg-[#111113] px-3 text-xs text-zinc-500 font-medium">
+          <span className="absolute bg-white dark:bg-[#111113] px-3 text-xs text-ink-3 font-medium">
             or Sign in with Account
           </span>
         </div>
@@ -138,7 +138,7 @@ function LoginContent() {
         {/* Subtle Divider */}
         <div className="relative flex items-center justify-center my-4">
           <div className="w-full border-t border-zinc-200 dark:border-white/10" />
-          <span className="absolute bg-white dark:bg-[#111113] px-3 text-xs text-zinc-500 font-medium">
+          <span className="absolute bg-white dark:bg-[#111113] px-3 text-xs text-ink-3 font-medium">
             or API Key Authentication
           </span>
         </div>
@@ -148,13 +148,13 @@ function LoginContent() {
           <button
             type="button"
             onClick={() => setIsApiKeyLoginOpen(!isApiKeyLoginOpen)}
-            className="w-full flex items-center justify-between text-xs font-semibold text-zinc-400 hover:text-white transition-colors py-1 px-1 font-mono cursor-pointer"
+            className="w-full flex items-center justify-between text-xs font-semibold text-ink-2 hover:text-ink transition-colors py-1 px-1 font-mono cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
-              <Key className="h-3.5 w-3.5 text-zinc-500" />
+              <Key className="h-3.5 w-3.5 text-ink-3" />
               <span>Developer API Key Sign In</span>
             </span>
-            <span className="text-[10px] text-zinc-500 uppercase">{isApiKeyLoginOpen ? 'Hide' : 'Show'}</span>
+            <span className="text-2xs text-ink-3 uppercase">{isApiKeyLoginOpen ? 'Hide' : 'Show'}</span>
           </button>
 
           {isApiKeyLoginOpen && (
@@ -165,14 +165,14 @@ function LoginContent() {
                   placeholder="Paste Bearer API Key (pf_live_...)"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  className="w-full h-11 rounded-xl border border-zinc-300 dark:border-white/10 bg-zinc-50 dark:bg-white/5 px-3.5 text-xs text-zinc-900 dark:text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all font-mono"
+                  className="w-full h-11 rounded-xl border border-zinc-300 dark:border-white/10 bg-zinc-50 dark:bg-white/5 px-3.5 text-xs text-zinc-900 dark:text-white placeholder:text-ink-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-mono"
                   required
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full h-10 flex items-center justify-center gap-2 rounded-xl border border-zinc-300 dark:border-white/15 bg-zinc-900 text-white dark:bg-white/10 dark:text-white hover:bg-zinc-800 dark:hover:bg-white/15 active:scale-[0.99] transition-all duration-200 font-sans cursor-pointer"
+                className="w-full h-10 flex items-center justify-center gap-2 rounded-xl border border-zinc-300 dark:border-white/15 bg-tint/10 text-ink dark:bg-white/10 dark:text-white hover:bg-tint/10 dark:hover:bg-white/15 active:scale-[0.99] transition-all duration-200 font-sans cursor-pointer"
               >
                 <span>Authenticate Session</span>
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -183,11 +183,11 @@ function LoginContent() {
 
         {/* Security Assurance */}
         <div className="rounded-xl border border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/[0.02] p-3 text-center space-y-1">
-          <p className="text-xs text-zinc-600 dark:text-zinc-400 font-sans flex items-center justify-center gap-1.5">
+          <p className="text-xs text-ink-3 dark:text-zinc-400 font-sans flex items-center justify-center gap-1.5">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
             <span>Secure Google OAuth Authentication</span>
           </p>
-          <p className="text-[11px] text-zinc-500 font-sans">
+          <p className="text-2xs text-ink-3 font-sans">
             PathFlow isolates execution telemetry and traces strictly to your account.
           </p>
         </div>
@@ -201,7 +201,7 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="w-full min-h-screen bg-[#09090B] flex items-center justify-center text-zinc-400 font-sans text-xs">
+      <div className="w-full min-h-screen bg-canvas flex items-center justify-center text-ink-2 font-sans text-xs">
         Loading Authentication...
       </div>
     }>

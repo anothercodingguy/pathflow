@@ -46,7 +46,7 @@ export default function TaskRows({
         return (
           <div
             key={task.id}
-            className="self-stretch overflow-hidden rounded-2xl border border-white/10 bg-[#111115] shadow-lg transition-all"
+            className="self-stretch overflow-hidden rounded-2xl border border-line bg-surface shadow-lg transition-all"
           >
             {/* Header Row */}
             <button
@@ -57,7 +57,7 @@ export default function TaskRows({
                 }
                 onSelectTask?.(task);
               }}
-              className="flex h-12 w-full items-center gap-3 px-3.5 text-left transition-colors duration-150 hover:bg-white/[0.04]"
+              className="flex h-12 w-full items-center gap-3 px-3.5 text-left transition-colors duration-150 hover:bg-tint/[0.04]"
             >
               {/* Step indicator */}
               <span className="flex size-6 shrink-0 items-center justify-center">
@@ -81,7 +81,7 @@ export default function TaskRows({
                         strokeDasharray="16 40"
                       />
                     </svg>
-                    <span className="relative text-[11px] font-semibold font-mono text-zinc-100">
+                    <span className="relative text-2xs font-semibold font-mono text-ink">
                       {task.stepNumber || idx + 1}
                     </span>
                   </span>
@@ -92,33 +92,33 @@ export default function TaskRows({
                   </span>
                 )}
                 {!isCompleted && !isRunning && !isFailed && (
-                  <span className="flex size-5.5 shrink-0 items-center justify-center rounded-full border border-white/20 text-zinc-400 font-mono text-[11px]">
+                  <span className="flex size-5.5 shrink-0 items-center justify-center rounded-full border border-line-strong text-ink-2 font-mono text-2xs">
                     {task.stepNumber || idx + 1}
                   </span>
                 )}
               </span>
 
               {/* Title & Subtitle */}
-              <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-zinc-100">
+              <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">
                 {task.title}
               </span>
 
               {task.subtitle && (
-                <span className="text-[12px] font-mono text-zinc-400 truncate max-w-[120px]">
+                <span className="text-[12px] font-mono text-ink-2 truncate max-w-[120px]">
                   {task.subtitle}
                 </span>
               )}
 
               {/* Status Badge */}
               <span
-                className={`inline-flex h-5 items-center rounded-full px-2 text-[11px] font-semibold font-mono uppercase tracking-wider ${
+                className={`inline-flex h-5 items-center rounded-full px-2 text-2xs font-semibold font-mono uppercase tracking-wider ${
                   isCompleted
-                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    ? 'bg-emerald-500/10 text-ok border border-emerald-500/20'
                     : isRunning
-                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 animate-pulse'
+                    ? 'bg-blue-500/10 text-accent-ink border border-blue-500/20 animate-pulse'
                     : isFailed
-                    ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-                    : 'bg-zinc-800 text-zinc-400'
+                    ? 'bg-red-500/10 text-bad border border-red-500/20'
+                    : 'bg-tint/10 text-ink-2'
                 }`}
               >
                 {task.status}
@@ -126,7 +126,7 @@ export default function TaskRows({
 
               {/* Expand Chevron if metrics present */}
               {task.metrics && task.metrics.length > 0 && (
-                <span className="flex size-5 shrink-0 items-center justify-center text-zinc-500">
+                <span className="flex size-5 shrink-0 items-center justify-center text-ink-3">
                   <ChevronDown
                     className="h-4 w-4 transition-transform duration-300"
                     style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)' }}
@@ -146,12 +146,12 @@ export default function TaskRows({
               >
                 <div className="overflow-hidden">
                   <div className="mb-2.5 grid grid-cols-[24px_1fr] gap-2.5 px-3.5 pt-1">
-                    <span aria-hidden className="mx-auto h-full w-px bg-white/10" />
+                    <span aria-hidden className="mx-auto h-full w-px bg-tint/10" />
                     <div className="flex flex-col gap-1.5">
                       {task.metrics.map((m, mIdx) => (
                         <div key={mIdx} className="flex items-center justify-between text-xs">
-                          <span className="text-zinc-400">{m.label}</span>
-                          <span className="font-mono text-[11.5px] text-zinc-200 tabular-nums">
+                          <span className="text-ink-2">{m.label}</span>
+                          <span className="font-mono text-2xs text-ink tabular-nums">
                             {m.value}
                           </span>
                         </div>

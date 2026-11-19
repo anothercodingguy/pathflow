@@ -1,16 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import {
-  Settings, LogOut, ChevronDown, Search, Command,
-  BarChart3, AlertTriangle, Bug, Zap, Users, Activity,
-  Radio, Shield, Bell, FileText, FlaskConical, X,
-  Layers, LayoutDashboard, Sun, Moon, MessageSquare
+  Settings, LogOut, ChevronDown, Search, BarChart3, AlertTriangle, Zap, Users,
+  Radio, Layers, Sun, Moon, MessageSquare, Menu, X, ArrowUpRight, FlaskConical,
 } from 'lucide-react';
-import { CurrencyMode } from '@/lib/data';
+import { Modal } from '@/components/ui/Modal';
+import { isDemoWorkspace } from '@/lib/demo';
+import { cn } from '@/lib/cn';
 
 const navGroups = [
   {
@@ -34,7 +34,25 @@ const navGroups = [
       { label: 'Compare', href: '/compare', icon: Layers },
     ],
   },
+  {
+    label: 'Workspace',
+    items: [
+      { label: 'Settings', href: '/settings', icon: Settings },
+    ],
+  },
 ];
+
+// Each suggestion is a filter the Runs page really understands (see the
+// "Search syntax" block in app/runs/page.tsx).
+const searchSuggestions = [
+  { label: 'Failed runs', query: 'status:failed' },
+  { label: 'Runs longer than 2s', query: 'duration>2000' },
+  { label: 'Runs costing more than $0.05', query: 'cost>0.05' },
+  { label: 'Runs on Claude models', query: 'model:claude' },
+];
+
+const iconButton =
+  'inline-flex size-8 items-center justify-center rounded-md border border-line bg-surface text-ink-2 transition-colors hover:border-line-strong hover:text-ink';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -43,40 +61,36 @@ export default function Navbar() {
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [demoWorkspace, setDemoWorkspace] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const profileButtonRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const userEmail = session?.user?.email || 'admin@pathflow.dev';
-  const userName = session?.user?.name || 'Developer';
+  // Without a Google session we do not know who this is. Say what we do know
+  // (demo workspace or API-key session) instead of showing a made-up identity.
+  const userName = session?.user?.name || (demoWorkspace ? 'Demo workspace' : 'API key session');
+  const userEmail = session?.user?.email || (demoWorkspace ? 'Sample data. Not signed in.' : 'Signed in with an API key');
   const userImage = session?.user?.image;
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const isLight = document.documentElement.classList.contains('light');
-      setTheme(isLight ? 'light' : 'dark');
-      if (!isLight) {
-        document.documentElement.classList.add('dark');
-      }
-    }
-  }, []);
+    const isLight = document.documentElement.classList.contains('light');
+    setTheme(isLight ? 'light' : 'dark');
+    if (!isLight) document.documentElement.classList.add('dark');
+    setDemoWorkspace(isDemoWorkspace());
+  }, [pathname]);
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
-    if (nextTheme === 'light') {
-      document.documentElement.classList.add('light');
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('pathflow_theme', 'light');
-    } else {
-      document.documentElement.classList.remove('light');
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('pathflow_theme', 'dark');
-    }
+    document.documentElement.classList.toggle('light', nextTheme === 'light');
+    document.documentElement.classList.toggle('dark', nextTheme === 'dark');
+    localStorage.setItem('pathflow_theme', nextTheme);
   };
 
-
+  // Close the profile menu on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -87,26 +101,34 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Cmd+K global search shortcut
+  // Global keys: Cmd/Ctrl+K opens search, Esc closes the menus.
+  // (The search dialog handles its own Esc inside <Modal>.)
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setIsSearchOpen(prev => !prev);
+        setIsSearchOpen((prev) => !prev);
+        return;
       }
       if (e.key === 'Escape') {
-        setIsSearchOpen(false);
+        setIsProfileOpen((open) => {
+          if (open) profileButtonRef.current?.focus();
+          return false;
+        });
+        setIsMenuOpen(false);
       }
     }
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Navigating closes the mobile menu and the profile menu
   useEffect(() => {
-    if (isSearchOpen && searchRef.current) {
-      searchRef.current.focus();
-    }
-  }, [isSearchOpen]);
+    setIsMenuOpen(false);
+    setIsProfileOpen(false);
+  }, [pathname]);
+
+  const closeSearch = useCallback(() => setIsSearchOpen(false), []);
 
   // Hide Navbar completely on the authentication / login page
   if (pathname === '/login') {
@@ -121,40 +143,193 @@ export default function Navbar() {
     await signOut({ callbackUrl: '/app/login' });
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/runs?q=${encodeURIComponent(searchQuery.trim())}`);
-      setIsSearchOpen(false);
-      setSearchQuery('');
-    }
+  const runSearch = (query: string) => {
+    router.push(`/runs?q=${encodeURIComponent(query)}`);
+    setIsSearchOpen(false);
+    setSearchQuery('');
   };
 
-  const isActive = (href: string) => {
-    return pathname === href || (href !== '/' && pathname.startsWith(href));
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) runSearch(searchQuery.trim());
   };
+
+  const isActive = (href: string) => pathname === href || (href !== '/' && pathname.startsWith(href));
 
   const marketingUrl = process.env.NEXT_PUBLIC_MARKETING_URL || 'https://thepathflow.online';
 
+  const menuItem = 'flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-ink-2 transition-colors hover:bg-raised hover:text-ink';
+
   return (
     <>
-      <header className="h-11 border-b border-white/[0.07] bg-[#0C0C0F] px-4 flex items-center justify-between text-[13px] select-none sticky top-0 z-50 font-sans">
-        
-        {/* Brand & Navigation */}
-        <div className="flex items-center gap-6">
-          <a 
-            href={marketingUrl} 
-            title="Return to PathFlow Marketing Website" 
-            className="flex items-center gap-2 group shrink-0 hover:opacity-80 transition-opacity"
-          >
-            <span className="font-black tracking-tight text-white uppercase text-xs font-sans">
-              PATH<span className="text-blue-500">FLOW</span>
-            </span>
-          </a>
+      <header className="sticky top-0 z-50 h-11 border-b border-line bg-inset font-sans text-[13px] select-none">
+        <div className="flex h-full items-center justify-between gap-2 px-3 sm:px-4">
 
-          <nav className="flex items-center gap-1">
+          {/* Brand + primary navigation */}
+          <div className="flex min-w-0 items-center gap-2 lg:gap-5">
+            {/* Mobile menu button (below lg the links do not fit in one row) */}
+            <button
+              type="button"
+              onClick={() => setIsMenuOpen((o) => !o)}
+              aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={isMenuOpen}
+              aria-controls="mobile-nav"
+              className={cn(iconButton, 'lg:hidden')}
+            >
+              {isMenuOpen ? <X className="size-4" aria-hidden /> : <Menu className="size-4" aria-hidden />}
+            </button>
+
+            <a
+              href={marketingUrl}
+              title="PathFlow home"
+              className="shrink-0 text-xs font-black uppercase tracking-tight text-ink transition-opacity hover:opacity-80"
+            >
+              PATH<span className="text-accent">FLOW</span>
+            </a>
+
+            {demoWorkspace && (
+              <span
+                title="You are in the demo workspace: everything shown is built-in sample data."
+                className="hidden items-center gap-1 rounded border border-warn/40 bg-warn/10 px-1.5 py-0.5 font-mono text-2xs font-semibold leading-none text-warn sm:inline-flex"
+              >
+                <FlaskConical className="size-3" aria-hidden />
+                Demo workspace
+              </span>
+            )}
+
+            <nav aria-label="Primary" className="hidden items-center lg:flex">
+              {navGroups.map((group, gi) => (
+                <div key={group.label} className="flex items-center">
+                  {gi > 0 && <span aria-hidden className="mx-1.5 h-4 w-px bg-line" />}
+                  {group.items.map((item) => {
+                    const active = isActive(item.href);
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        aria-current={active ? 'page' : undefined}
+                        className={cn(
+                          'flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors',
+                          active ? 'bg-tint/[0.08] text-ink' : 'text-ink-2 hover:bg-tint/[0.04] hover:text-ink'
+                        )}
+                      >
+                        <Icon className={cn('size-3.5', active && 'text-accent-ink')} aria-hidden />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ))}
+            </nav>
+          </div>
+
+          {/* Right side: search, theme, profile */}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsSearchOpen(true)}
+              aria-label="Search runs"
+              aria-keyshortcuts="Meta+K Control+K"
+              className="inline-flex h-8 items-center gap-2 rounded-md border border-line bg-surface px-2.5 font-mono text-2xs text-ink-2 transition-colors hover:border-line-strong hover:text-ink"
+            >
+              <Search className="size-3.5" aria-hidden />
+              <span className="hidden sm:inline">Search runs</span>
+              <kbd className="hidden rounded bg-tint/[0.08] px-1.5 py-0.5 font-mono text-2xs text-ink-2 sm:inline-flex">⌘K</kbd>
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              className={iconButton}
+            >
+              {theme === 'dark' ? <Sun className="size-3.5" aria-hidden /> : <Moon className="size-3.5" aria-hidden />}
+            </button>
+
+            <div className="relative" ref={dropdownRef}>
+              <button
+                ref={profileButtonRef}
+                type="button"
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                aria-label={`Account menu for ${userName}`}
+                aria-expanded={isProfileOpen}
+                aria-controls="account-menu"
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line bg-surface px-2 text-ink-2 transition-colors hover:border-line-strong hover:text-ink"
+              >
+                {userImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={userImage} alt="" className="size-4 rounded-full object-cover" />
+                ) : (
+                  <span aria-hidden className="flex size-4 items-center justify-center rounded-full bg-accent-strong text-2xs font-bold leading-none text-white">
+                    {userName.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <ChevronDown className={cn('size-3 transition-transform', isProfileOpen && 'rotate-180')} aria-hidden />
+              </button>
+
+              {isProfileOpen && (
+                <div
+                  id="account-menu"
+                  className="absolute right-0 z-50 mt-1.5 w-60 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-lg border border-line-strong bg-surface py-1 shadow-2xl animate-fade-in"
+                >
+                  <div className="space-y-0.5 border-b border-line px-3 py-2">
+                    <p className="truncate text-xs font-semibold text-ink">{userName}</p>
+                    <p className="truncate font-mono text-2xs text-ink-2">{userEmail}</p>
+                  </div>
+
+                  <Link href="/settings" className={menuItem}>
+                    <Settings className="size-3.5" aria-hidden />
+                    <span>Settings &amp; API keys</span>
+                  </Link>
+
+                  <Link href="/settings/billing" className={menuItem}>
+                    <Zap className="size-3.5 text-violet" aria-hidden />
+                    <span>Billing &amp; plans</span>
+                  </Link>
+
+                  <button type="button" onClick={toggleTheme} className={menuItem}>
+                    {theme === 'dark' ? <Sun className="size-3.5" aria-hidden /> : <Moon className="size-3.5" aria-hidden />}
+                    <span>{theme === 'dark' ? 'Light theme' : 'Dark theme'}</span>
+                  </button>
+
+                  <a href={marketingUrl} target="_blank" rel="noopener noreferrer" className={cn(menuItem, 'border-t border-line')}>
+                    <ArrowUpRight className="size-3.5" aria-hidden />
+                    <span>Marketing website</span>
+                    <span className="sr-only">(opens in a new tab)</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className={cn(menuItem, 'border-t border-line text-bad hover:bg-bad/10 hover:text-bad')}
+                  >
+                    <LogOut className="size-3.5" aria-hidden />
+                    <span>{demoWorkspace ? 'Leave demo workspace' : 'Sign out'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile navigation panel */}
+        {isMenuOpen && (
+          <nav
+            id="mobile-nav"
+            aria-label="Primary"
+            className="absolute inset-x-0 top-11 max-h-[calc(100dvh-2.75rem)] overflow-y-auto border-b border-line bg-inset px-3 pb-3 pt-1 shadow-2xl animate-fade-in lg:hidden"
+          >
+            {demoWorkspace && (
+              <p className="mt-2 flex items-center gap-1.5 rounded border border-warn/40 bg-warn/10 px-2 py-1.5 font-mono text-2xs font-semibold text-warn sm:hidden">
+                <FlaskConical className="size-3" aria-hidden />
+                Demo workspace: sample data
+              </p>
+            )}
             {navGroups.map((group) => (
-              <div key={group.label} className="flex items-center">
+              <div key={group.label} className="pt-3">
+                <p className="px-2 pb-1 font-mono text-2xs font-semibold uppercase tracking-wide text-ink-3">{group.label}</p>
                 {group.items.map((item) => {
                   const active = isActive(item.href);
                   const Icon = item.icon;
@@ -162,215 +337,82 @@ export default function Navbar() {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`px-2.5 py-1.5 rounded-md text-[12px] font-medium transition-colors flex items-center gap-1.5 ${
-                        active
-                          ? 'text-white bg-white/[0.07]'
-                          : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
-                      }`}
+                      onClick={() => setIsMenuOpen(false)}
+                      aria-current={active ? 'page' : undefined}
+                      className={cn(
+                        'flex h-10 items-center gap-2.5 rounded-md px-2 text-sm font-medium transition-colors',
+                        active ? 'bg-tint/[0.08] text-ink' : 'text-ink-2 hover:bg-tint/[0.04] hover:text-ink'
+                      )}
                     >
-                      <Icon className="h-3.5 w-3.5" />
-                      <span>{item.label}</span>
+                      <Icon className={cn('size-4', active && 'text-accent-ink')} aria-hidden />
+                      {item.label}
                     </Link>
                   );
                 })}
-                <div className="w-px h-4 bg-white/[0.07] mx-1" />
               </div>
             ))}
-            <Link
-              href="/settings"
-              className={`px-2.5 py-1.5 rounded-md text-[12px] font-medium transition-colors flex items-center gap-1.5 ${
-                isActive('/settings')
-                  ? 'text-white bg-white/[0.07]'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
-              }`}
-            >
-              <Settings className="h-3.5 w-3.5" />
-              <span>Settings</span>
-            </Link>
           </nav>
-        </div>
-
-        {/* Right Side: Search + Theme Toggle + Profile */}
-        <div className="flex items-center gap-2">
-          {/* Search Trigger */}
-          <button
-            onClick={() => setIsSearchOpen(true)}
-            className="flex items-center gap-2 px-2.5 py-1 rounded-md bg-[#14141A] border border-white/[0.08] text-zinc-400 hover:text-zinc-200 hover:border-white/[0.12] transition-colors text-[11px] font-mono"
-          >
-            <Search className="h-3 w-3" />
-            <span className="hidden sm:inline">Search...</span>
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-white/[0.06] text-[10px] font-mono text-zinc-500">
-              ⌘K
-            </kbd>
-          </button>
-
-          {/* Theme Toggle Button */}
-          <button
-            onClick={toggleTheme}
-            title={theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
-            className="p-1.5 rounded-md bg-[#14141A] hover:bg-[#1A1A22] border border-white/[0.08] text-zinc-400 hover:text-zinc-200 transition-colors"
-          >
-            {theme === 'dark' ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-blue-400" />}
-          </button>
-
-          {/* User Profile Menu */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="flex items-center gap-2 px-2 py-1 rounded-md bg-[#14141A] hover:bg-[#1A1A22] border border-white/[0.08] text-zinc-300 transition-colors cursor-pointer"
-            >
-              {userImage ? (
-                <img src={userImage} alt={userName} className="w-4 h-4 rounded-full object-cover" />
-              ) : (
-                <div className="w-4 h-4 rounded-full bg-blue-600/80 text-white flex items-center justify-center font-bold text-[9px]">
-                  {userName.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <ChevronDown className="h-3 w-3 text-zinc-500" />
-            </button>
-
-            {isProfileOpen && (
-              <div className="absolute right-0 mt-1.5 w-56 rounded-lg border border-white/10 bg-[#121217] shadow-2xl py-1 z-50 text-xs font-mono">
-                <div className="px-3 py-2 border-b border-white/[0.07] space-y-0.5">
-                  <p className="font-sans font-semibold text-white truncate">{userName}</p>
-                  <p className="text-zinc-400 text-[11px] truncate">{userEmail}</p>
-                </div>
-
-                <Link
-                  href="/settings"
-                  onClick={() => setIsProfileOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-zinc-300 hover:bg-[#1A1A22] hover:text-white transition-colors font-sans text-xs"
-                >
-                  <Settings className="h-3.5 w-3.5 text-zinc-400" />
-                  <span>Settings & API Keys</span>
-                </Link>
-
-                <Link
-                  href="/settings/billing"
-                  onClick={() => setIsProfileOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-purple-300 hover:bg-[#1A1A22] hover:text-white transition-colors font-sans text-xs"
-                >
-                  <Zap className="h-3.5 w-3.5 text-purple-400" />
-                  <span>Billing & Plans</span>
-                  <span className="text-[10px] text-purple-400 ml-auto font-mono font-bold">Pro / Team</span>
-                </Link>
-
-                <button
-                  onClick={toggleTheme}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-zinc-300 hover:bg-[#1A1A22] hover:text-white transition-colors font-sans text-xs text-left"
-                >
-                  {theme === 'dark' ? (
-                    <>
-                      <Sun className="h-3.5 w-3.5 text-amber-400" />
-                      <span>Light Theme</span>
-                    </>
-                  ) : (
-                    <>
-                      <Moon className="h-3.5 w-3.5 text-blue-400" />
-                      <span>Dark Theme</span>
-                    </>
-                  )}
-                </button>
-
-                <a
-                  href={marketingUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-3 py-2 text-zinc-300 hover:bg-[#1A1A22] hover:text-white transition-colors font-sans text-xs border-t border-white/[0.07]"
-                >
-                  <span>Marketing Website</span>
-                  <span className="text-[10px] text-zinc-500 ml-auto">thepathflow.online ↗</span>
-                </a>
-
-                <button
-                  onClick={handleSignOut}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-red-400 hover:bg-red-500/10 transition-colors text-left border-t border-white/[0.07] mt-1 cursor-pointer font-sans text-xs"
-                >
-                  <LogOut className="h-3.5 w-3.5" />
-                  <span>Sign out</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
+        )}
       </header>
 
-      {/* Beautiful UI Global AI Prompt & Search Modal */}
-      {isSearchOpen && (
-        <div 
-          onClick={() => setIsSearchOpen(false)}
-          className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-start justify-center pt-[12vh] px-4 animate-in fade-in duration-200"
-        >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-xl bg-[#111115] border border-white/15 rounded-2xl shadow-2xl overflow-hidden p-3 font-sans"
-          >
-            <div className="flex items-center justify-between px-2 pb-2 border-b border-white/[0.08]">
-              <span className="text-[12px] font-semibold text-zinc-300 flex items-center gap-1.5">
-                <Command className="h-3.5 w-3.5 text-blue-400" />
-                PathFlow AI Assistant & Trace Spotlight
-              </span>
+      {/* Search dialog (Cmd/Ctrl+K). It filters the Runs list; there is no AI behind it. */}
+      <Modal
+        open={isSearchOpen}
+        onClose={closeSearch}
+        title="Search runs"
+        icon={<Search className="size-3.5 text-accent-ink" aria-hidden />}
+        initialFocusRef={searchRef}
+      >
+        <form onSubmit={handleSearch} className="pt-3" role="search">
+          <label htmlFor="global-search" className="sr-only">
+            Search runs by title, agent, error or ID
+          </label>
+          <div className="flex items-center gap-2 rounded-lg border border-line bg-inset px-3 py-1.5 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30">
+            <Search className="size-4 shrink-0 text-ink-3" aria-hidden />
+            <input
+              id="global-search"
+              ref={searchRef}
+              type="text"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="Title, agent, error, ID, or status:failed  model:claude  cost>0.02"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="focus-bare h-8 min-w-0 flex-1 bg-transparent text-sm text-ink placeholder:text-ink-3"
+            />
+            <button
+              type="submit"
+              disabled={!searchQuery.trim()}
+              aria-label="Search"
+              className="flex size-7 shrink-0 items-center justify-center rounded-md bg-accent-strong text-white transition-colors hover:bg-accent disabled:opacity-40"
+            >
+              <span aria-hidden>↵</span>
+            </button>
+          </div>
+        </form>
+
+        <div className="mt-3 border-t border-line pt-2">
+          <p className="px-1 pb-1.5 font-mono text-2xs font-semibold uppercase tracking-wide text-ink-3">Quick filters</p>
+          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+            {searchSuggestions.map((sug) => (
               <button
+                key={sug.query}
                 type="button"
-                onClick={() => setIsSearchOpen(false)}
-                className="text-zinc-500 hover:text-zinc-300 p-1 rounded-md"
+                onClick={() => runSearch(sug.query)}
+                className="flex items-center justify-between gap-2 rounded-md bg-tint/[0.04] px-2.5 py-2 text-left text-xs text-ink-2 transition-colors hover:bg-tint/[0.08] hover:text-ink"
               >
-                <X className="h-3.5 w-3.5" />
+                <span className="truncate">{sug.label}</span>
+                <code className="shrink-0 font-mono text-2xs text-ink-3">{sug.query}</code>
               </button>
-            </div>
-
-            <form onSubmit={handleSearch} className="pt-3">
-              <div className="flex items-center gap-2 rounded-xl bg-[#09090C] border border-white/10 px-3 py-2 focus-within:border-blue-500/50">
-                <Search className="h-4 w-4 text-zinc-400 shrink-0" />
-                <input
-                  ref={searchRef}
-                  type="text"
-                  placeholder="Ask AI or query traces (e.g. status:failed, model:claude, cost>0.02)..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="min-w-0 flex-1 bg-transparent text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  disabled={!searchQuery.trim()}
-                  className="flex size-7 items-center justify-center rounded-lg bg-blue-600 text-white transition-transform hover:bg-blue-500 disabled:opacity-30"
-                >
-                  ↵
-                </button>
-              </div>
-            </form>
-
-            {/* Quick prompt suggestions */}
-            <div className="mt-3 grid grid-cols-2 gap-1.5 pt-2 border-t border-white/[0.06]">
-              {[
-                { label: 'Find high-latency spans (>2s)', query: 'duration>2000' },
-                { label: 'Show failed LLM executions', query: 'status:failed' },
-                { label: 'Analyze token explosion runs', query: 'status:error tokens' },
-                { label: 'Filter Claude 3.7 traces', query: 'model:claude-3-7' },
-              ].map((sug, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => {
-                    router.push(`/runs?q=${encodeURIComponent(sug.query)}`);
-                    setIsSearchOpen(false);
-                  }}
-                  className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] px-2.5 py-1.5 text-left text-xs text-zinc-300 hover:bg-white/[0.08] hover:text-white transition-colors"
-                >
-                  <span className="text-blue-400 text-[10px]">↗</span>
-                  <span className="truncate">{sug.label}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-2.5 flex items-center justify-between text-[11px] text-zinc-500 font-mono px-1">
-              <span>Press <kbd className="rounded bg-white/10 px-1 py-0.5 text-zinc-400">Esc</kbd> to exit</span>
-              <span><kbd className="rounded bg-white/10 px-1 py-0.5 text-zinc-400">⌘K</kbd> anywhere</span>
-            </div>
+            ))}
           </div>
         </div>
-      )}
+
+        <div className="mt-2.5 flex items-center justify-between px-1 font-mono text-2xs text-ink-3">
+          <span><kbd className="rounded bg-tint/10 px-1 py-0.5 text-ink-2">Esc</kbd> to close</span>
+          <span><kbd className="rounded bg-tint/10 px-1 py-0.5 text-ink-2">⌘K</kbd> / <kbd className="rounded bg-tint/10 px-1 py-0.5 text-ink-2">Ctrl K</kbd> anywhere</span>
+        </div>
+      </Modal>
     </>
   );
 }
