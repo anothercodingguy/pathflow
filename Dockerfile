@@ -34,7 +34,8 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/prisma ./prisma
+# Owned by the runtime user so `prisma db push` (see docker-compose.yml) can create the SQLite file.
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder /app/node_modules ./node_modules
 
 USER nextjs

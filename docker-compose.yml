@@ -14,6 +14,9 @@ services:
       - PATHFLOW_API_KEY=pf_live_secret_key
     volumes:
       - pathflow_db_data:/app/prisma
+    # `npm run build` no longer creates or seeds the database, so create the
+    # SQLite schema at container start (no-op when it is already up to date).
+    command: sh -c "npx prisma db push --skip-generate && node server.js"
     restart: unless-stopped
 
 volumes:

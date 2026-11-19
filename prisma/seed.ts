@@ -1,4 +1,50 @@
 import { PrismaClient } from '@prisma/client';
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
+
+/**
+ * SAFETY GUARD
+ * This script starts by deleting every subscription, order, investigation,
+ * detection, span, run and agent. That is fine for a local SQLite file and
+ * catastrophic for a real database, so it refuses to run unless:
+ *   - DATABASE_URL is a local `file:` (SQLite) URL, or
+ *   - ALLOW_DESTRUCTIVE_SEED=1 is set explicitly.
+ */
+function resolveDatabaseUrl(): string | undefined {
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  // `tsx` does not load .env files, so look where Prisma itself would look.
+  for (const envPath of [join(process.cwd(), '.env'), join(process.cwd(), 'prisma', '.env')]) {
+    if (!existsSync(envPath)) continue;
+    const match = readFileSync(envPath, 'utf8').match(/^\s*DATABASE_URL\s*=\s*(.*)\s*$/m);
+    if (match) return match[1].trim().replace(/^(['"])(.*)\1$/, '$2');
+  }
+  return undefined;
+}
+
+function assertSafeToSeed() {
+  const url = resolveDatabaseUrl();
+  if (!url) {
+    console.error('[ABORT] DATABASE_URL is not set. Refusing to seed. For local development set DATABASE_URL="file:./dev.db" in .env.');
+    process.exit(1);
+  }
+  const isLocalFile = url.startsWith('file:');
+  const optedIn = process.env.ALLOW_DESTRUCTIVE_SEED === '1';
+  if (!isLocalFile && !optedIn) {
+    console.error(
+      '[ABORT] prisma/seed.ts DELETES all subscriptions, orders, investigations, detections, spans, runs and agents before inserting demo data.\n' +
+      '        DATABASE_URL does not point at a local SQLite file (file:...), so the seed was not run.\n' +
+      '        If you really intend to wipe and reseed this database, re-run with ALLOW_DESTRUCTIVE_SEED=1.'
+    );
+    process.exit(1);
+  }
+  if (!isLocalFile) {
+    console.warn('[WARN] ALLOW_DESTRUCTIVE_SEED=1 is set: wiping and reseeding a non-local database.');
+  }
+  // Pin the URL that was checked so Prisma cannot resolve a different one.
+  process.env.DATABASE_URL = url;
+}
+
+assertSafeToSeed();
 
 const prisma = new PrismaClient();
 

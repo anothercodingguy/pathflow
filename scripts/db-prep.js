@@ -9,7 +9,8 @@ const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db';
 const isPostgres = databaseUrl.startsWith('postgres://') || databaseUrl.startsWith('postgresql://');
 
 const dbType = isPostgres ? 'PostgreSQL' : 'SQLite';
-console.log(`[PathFlow DB Prep] Target Database: ${dbType} | URL: ${databaseUrl.split('@')[0]}...`);
+// Log only the database type. The URL contains the database user and password.
+console.log(`[PathFlow DB Prep] Target Database: ${dbType}`);
 
 if (isPostgres) {
   console.log('[PostgreSQL] Activating Prisma schema for PostgreSQL production...');

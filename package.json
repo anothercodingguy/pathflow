@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/db-prep.js && prisma db push --accept-data-loss && npx tsx prisma/seed.ts && prisma generate && next build",
+    "build": "node scripts/db-prep.js && prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "db:push": "node scripts/db-prep.js && prisma db push",
+    "db:seed": "tsx prisma/seed.ts",
     "postinstall": "node scripts/db-prep.js && prisma generate"
   },
   "dependencies": {
