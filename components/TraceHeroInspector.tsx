@@ -10,7 +10,7 @@ import {
   AlertTriangle,
   Copy,
   Check,
-  Sparkles,
+  ScanSearch,
   Clock,
   GitBranch,
   BarChart3,
@@ -46,8 +46,11 @@ import {
 import LoadingState from '@/components/ui/LoadingState';
 import ThinkingState from '@/components/ui/ThinkingState';
 import RecommendationCard from '@/components/ui/RecommendationCard';
-import ApprovalCard from '@/components/ui/ApprovalCard';
-import SelectionActions from '@/components/ui/SelectionActions';
+import { Button, ButtonLink } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { DemoBadge, InlineError } from '@/components/ui/States';
+import { useToast } from '@/components/ui/AnimatedToastStack';
+import { isDemoRun } from '@/lib/demo';
 
 const nodeTypes = {
   customSpan: CustomSpanNode,
@@ -86,6 +89,8 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
   // Investigation state
   const [investigation, setInvestigation] = useState<InvestigationResult | null>(null);
   const [isInvestigating, setIsInvestigating] = useState(false);
+  const [investigationError, setInvestigationError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Share Trace state
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -115,7 +120,7 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
         const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
         const res = await fetch(`${apiBase}/api/v1/evals?runId=${run.id}`);
         const data = await res.json();
-        if (data.success && data.evaluation) {
+        if (res.ok && data.success && data.evaluation) {
           setEvalData({
             score: data.evaluation.score ?? 85,
             thumbs: data.evaluation.thumbs ?? 'UP',
@@ -124,7 +129,10 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
             notes: data.evaluation.notes ?? '',
           });
         }
-      } catch {}
+      } catch (err) {
+        // A saved evaluation is optional; the form simply starts from its defaults.
+        console.warn('Could not load a saved evaluation for this run:', err);
+      }
     }
     loadEval();
   }, [run.id]);
@@ -135,13 +143,22 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
       const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
       const res = await fetch(`${apiBase}/api/paths/${run.id}/share`, { method: 'POST' });
       const data = await res.json();
-      if (data.success && data.shareUrl) {
+      if (res.ok && data.success && data.shareUrl) {
         setShareUrl(data.shareUrl);
         navigator.clipboard.writeText(data.shareUrl);
         setCopiedShareLink(true);
         setTimeout(() => setCopiedShareLink(false), 3000);
+        toast({ type: 'success', title: 'Share link copied', description: data.shareUrl });
+      } else {
+        toast({
+          type: 'error',
+          title: 'Could not create a share link',
+          description: res.status === 401 ? 'Sign in with an account to share runs.' : data.error || `The server answered with HTTP ${res.status}.`,
+        });
       }
-    } catch {} finally {
+    } catch {
+      toast({ type: 'error', title: 'Could not create a share link', description: 'The request failed. Check your connection and try again.' });
+    } finally {
       setIsSharing(false);
     }
   };
@@ -159,12 +176,18 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
         }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setEvalSavedMsg('Evaluation saved.');
         setTimeout(() => setEvalSavedMsg(null), 3000);
+      } else {
+        toast({
+          type: 'error',
+          title: 'Evaluation was not saved',
+          description: res.status === 401 ? 'Sign in with an account to save evaluations.' : data.error || `The server answered with HTTP ${res.status}.`,
+        });
       }
     } catch {
-      setEvalSavedMsg('Failed to save evaluation.');
+      toast({ type: 'error', title: 'Evaluation was not saved', description: 'The request failed. Check your connection and try again.' });
     } finally {
       setIsSavingEval(false);
     }
@@ -243,7 +266,7 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
           source: span.parentSpanId,
           target: span.spanId,
           animated: isCritical,
-          style: { stroke: isCritical ? '#3B82F6' : '#27272A', strokeWidth: isCritical ? 2.5 : 1.5 },
+          style: { stroke: isCritical ? 'rgb(var(--accent))' : 'rgb(var(--line-strong))', strokeWidth: isCritical ? 2.5 : 1.5 },
         });
       }
     });
@@ -257,9 +280,11 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
     setSelectedSpan(run.spans[clamped]);
   }, [run.spans]);
 
-  // AI Investigation
+  // Root-cause investigation. This is rule-based (see app/api/v1/investigations):
+  // it applies fixed rules to the spans and detections. No LLM is called.
   const runInvestigation = useCallback(async () => {
     setIsInvestigating(true);
+    setInvestigationError(null);
     setActiveRightTab('investigation');
     try {
       const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
@@ -271,9 +296,16 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
       if (res.ok) {
         const data = await res.json();
         setInvestigation(data.investigation);
+      } else {
+        setInvestigationError(
+          res.status === 401
+            ? 'Investigations need a signed-in account. The demo workspace cannot run one.'
+            : `The investigation request failed (HTTP ${res.status}).`
+        );
       }
     } catch (err) {
       console.error('Investigation failed:', err);
+      setInvestigationError('The investigation request failed. Check your connection and try again.');
     } finally {
       setIsInvestigating(false);
     }
@@ -305,70 +337,64 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
   const isFailed = run.status.toUpperCase() === 'FAILED';
 
   return (
-    <div className="w-full h-[calc(100vh-2.75rem)] bg-canvas flex flex-col font-mono overflow-hidden">
+    // Below `lg` the two panes stack and the page scrolls normally. From `lg` up
+    // it is a fixed-height workspace where each pane scrolls on its own.
+    <div className="w-full min-h-[calc(100dvh-2.75rem)] lg:h-[calc(100dvh-2.75rem)] bg-canvas flex flex-col font-mono lg:overflow-hidden">
       
       {/* 1. Summary Hero Bar */}
-      <div className="z-10 border-b border-line bg-canvas px-4 py-2.5 shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-            <Link href="/runs" className="flex items-center gap-1 rounded border border-line bg-surface px-2 py-0.5 text-xs text-ink-2 hover:text-ink transition-colors shrink-0">
-              <ArrowLeft className="h-3 w-3" /> Runs
-            </Link>
-            <span className="text-zinc-700 shrink-0">/</span>
-            <h1 className="text-sm font-bold text-ink font-sans truncate">{run.title}</h1>
+      <div className="z-10 border-b border-line bg-canvas px-3 sm:px-4 py-2.5 shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
+            <ButtonLink href="/runs" size="sm" className="shrink-0">
+              <ArrowLeft aria-hidden /> Runs
+            </ButtonLink>
+            <h1 className="min-w-0 max-w-full truncate text-sm font-semibold text-ink font-sans">{run.title}</h1>
             {isFailed ? (
-              <span className="inline-flex items-center gap-1 text-bad text-2xs font-bold px-1.5 py-0.5 rounded border border-red-500/30 bg-red-500/10 shrink-0">
-                <XCircle className="h-3 w-3" /> FAILED
-              </span>
+              <Badge tone="bad"><XCircle className="size-3" aria-hidden /> FAILED</Badge>
             ) : (
-              <span className="inline-flex items-center gap-1 text-ok text-2xs font-bold px-1.5 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 shrink-0">
-                <CheckCircle2 className="h-3 w-3" /> SUCCESS
-              </span>
+              <Badge tone="ok"><CheckCircle2 className="size-3" aria-hidden /> SUCCESS</Badge>
             )}
+            {isDemoRun(run) && <DemoBadge />}
             {run.version && (
               <span className="text-2xs text-ink-3 font-mono shrink-0">{run.version}</span>
             )}
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {/* AI Investigate button */}
-            <button
+          {/* Actions wrap onto their own row on narrow screens instead of overlapping the title */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Button
+              size="sm"
               onClick={runInvestigation}
               disabled={isInvestigating}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-amber-500/30 bg-amber-500/10 text-warn text-2xs font-bold hover:bg-amber-500/20 transition-colors disabled:opacity-50"
+              className="border-warn/30 bg-warn/10 font-semibold text-warn hover:border-warn/40 hover:bg-warn/20 hover:text-warn"
             >
-              {isInvestigating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-              {isInvestigating ? 'Analyzing...' : 'Investigate'}
-            </button>
+              {isInvestigating ? <Loader2 className="animate-spin" aria-hidden /> : <ScanSearch aria-hidden />}
+              {isInvestigating ? 'Investigating…' : 'Investigate'}
+            </Button>
 
-            {/* Debugger toggle */}
-            <button
+            <Button
+              size="sm"
+              aria-pressed={debuggerMode}
               onClick={() => { setDebuggerMode(!debuggerMode); if (!debuggerMode) goToSpan(0); }}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded border text-2xs font-bold transition-colors ${
-                debuggerMode ? 'border-blue-500/40 bg-blue-500/10 text-accent-ink' : 'border-line bg-surface text-ink-2 hover:text-ink'
-              }`}
+              className={debuggerMode ? 'border-accent/40 bg-accent/10 text-accent-ink hover:bg-accent/15 hover:text-accent-ink' : ''}
             >
-              <Bug className="h-3 w-3" />
+              <Bug aria-hidden />
               Debugger
-            </button>
+            </Button>
 
-            <button
-              onClick={handleShareTrace}
-              disabled={isSharing}
-              className="flex items-center gap-1 px-2 py-1 rounded border border-line bg-surface text-ink-2 text-2xs hover:text-ink transition-colors"
-            >
-              {copiedShareLink ? <Check className="h-3 w-3 text-ok" /> : <Share2 className="h-3 w-3 text-accent-ink" />}
-              {copiedShareLink ? 'Link Copied!' : isSharing ? 'Sharing...' : 'Share'}
-            </button>
+            <Button size="sm" onClick={handleShareTrace} disabled={isSharing}>
+              {copiedShareLink ? <Check className="text-ok" aria-hidden /> : <Share2 aria-hidden />}
+              {copiedShareLink ? 'Link copied' : isSharing ? 'Sharing…' : 'Share'}
+            </Button>
 
-            <button onClick={exportTraceJson} className="flex items-center gap-1 px-2 py-1 rounded border border-line bg-surface text-ink-2 text-2xs hover:text-ink transition-colors">
-              <Download className="h-3 w-3" /> Export
-            </button>
+            <Button size="sm" onClick={exportTraceJson}>
+              <Download aria-hidden /> Export
+            </Button>
           </div>
         </div>
 
         {/* KPI Strip */}
-        <div className="flex items-center gap-4 mt-2 text-2xs font-mono">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-2xs font-mono">
           <div className="flex items-center gap-1.5">
             <Clock className="h-3 w-3 text-ink-3" />
             <span className="text-ink-2">Duration:</span>
@@ -412,7 +438,7 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
           )}
 
           {/* Time breakdown mini-bar */}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:ml-auto">
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-sm bg-blue-500/80" />
               <span className="text-2xs text-ink-3">LLM {llmTime < 1000 ? `${llmTime}ms` : `${(llmTime / 1000).toFixed(1)}s`}</span>
@@ -426,9 +452,9 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
 
         {/* Error bar */}
         {run.error && (
-          <div className="mt-2 px-3 py-1.5 rounded border border-red-500/30 bg-red-500/10 text-2xs text-bad font-mono flex items-start gap-2">
+          <div role="alert" className="mt-2 px-3 py-1.5 rounded border border-red-500/30 bg-red-500/10 text-2xs text-bad font-mono flex items-start gap-2 break-words">
             <XCircle className="h-3.5 w-3.5 text-bad shrink-0 mt-0.5" />
-            <div>
+            <div className="min-w-0">
               {run.errorType && <span className="text-bad font-bold mr-1">[{run.errorType}]</span>}
               {run.error}
             </div>
@@ -438,7 +464,7 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
 
       {/* Debugger Controls Bar */}
       {debuggerMode && (
-        <div className="flex items-center justify-between px-4 py-1.5 bg-blue-500/5 border-b border-blue-500/20 shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-1.5 bg-blue-500/5 border-b border-blue-500/20 shrink-0">
           <div className="flex items-center gap-2 text-xs">
             <Bug className="h-3.5 w-3.5 text-accent-ink" />
             <span className="text-accent-ink font-bold font-mono uppercase text-2xs">Debugger</span>
@@ -446,34 +472,34 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
               Step {debuggerIndex + 1} of {run.spans.length}
             </span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               onClick={() => goToSpan(0)}
               disabled={debuggerIndex === 0}
-              className="px-2 py-0.5 rounded border border-line bg-surface text-2xs text-ink-2 hover:text-ink disabled:opacity-30 transition-colors"
+              className="px-2 py-0.5 rounded border border-line bg-surface text-2xs text-ink-2 hover:text-ink disabled:opacity-40 transition-colors"
             >
-              ⏮ First
+              <span aria-hidden>⏮ </span>First
             </button>
             <button
               onClick={() => goToSpan(debuggerIndex - 1)}
               disabled={debuggerIndex === 0}
-              className="px-2 py-0.5 rounded border border-line bg-surface text-2xs text-ink-2 hover:text-ink disabled:opacity-30 transition-colors flex items-center gap-0.5"
+              className="px-2 py-0.5 rounded border border-line bg-surface text-2xs text-ink-2 hover:text-ink disabled:opacity-40 transition-colors flex items-center gap-0.5"
             >
-              <ChevronLeft className="h-3 w-3" /> Prev
+              <ChevronLeft className="h-3 w-3" aria-hidden /> Prev
             </button>
             <button
               onClick={() => goToSpan(debuggerIndex + 1)}
               disabled={debuggerIndex >= run.spans.length - 1}
-              className="px-2 py-0.5 rounded border border-line bg-surface text-2xs text-ink-2 hover:text-ink disabled:opacity-30 transition-colors flex items-center gap-0.5"
+              className="px-2 py-0.5 rounded border border-line bg-surface text-2xs text-ink-2 hover:text-ink disabled:opacity-40 transition-colors flex items-center gap-0.5"
             >
-              Next <ChevronRight className="h-3 w-3" />
+              Next <ChevronRight className="h-3 w-3" aria-hidden />
             </button>
             <button
               onClick={() => goToSpan(run.spans.length - 1)}
               disabled={debuggerIndex >= run.spans.length - 1}
-              className="px-2 py-0.5 rounded border border-line bg-surface text-2xs text-ink-2 hover:text-ink disabled:opacity-30 transition-colors"
+              className="px-2 py-0.5 rounded border border-line bg-surface text-2xs text-ink-2 hover:text-ink disabled:opacity-40 transition-colors"
             >
-              Last ⏭
+              Last<span aria-hidden> ⏭</span>
             </button>
             {/* Jump to first error */}
             {failedSpanCount > 0 && (
@@ -489,12 +515,12 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
       )}
 
       {/* 2. Split-Screen Workspace */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 divide-x divide-line overflow-hidden">
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 lg:divide-x divide-line lg:overflow-hidden">
         
         {/* LEFT PANE */}
-        <div className="lg:col-span-5 flex flex-col h-full bg-canvas overflow-hidden">
+        <div className="lg:col-span-5 flex flex-col min-w-0 lg:h-full lg:min-h-0 bg-canvas lg:overflow-hidden border-b border-line lg:border-b-0">
           <div className="flex items-center justify-between border-b border-line bg-surface px-3 py-1.5 shrink-0 text-xs font-mono">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1" role="tablist" aria-label="Trace view">
               {(['timeline', 'graph', 'flame'] as const).map((view) => {
                 const icons = { timeline: Clock, graph: GitBranch, flame: BarChart3 };
                 const labels = { timeline: 'Timeline', graph: 'Graph', flame: 'Flame' };
@@ -502,12 +528,15 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                 return (
                   <button
                     key={view}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeLeftView === view}
                     onClick={() => setActiveLeftView(view)}
                     className={`px-2 py-0.5 rounded text-2xs font-bold transition-all flex items-center gap-1 ${
                       activeLeftView === view ? 'bg-tint/[0.07] text-accent-ink border border-line' : 'text-ink-2 hover:text-ink'
                     }`}
                   >
-                    <Icon className="h-3 w-3" /> {labels[view]}
+                    <Icon className="h-3 w-3" aria-hidden /> {labels[view]}
                   </button>
                 );
               })}
@@ -517,60 +546,62 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
 
           {/* Timeline Waterfall */}
           {activeLeftView === 'timeline' && (
-            <div className="flex-1 overflow-y-auto p-2 space-y-0.5 text-xs font-mono">
+            <div className="flex-1 overflow-y-auto p-2 space-y-0.5 text-xs font-mono max-h-[50dvh] lg:max-h-none">
               {run.spans.map((span, idx) => {
                 const isSelected = selectedSpan?.spanId === span.spanId;
                 const isDebugCurrent = debuggerMode && debuggerIndex === idx;
                 const isCritical = criticalSpanIds.has(span.spanId);
-                const indent = span.parentSpanId ? 'ml-4' : 'ml-0';
+                const indent = span.parentSpanId ? 'ml-4 w-[calc(100%-1rem)]' : 'ml-0 w-full';
                 const pctOfTotal = Math.round((span.latencyMs / totalDuration) * 100);
 
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={span.id || idx}
+                    aria-pressed={isSelected}
                     onClick={() => { setSelectedSpan(span); setActiveRightTab('span'); if (debuggerMode) setDebuggerIndex(idx); }}
-                    className={`group cursor-pointer py-1.5 px-2 rounded transition-colors ${indent} ${
+                    className={`group block text-left py-1.5 px-2 rounded transition-colors ${indent} ${
                       isDebugCurrent ? 'bg-blue-500/10 border border-blue-500/30 ring-1 ring-blue-500/20' :
                       isSelected ? 'bg-tint/[0.04] border border-line' :
                       'hover:bg-tint/[0.02] border border-transparent'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span aria-hidden className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                           span.status === 'FAILED' ? 'bg-red-400' : isCritical ? 'bg-blue-400' : 'bg-emerald-400'
                         }`} />
                         <span className={`px-1 py-0.5 rounded text-2xs uppercase font-bold shrink-0 ${
                           span.type === 'llm' || span.type === 'LLMCall' ? 'text-violet bg-violet-500/10' :
                           span.type === 'tool' || span.type === 'WebSearch' || span.type === 'Browser' ? 'text-warn bg-amber-500/10' :
-                          span.type === 'retrieval' ? 'text-cyan-400 bg-cyan-500/10' :
-                          'text-ink-2 bg-zinc-500/10'
+                          span.type === 'retrieval' ? 'text-cyan-700 dark:text-cyan-400 bg-cyan-500/10' :
+                          'text-ink-2 bg-tint/[0.06]'
                         }`}>
                           {span.type}
                         </span>
                         <span className={`truncate text-2xs ${isSelected || isDebugCurrent ? 'text-ink font-semibold' : 'text-ink-2'}`}>
                           {span.name}
                         </span>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 text-2xs">
+                      </span>
+                      <span className="flex items-center gap-2 shrink-0 text-2xs">
                         {span.status === 'FAILED' && <span className="text-bad font-bold">FAIL</span>}
                         {span.model && <span className="text-ink-3 hidden sm:inline">{span.model}</span>}
                         <span className="text-ink-2 font-mono w-14 text-right">
                           {span.latencyMs < 1000 ? `${span.latencyMs}ms` : `${(span.latencyMs / 1000).toFixed(1)}s`}
                         </span>
-                      </div>
-                    </div>
+                      </span>
+                    </span>
                     {/* Mini duration bar */}
-                    <div className="mt-1 h-1 w-full bg-tint/[0.03] rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${
-                          span.status === 'FAILED' ? 'bg-red-500/60' :
-                          isCritical ? 'bg-blue-500/60' : 'bg-tint/[0.12]'
+                    <span aria-hidden className="mt-1 block h-1 w-full bg-tint/[0.06] rounded-full overflow-hidden">
+                      <span
+                        className={`block h-full rounded-full ${
+                          span.status === 'FAILED' ? 'bg-red-500/70' :
+                          isCritical ? 'bg-blue-500/70' : 'bg-tint/20'
                         }`}
                         style={{ width: `${Math.max(2, pctOfTotal)}%` }}
                       />
-                    </div>
-                  </div>
+                    </span>
+                  </button>
                 );
               })}
             </div>
@@ -578,7 +609,7 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
 
           {/* Execution Graph */}
           {activeLeftView === 'graph' && (
-            <div className="flex-1 bg-canvas relative">
+            <div className="h-[55dvh] lg:h-auto lg:flex-1 bg-canvas relative">
               <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -590,15 +621,16 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                   if (targetSpan) { setSelectedSpan(targetSpan); setActiveRightTab('span'); }
                 }}
               >
-                <Background color="#1E1E24" gap={16} />
-                <Controls className="!bg-[#0F0F12] !border-[#1E1E24] !text-white" />
+                {/* Colours come from the design tokens in globals.css (.react-flow rules) */}
+                <Background gap={16} />
+                <Controls />
               </ReactFlow>
             </div>
           )}
 
           {/* Flame Graph */}
           {activeLeftView === 'flame' && (
-            <div className="flex-1 overflow-y-auto p-3 space-y-2 text-xs font-mono">
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 text-xs font-mono max-h-[50dvh] lg:max-h-none">
               <div className="text-2xs font-bold text-ink-3 uppercase border-b border-line pb-1.5 flex justify-between">
                 <span>Execution Duration</span>
                 <span>Total: {(totalDuration / 1000).toFixed(2)}s</span>
@@ -608,31 +640,33 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                 const isSelected = selectedSpan?.spanId === span.spanId;
                 const isCritical = criticalSpanIds.has(span.spanId);
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={span.id || idx}
+                    aria-pressed={isSelected}
                     onClick={() => { setSelectedSpan(span); setActiveRightTab('span'); }}
-                    className={`group cursor-pointer p-2 rounded border transition-colors ${
-                      isSelected ? 'border-blue-500/40 bg-tint/[0.04]' : 'border-line hover:border-line'
+                    className={`group block w-full text-left p-2 rounded border transition-colors ${
+                      isSelected ? 'border-accent/50 bg-tint/[0.04]' : 'border-line hover:border-line-strong'
                     }`}
                   >
-                    <div className="flex items-center justify-between text-2xs mb-1">
-                      <div className="flex items-center gap-2">
+                    <span className="flex items-center justify-between gap-2 text-2xs mb-1">
+                      <span className="flex min-w-0 items-center gap-2">
                         <span className={`font-bold ${
                           span.type === 'llm' || span.type === 'LLMCall' ? 'text-violet' : 'text-warn'
                         }`}>[{span.type}]</span>
-                        <span className="text-ink truncate max-w-[160px]">{span.name}</span>
-                      </div>
-                      <span className="text-ink font-bold">{span.latencyMs < 1000 ? `${span.latencyMs}ms` : `${(span.latencyMs / 1000).toFixed(1)}s`}</span>
-                    </div>
-                    <div className="w-full bg-tint/[0.03] rounded-full h-2 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${
+                        <span className="text-ink truncate">{span.name}</span>
+                      </span>
+                      <span className="shrink-0 text-ink font-bold">{span.latencyMs < 1000 ? `${span.latencyMs}ms` : `${(span.latencyMs / 1000).toFixed(1)}s`}</span>
+                    </span>
+                    <span aria-hidden className="block w-full bg-tint/[0.06] rounded-full h-2 overflow-hidden">
+                      <span
+                        className={`block h-full rounded-full ${
                           span.status === 'FAILED' ? 'bg-red-500' : isCritical ? 'bg-blue-500' : 'bg-blue-500/40'
                         }`}
                         style={{ width: `${durationPct}%` }}
                       />
-                    </div>
-                  </div>
+                    </span>
+                  </button>
                 );
               })}
             </div>
@@ -640,18 +674,20 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
         </div>
 
         {/* RIGHT PANE */}
-        <div className="lg:col-span-7 flex flex-col h-full bg-surface overflow-hidden relative">
-          <SelectionActions />
+        <div className="lg:col-span-7 flex flex-col min-w-0 lg:h-full lg:min-h-0 bg-surface lg:overflow-hidden relative">
           
           {/* Right pane tab bar */}
-          <div className="flex items-center gap-1 border-b border-line bg-inset px-3 py-1.5 shrink-0 overflow-x-auto">
+          <div role="tablist" aria-label="Run details" className="flex items-center gap-1 border-b border-line bg-inset px-3 py-1.5 shrink-0 overflow-x-auto">
             {(['span', 'trace', 'detections', 'investigation', 'evals'] as const).map((tab) => {
-              const icons = { span: Layers, trace: FileText, detections: AlertTriangle, investigation: Sparkles, evals: ThumbsUp };
+              const icons = { span: Layers, trace: FileText, detections: AlertTriangle, investigation: ScanSearch, evals: ThumbsUp };
               const labels = { span: 'Span Inspector', trace: 'Trace I/O', detections: `Detections (${detections.length})`, investigation: 'Investigation', evals: 'Evals & Feedback' };
               const Icon = icons[tab];
               return (
                 <button
                   key={tab}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeRightTab === tab}
                   onClick={() => setActiveRightTab(tab)}
                   className={`px-2.5 py-1 rounded text-2xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
                     activeRightTab === tab ? 'bg-tint/[0.07] text-ink border border-line' : 'text-ink-2 hover:text-ink'
@@ -666,11 +702,11 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
 
           {/* TAB: Span Inspector */}
           {activeRightTab === 'span' && selectedSpan && (
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col min-h-0 lg:overflow-hidden">
               {/* Span header */}
-              <div className="p-4 bg-canvas space-y-3 shrink-0">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+              <div className="p-3 sm:p-4 bg-canvas space-y-3 shrink-0">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
                     <span className={`px-1.5 py-0.5 rounded text-2xs font-bold uppercase ${
                       selectedSpan.type === 'llm' || selectedSpan.type === 'LLMCall' ? 'text-violet bg-violet-500/10 border border-violet-500/20' :
                       selectedSpan.type === 'tool' || selectedSpan.type === 'WebSearch' ? 'text-warn bg-amber-500/10 border border-amber-500/20' :
@@ -678,7 +714,7 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                     }`}>
                       {selectedSpan.type}
                     </span>
-                    <h2 className="text-sm font-bold text-ink font-sans">{selectedSpan.name}</h2>
+                    <h2 className="min-w-0 break-words text-sm font-semibold text-ink font-sans">{selectedSpan.name}</h2>
                   </div>
                   <span className={`text-2xs font-bold px-1.5 py-0.5 rounded border uppercase ${
                     selectedSpan.status === 'FAILED' ? 'bg-red-500/10 text-bad border-red-500/20' : 'bg-emerald-500/10 text-ok border-emerald-500/20'
@@ -688,7 +724,7 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                 </div>
 
                 {/* Span metrics grid */}
-                <div className="grid grid-cols-4 gap-2 text-2xs bg-surface p-2.5 rounded border border-line">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-2xs bg-surface p-2.5 rounded border border-line">
                   <div>
                     <span className="text-ink-3 text-2xs block uppercase font-bold">Duration</span>
                     <span className="text-ink font-bold">{selectedSpan.latencyMs < 1000 ? `${selectedSpan.latencyMs}ms` : `${(selectedSpan.latencyMs / 1000).toFixed(1)}s`}</span>
@@ -753,11 +789,13 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
               </div>
 
               {/* Span content tabs */}
-              <div className="flex items-center justify-between border-b border-line bg-canvas px-4 pt-1.5 shrink-0">
+              <div className="flex flex-wrap items-center justify-between gap-x-2 border-b border-line bg-canvas px-3 sm:px-4 pt-1.5 shrink-0">
                 <div className="flex items-center gap-1">
                   {(['input', 'output', 'metadata', 'raw'] as const).map((tab) => (
                     <button
                       key={tab}
+                      type="button"
+                      aria-pressed={activeSpanTab === tab}
                       onClick={() => setActiveSpanTab(tab)}
                       className={`pb-1.5 px-2 font-bold uppercase tracking-wider border-b-2 text-2xs transition-all ${
                         activeSpanTab === tab ? 'border-blue-500 text-accent-ink' : 'border-transparent text-ink-3 hover:text-ink'
@@ -768,6 +806,7 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                   ))}
                 </div>
                 <button
+                  type="button"
                   onClick={() => copyText(activeSpanTab === 'input' ? selectedSpan.rawInput || '' : activeSpanTab === 'output' ? selectedSpan.rawOutput || '' : JSON.stringify(selectedSpan, null, 2))}
                   className="flex items-center gap-1 mb-1.5 text-2xs text-ink-2 hover:text-ink bg-surface border border-line px-2 py-0.5 rounded"
                 >
@@ -776,14 +815,14 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 bg-canvas">
+              <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-canvas">
                 {activeSpanTab === 'input' && (
-                  <pre className="rounded border border-line bg-surface p-4 text-xs text-ink-2 overflow-x-auto leading-relaxed whitespace-pre-wrap">
+                  <pre className="rounded border border-line bg-surface p-4 text-xs text-ink-2 overflow-x-auto leading-relaxed whitespace-pre-wrap break-words">
                     {selectedSpan.rawInput || '// No input payload recorded'}
                   </pre>
                 )}
                 {activeSpanTab === 'output' && (
-                  <pre className="rounded border border-line bg-surface p-4 text-xs text-ink-2 overflow-x-auto leading-relaxed whitespace-pre-wrap">
+                  <pre className="rounded border border-line bg-surface p-4 text-xs text-ink-2 overflow-x-auto leading-relaxed whitespace-pre-wrap break-words">
                     {selectedSpan.rawOutput || '// No output recorded'}
                   </pre>
                 )}
@@ -803,15 +842,15 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                       ['cost_usd', `${selectedSpan.cost}`],
                       ['retry_count', `${selectedSpan.retryCount || 0}`],
                     ].map(([key, val]) => (
-                      <div key={key} className="p-2.5 flex justify-between text-2xs">
+                      <div key={key} className="p-2.5 flex justify-between gap-3 text-2xs">
                         <span className="text-ink-3">{key}</span>
-                        <span className="text-ink font-bold">{val}</span>
+                        <span className="min-w-0 break-all text-right text-ink font-bold">{val}</span>
                       </div>
                     ))}
                   </div>
                 )}
                 {activeSpanTab === 'raw' && (
-                  <pre className="rounded border border-line bg-surface p-4 text-xs text-ink-2 overflow-x-auto leading-relaxed whitespace-pre-wrap">
+                  <pre className="rounded border border-line bg-surface p-4 text-xs text-ink-2 overflow-x-auto leading-relaxed whitespace-pre-wrap break-words">
                     {JSON.stringify(selectedSpan, null, 2)}
                   </pre>
                 )}
@@ -827,28 +866,30 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
 
           {/* TAB: Trace I/O */}
           {activeRightTab === 'trace' && (
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col min-h-0 lg:overflow-hidden">
               <div className="flex items-center gap-1 border-b border-line bg-canvas px-4 pt-1.5 shrink-0">
                 {(['input', 'output', 'error'] as const).map((tab) => (
                   <button
                     key={tab}
+                    type="button"
+                    aria-pressed={activeTraceTab === tab}
                     onClick={() => setActiveTraceTab(tab)}
                     className={`pb-1.5 px-2 font-bold uppercase tracking-wider border-b-2 text-2xs transition-all ${
                       activeTraceTab === tab ? 'border-blue-500 text-accent-ink' : 'border-transparent text-ink-3 hover:text-ink'
                     }`}
                   >
-                    {tab === 'error' ? (run.error ? 'Error (!)' : 'Error') : `Trace ${tab}`}
+                    {tab === 'error' ? (run.error ? 'Error (1)' : 'Error') : `Trace ${tab}`}
                   </button>
                 ))}
               </div>
-              <div className="flex-1 overflow-y-auto p-4 bg-canvas">
+              <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-canvas">
                 {activeTraceTab === 'input' && (
-                  <pre className="rounded border border-line bg-surface p-4 text-xs text-ink-2 overflow-x-auto leading-relaxed whitespace-pre-wrap">
+                  <pre className="rounded border border-line bg-surface p-4 text-xs text-ink-2 overflow-x-auto leading-relaxed whitespace-pre-wrap break-words">
                     {run.input || '// No trace-level input recorded'}
                   </pre>
                 )}
                 {activeTraceTab === 'output' && (
-                  <pre className="rounded border border-line bg-surface p-4 text-xs text-ink-2 overflow-x-auto leading-relaxed whitespace-pre-wrap">
+                  <pre className="rounded border border-line bg-surface p-4 text-xs text-ink-2 overflow-x-auto leading-relaxed whitespace-pre-wrap break-words">
                     {run.output || '// No trace-level output recorded'}
                   </pre>
                 )}
@@ -873,7 +914,7 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
 
           {/* TAB: Detections */}
           {activeRightTab === 'detections' && (
-            <div className="flex-1 overflow-y-auto p-4 bg-canvas space-y-2">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-canvas space-y-2">
               {detections.length === 0 ? (
                 <div className="text-center py-12">
                   <Shield className="h-6 w-6 text-ok mx-auto mb-2" />
@@ -884,36 +925,37 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                   const severityColor = d.severity === 'CRITICAL' ? 'border-red-500/30 bg-red-500/5' :
                     d.severity === 'HIGH' ? 'border-amber-500/30 bg-amber-500/5' :
                     d.severity === 'MEDIUM' ? 'border-yellow-500/30 bg-yellow-500/5' :
-                    'border-zinc-500/20 bg-zinc-500/5';
+                    'border-line bg-tint/[0.03]';
                   const sevTextColor = d.severity === 'CRITICAL' ? 'text-bad' :
                     d.severity === 'HIGH' ? 'text-warn' :
                     d.severity === 'MEDIUM' ? 'text-warn' : 'text-ink-2';
                   return (
                     <div key={i} className={`rounded border p-3 space-y-2 ${severityColor}`}>
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <span className={`text-2xs font-bold px-1 py-0.5 rounded border uppercase ${sevTextColor}`}>{d.severity}</span>
                           <span className="text-2xs text-ink-3 font-mono uppercase">{d.type.replace(/_/g, ' ')}</span>
                         </div>
                         {d.spanName && (
                           <button
+                            type="button"
                             onClick={() => { const s = run.spans.find(sp => sp.spanId === d.spanId); if (s) { setSelectedSpan(s); setActiveRightTab('span'); } }}
                             className="text-2xs text-accent-ink hover:underline flex items-center gap-0.5"
                           >
-                            {d.spanName} <ArrowUpRight className="h-2.5 w-2.5" />
+                            {d.spanName} <ArrowUpRight className="h-3 w-3" aria-hidden />
                           </button>
                         )}
                       </div>
                       <p className="text-xs text-ink font-semibold font-sans">{d.title}</p>
                       <p className="text-2xs text-ink-2 font-sans">{d.description}</p>
-                      <div className="grid grid-cols-2 gap-2 pt-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                         <div>
                           <span className="text-2xs text-ink-3 uppercase font-bold block">Impact</span>
-                          <span className="text-2xs text-warn/80 font-mono">{d.impact}</span>
+                          <span className="text-2xs text-warn font-mono">{d.impact}</span>
                         </div>
                         <div>
                           <span className="text-2xs text-ink-3 uppercase font-bold block">Fix</span>
-                          <span className="text-2xs text-ok/80 font-mono">{d.recommendation}</span>
+                          <span className="text-2xs text-ok font-mono">{d.recommendation}</span>
                         </div>
                       </div>
                     </div>
@@ -925,29 +967,31 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
 
           {/* TAB: Investigation */}
           {activeRightTab === 'investigation' && (
-            <div className="flex-1 overflow-y-auto p-4 bg-canvas space-y-4 font-sans">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-canvas space-y-4 font-sans">
               {isInvestigating ? (
                 <div className="flex flex-col items-center justify-center py-20 space-y-4">
                   <LoadingState
-                    label="Investigating multi-agent execution path…"
+                    label="Running root-cause rules…"
                     variant="Drive"
                   />
-                  <p className="text-xs text-ink-2 font-mono">
-                    Correlating {run.spans.length} spans against {detections.length} runtime anomaly detectors
+                  <p className="text-xs text-ink-2 font-mono text-center">
+                    Checking {run.spans.length} spans and {detections.length} detections
                   </p>
                 </div>
+              ) : investigationError ? (
+                <InlineError onRetry={runInvestigation}>{investigationError}</InlineError>
               ) : investigation ? (
                 <div className="space-y-4">
                   {/* Thinking Trace */}
-                  <div className="rounded-2xl border border-line bg-surface p-3.5 shadow-xl">
+                  <div className="rounded-lg border border-line bg-surface p-3.5">
                     <ThinkingState
-                      activeTitle="Investigating execution path"
-                      completedTitle={`Investigated ${run.spans.length} spans • Root cause identified`}
+                      activeTitle="Running root-cause rules"
+                      completedTitle={`Checked ${run.spans.length} spans · likely root cause found`}
                       isWorking={false}
                       rows={[
-                        { primary: `Correlated ${run.spans.length} execution spans`, secondary: `${(run.durationMs / 1000).toFixed(2)}s trace`, status: 'completed' },
-                        { primary: `Scanned ${detections.length} anomaly detections`, secondary: `${criticalDetections.length} critical`, status: 'completed' },
-                        { primary: `Synthesized root cause hypothesis`, secondary: `${investigation.confidence}% confidence`, status: 'completed' },
+                        { primary: `Checked ${run.spans.length} execution spans`, secondary: `${(run.durationMs / 1000).toFixed(2)}s trace`, status: 'completed' },
+                        { primary: `Read ${detections.length} rule-based detections`, secondary: `${criticalDetections.length} critical`, status: 'completed' },
+                        { primary: `Matched a root-cause rule`, secondary: `${investigation.confidence}% confidence`, status: 'completed' },
                         ...(investigation.evidence.slice(0, 3).map(e => ({ primary: e, mono: true, status: 'completed' as const }))),
                       ]}
                     />
@@ -955,7 +999,7 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
 
                   {/* Recommendation Card */}
                   <RecommendationCard
-                    title="Root Cause Analysis & Recommended Action"
+                    title="Root cause (rule-based) and recommended action"
                     description={investigation.rootCause}
                     codeSnippet={investigation.recommendation}
                     confidence={investigation.confidence >= 80 ? 'high' : investigation.confidence >= 50 ? 'medium' : 'low'}
@@ -965,14 +1009,18 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                       confidence: idx === 0 ? 'high' : 'medium',
                       badge: 'Mitigation'
                     }))}
+                    acceptLabel="Copy recommendation"
+                    acceptedLabel="Copied"
                     onAccept={() => {
-                      alert(`Mitigation applied to agent policy: ${investigation.recommendation}`);
+                      // Nothing is applied to your agent. This only copies the text.
+                      navigator.clipboard?.writeText(investigation.recommendation);
+                      toast({ type: 'success', title: 'Recommendation copied', description: 'Nothing was changed in your agent. Apply the fix in your own code.' });
                     }}
                   />
 
                   {/* Evidence Breakdown */}
                   {investigation.evidence.length > 0 && (
-                    <div className="rounded-2xl border border-line bg-surface p-4 shadow-xl">
+                    <div className="rounded-lg border border-line bg-surface p-4">
                       <span className="text-2xs text-ink-2 uppercase font-mono font-semibold block mb-2">Observed Evidence</span>
                       <div className="space-y-1.5 font-mono text-xs text-ink-2">
                         {investigation.evidence.map((e, i) => (
@@ -985,42 +1033,20 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                     </div>
                   )}
 
-                  {/* Human In The Loop Approval Card */}
-                  <ApprovalCard
-                    questions={[
-                      {
-                        id: 'mitigation-approval',
-                        question: 'Would you like PathFlow to automatically apply this mitigation policy to future runs?',
-                        options: [
-                          `Apply mitigation: ${investigation.recommendation.slice(0, 50)}…`,
-                          'Quarantine agent version until next release',
-                          'Notify engineering team on Slack & PagerDuty'
-                        ],
-                        allowCustom: true,
-                        customPlaceholder: 'Type custom runtime policy instruction…'
-                      }
-                    ]}
-                    onSubmit={(answers) => {
-                      console.log('Automated mitigation approved:', answers);
-                    }}
-                  />
                 </div>
               ) : (
                 <div className="text-center py-20 flex flex-col items-center justify-center">
-                  <div className="size-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-3">
-                    <Sparkles className="h-6 w-6 text-warn" />
+                  <div className="size-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-3">
+                    <ScanSearch className="size-5 text-warn" aria-hidden />
                   </div>
-                  <h4 className="text-sm font-semibold text-ink">AI Root Cause Investigation</h4>
-                  <p className="text-xs text-ink-2 mt-1 max-w-sm text-center">
-                    Click <strong>&quot;Investigate&quot;</strong> in the top header to run deep trace diagnosis, analyze anomaly propagation, and generate automated mitigations.
+                  <h3 className="text-sm font-semibold text-ink">Root-cause investigation (rule-based)</h3>
+                  <p className="text-xs text-ink-2 mt-1 max-w-sm text-center leading-relaxed">
+                    Applies PathFlow&apos;s built-in rules to this run&apos;s spans and detections and reports the most likely cause with a suggested fix. No language model is involved.
                   </p>
-                  <button
-                    onClick={runInvestigation}
-                    className="mt-4 flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition-all shadow-lg active:scale-95"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Start Root Cause Analysis
-                  </button>
+                  <Button variant="primary" className="mt-4" onClick={runInvestigation}>
+                    <ScanSearch aria-hidden />
+                    Run investigation
+                  </Button>
                 </div>
               )}
             </div>
@@ -1028,22 +1054,24 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
 
           {/* TAB: Evals & Feedback */}
           {activeRightTab === 'evals' && (
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              <div className="flex items-center justify-between border-b border-line pb-2">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2">
                 <div>
-                  <h3 className="font-bold text-ink text-xs font-sans uppercase">Human Evaluation & Guardrails</h3>
-                  <p className="text-2xs text-ink-2 font-mono mt-0.5">Annotate LLM outputs, faithfulness, hallucination risk, and dataset quality</p>
+                  <h3 className="font-semibold text-ink text-xs font-sans">Human evaluation</h3>
+                  <p className="text-2xs text-ink-2 font-sans mt-0.5">Your own rating of this run. The sliders start at default values until you save.</p>
                 </div>
                 {evalSavedMsg && (
-                  <span className="text-2xs font-mono text-ok font-bold">{evalSavedMsg}</span>
+                  <span role="status" className="text-2xs font-mono text-ok font-bold">{evalSavedMsg}</span>
                 )}
               </div>
 
               {/* Thumbs Feedback */}
               <div className="p-3 bg-canvas border border-line rounded-lg space-y-2 font-mono">
                 <span className="text-2xs text-ink-2 uppercase font-bold block">Execution Quality Assessment</span>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
+                    type="button"
+                    aria-pressed={evalData.thumbs === 'UP'}
                     onClick={() => setEvalData({ ...evalData, thumbs: 'UP' })}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-colors ${
                       evalData.thumbs === 'UP' ? 'bg-emerald-500/20 text-ok border border-emerald-500/40' : 'bg-surface text-ink-2 border border-line hover:text-ink'
@@ -1054,6 +1082,8 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                   </button>
 
                   <button
+                    type="button"
+                    aria-pressed={evalData.thumbs === 'DOWN'}
                     onClick={() => setEvalData({ ...evalData, thumbs: 'DOWN' })}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-colors ${
                       evalData.thumbs === 'DOWN' ? 'bg-red-500/20 text-bad border border-red-500/40' : 'bg-surface text-ink-2 border border-line hover:text-ink'
@@ -1076,9 +1106,10 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                     type="range"
                     min="0"
                     max="100"
+                    aria-label="Overall score (percent)"
                     value={evalData.score}
                     onChange={(e) => setEvalData({ ...evalData, score: parseInt(e.target.value, 10) })}
-                    className="w-full h-1 bg-tint/10 rounded appearance-none cursor-pointer"
+                    className="w-full cursor-pointer accent-[rgb(var(--accent))]"
                   />
                 </div>
 
@@ -1091,9 +1122,10 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                     type="range"
                     min="0"
                     max="100"
+                    aria-label="Faithfulness (percent)"
                     value={evalData.faithfulnessScore}
                     onChange={(e) => setEvalData({ ...evalData, faithfulnessScore: parseInt(e.target.value, 10) })}
-                    className="w-full h-1 bg-tint/10 rounded appearance-none cursor-pointer"
+                    className="w-full cursor-pointer accent-[rgb(var(--accent))]"
                   />
                 </div>
 
@@ -1108,17 +1140,19 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
                     type="range"
                     min="0"
                     max="100"
+                    aria-label="Hallucination risk (percent)"
                     value={evalData.hallucinationScore}
                     onChange={(e) => setEvalData({ ...evalData, hallucinationScore: parseInt(e.target.value, 10) })}
-                    className="w-full h-1 bg-tint/10 rounded appearance-none cursor-pointer"
+                    className="w-full cursor-pointer accent-[rgb(var(--accent))]"
                   />
                 </div>
               </div>
 
               {/* Reviewer Annotation Notes */}
               <div className="space-y-1.5">
-                <label className="text-2xs text-ink-3 uppercase font-mono font-bold block">Reviewer Notes & Feedback</label>
+                <label htmlFor="eval-notes" className="text-2xs text-ink-3 uppercase font-mono font-bold block">Reviewer notes</label>
                 <textarea
+                  id="eval-notes"
                   rows={4}
                   placeholder="Record qualitative feedback, edge cases, prompt flaws, or fine-tuning notes..."
                   value={evalData.notes}
@@ -1128,13 +1162,9 @@ export default function TraceHeroInspector({ run }: TraceHeroInspectorProps) {
               </div>
 
               <div className="text-right pt-2">
-                <button
-                  onClick={handleSaveEval}
-                  disabled={isSavingEval}
-                  className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors shadow-lg shadow-blue-900/20 cursor-pointer"
-                >
-                  {isSavingEval ? 'Saving Evaluation...' : 'Save Trace Evaluation'}
-                </button>
+                <Button variant="primary" onClick={handleSaveEval} disabled={isSavingEval}>
+                  {isSavingEval ? 'Saving…' : 'Save evaluation'}
+                </Button>
               </div>
             </div>
           )}

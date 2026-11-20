@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Sparkles, Check, ChevronDown, ArrowRight } from 'lucide-react';
+import { Lightbulb, Check } from 'lucide-react';
 
 export interface AlternativeOption {
   title: string;
@@ -17,6 +17,9 @@ interface RecommendationCardProps {
   confidenceLabel?: string;
   alternatives?: AlternativeOption[];
   onAccept?: () => void;
+  /** Text of the main button, and what it shows after it was clicked. */
+  acceptLabel?: string;
+  acceptedLabel?: string;
   onSelectAlternative?: (alt: AlternativeOption) => void;
   className?: string;
 }
@@ -29,6 +32,8 @@ export default function RecommendationCard({
   confidenceLabel,
   alternatives = [],
   onAccept,
+  acceptLabel = 'Accept',
+  acceptedLabel = 'Applied',
   onSelectAlternative,
   className = '',
 }: RecommendationCardProps) {
@@ -38,7 +43,7 @@ export default function RecommendationCard({
   const confidenceColors = {
     high: { bar: 'bg-emerald-500', label: confidenceLabel || 'High confidence' },
     medium: { bar: 'bg-amber-500', label: confidenceLabel || 'Needs review' },
-    low: { bar: 'bg-zinc-600', label: confidenceLabel || 'Low confidence' },
+    low: { bar: 'bg-ink-3', label: confidenceLabel || 'Low confidence' },
   };
 
   const currentConf = confidenceColors[confidence];
@@ -49,11 +54,11 @@ export default function RecommendationCard({
   };
 
   return (
-    <div className={`w-full overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl transition-all ${className}`}>
+    <div className={`w-full overflow-hidden rounded-lg border border-line bg-surface transition-all ${className}`}>
       {/* Content Area */}
       <div className="p-4">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-accent-ink shrink-0" />
+          <Lightbulb className="h-4 w-4 text-accent-ink shrink-0" aria-hidden />
           <span className="text-[13px] font-semibold text-ink">{title}</span>
         </div>
 
@@ -62,7 +67,7 @@ export default function RecommendationCard({
           {codeSnippet && (
             <>
               {' '}
-              <code className="rounded bg-blue-500/10 px-1.5 py-0.5 font-mono text-[12px] text-accent-ink border border-blue-500/20">
+              <code className="rounded bg-blue-500/10 px-1.5 py-0.5 font-mono text-[12px] text-accent-ink border border-blue-500/20 break-words">
                 {codeSnippet}
               </code>
             </>
@@ -108,7 +113,7 @@ export default function RecommendationCard({
       </div>
 
       {/* Footer & Confidence Meter */}
-      <div className="flex items-center justify-between gap-3 border-t border-line bg-inset px-4 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-inset px-4 py-2.5">
         {/* 3-Bar Confidence Indicator */}
         <div className="flex items-center gap-2">
           <span className="flex items-end gap-0.5">
@@ -144,6 +149,7 @@ export default function RecommendationCard({
             <button
               type="button"
               onClick={() => setShowAlternatives(!showAlternatives)}
+              aria-expanded={showAlternatives}
               className="h-7 rounded-lg border border-line bg-tint/[0.04] px-2.5 text-[12px] font-medium text-ink-2 hover:bg-tint/[0.08] active:scale-95 transition-all"
             >
               Alternatives
@@ -154,19 +160,19 @@ export default function RecommendationCard({
             type="button"
             onClick={handleAccept}
             disabled={isAccepted}
-            className={`h-7 rounded-lg px-3 text-[12px] font-medium text-ink shadow transition-all active:scale-95 flex items-center gap-1.5 ${
+            className={`h-7 rounded-lg px-3 text-[12px] font-medium text-white shadow transition-all active:scale-95 flex items-center gap-1.5 ${
               isAccepted
-                ? 'bg-emerald-600'
-                : 'bg-blue-600 hover:bg-blue-500'
+                ? 'bg-emerald-700'
+                : 'bg-accent-strong hover:bg-accent'
             }`}
           >
             {isAccepted ? (
               <>
-                <Check className="h-3.5 w-3.5 stroke-[3]" />
-                Applied
+                <Check className="h-3.5 w-3.5 stroke-[3]" aria-hidden />
+                {acceptedLabel}
               </>
             ) : (
-              'Accept'
+              acceptLabel
             )}
           </button>
         </div>

@@ -148,6 +148,7 @@
 /* React Flow (the DAG view on the run page) */
 .react-flow {
   background-color: rgb(var(--canvas)) !important;
+  --xy-background-pattern-color: rgb(var(--line-strong));
 }
 
 .react-flow__node {

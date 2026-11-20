@@ -15,9 +15,9 @@ export function CustomSpanNode({ data, selected }: NodeProps) {
         selected
           ? 'border-blue-500 bg-raised shadow-lg ring-1 ring-blue-500'
           : isFailed
-          ? 'border-red-500/60 bg-red-950/20 text-red-200'
+          ? 'border-red-500/60 bg-red-500/10 text-ink'
           : isBottleneck
-          ? 'border-amber-500/60 bg-amber-950/20 text-amber-200'
+          ? 'border-amber-500/60 bg-amber-500/10 text-ink'
           : isCritical
           ? 'border-blue-500/40 bg-surface text-ink'
           : 'border-line bg-surface text-ink hover:border-line-strong'
@@ -27,7 +27,7 @@ export function CustomSpanNode({ data, selected }: NodeProps) {
       <Handle
         type="target"
         position={Position.Top}
-        className="!bg-blue-500 !w-2.5 !h-2.5 !border-2 !border-[#0C0C0F]"
+        className="!bg-blue-500 !w-2.5 !h-2.5 !border-2 !border-canvas"
       />
 
       {/* Header Row: Indicator dot, Type, Latency */}
@@ -69,7 +69,7 @@ export function CustomSpanNode({ data, selected }: NodeProps) {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!bg-blue-500 !w-2.5 !h-2.5 !border-2 !border-[#0C0C0F]"
+        className="!bg-blue-500 !w-2.5 !h-2.5 !border-2 !border-canvas"
       />
     </div>
   );
