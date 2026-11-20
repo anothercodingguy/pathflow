@@ -12,7 +12,12 @@ import { MOCK_RUNS, MOCK_AGENTS, MOCK_SESSIONS } from './mockData';
 
 const DEMO_RUN_IDS = new Set<string>(MOCK_RUNS.map((r) => r.id));
 const DEMO_AGENT_IDS = new Set<string>(MOCK_AGENTS.map((a) => a.id));
-const DEMO_SESSION_IDS = new Set<string>((MOCK_SESSIONS as Array<{ sessionId: string }>).map((s) => s.sessionId));
+// Sessions are grouped by `sessionId`; a run without one is given
+// "session_" + the first 8 characters of its id by app/api/v1/sessions.
+const DEMO_SESSION_IDS = new Set<string>([
+  ...(MOCK_SESSIONS as Array<{ sessionId: string }>).map((s) => s.sessionId),
+  ...MOCK_RUNS.map((r) => r.sessionId || `session_${r.id.substring(0, 8)}`),
+]);
 
 export function isDemoRunId(id: string | undefined | null): boolean {
   return !!id && DEMO_RUN_IDS.has(id);
@@ -35,6 +40,8 @@ export type DemoScope = 'all' | 'some' | 'none';
 
 export function demoScope<T>(items: T[], isDemo: (item: T) => boolean): DemoScope {
   if (items.length === 0) return 'none';
+  // In the demo workspace nobody is signed in, so everything shown is sample data.
+  if (isDemoWorkspace()) return 'all';
   const n = items.filter(isDemo).length;
   if (n === 0) return 'none';
   return n === items.length ? 'all' : 'some';

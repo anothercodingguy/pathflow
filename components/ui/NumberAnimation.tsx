@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
-import { motion, useSpring, useTransform } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
+import { motion, useSpring, useReducedMotion } from 'framer-motion';
 
 interface NumberAnimationProps {
   value: number;
@@ -30,9 +30,17 @@ export default function NumberAnimation({
     `${prefix}${(0).toFixed(decimals)}${suffix}`
   );
 
+  // With "reduce motion" on, show the final number immediately instead of counting up.
+  const reduceMotion = useReducedMotion();
+
   useEffect(() => {
-    spring.set(value);
-  }, [spring, value]);
+    if (reduceMotion) {
+      spring.jump(value);
+      setDisplayValue(`${prefix}${value.toFixed(decimals)}${suffix}`);
+    } else {
+      spring.set(value);
+    }
+  }, [spring, value, reduceMotion, prefix, suffix, decimals]);
 
   useEffect(() => {
     const unsubscribe = spring.on('change', (latest) => {

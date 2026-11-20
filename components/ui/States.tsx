@@ -117,9 +117,9 @@ export function DemoNotice({ scope, what, className }: { scope: DemoScope; what:
   return (
     <p
       role="note"
-      className={cn('flex flex-wrap items-center gap-2 rounded-md border border-warn/30 bg-warn/[0.06] px-3 py-2 text-xs text-ink-2 font-sans', className)}
+      className={cn('flex items-start gap-2 rounded-md border border-warn/30 bg-warn/[0.06] px-3 py-2 text-xs leading-relaxed text-ink-2 font-sans', className)}
     >
-      <FlaskConical className="size-3.5 shrink-0 text-warn" aria-hidden />
+      <FlaskConical className="mt-0.5 size-3.5 shrink-0 text-warn" aria-hidden />
       <span className="min-w-0">
         {scope === 'all'
           ? `Demo data: these ${what} are built-in samples, not telemetry from your agents. Send a trace with the SDK to see your own.`
