@@ -76,8 +76,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       "Unlimited projects",
       "10,000 debugging runs / mo",
       "30-day trace retention",
-      "AI Root-cause diagnosis",
-      "Git & commit diff correlation",
+      "Root-cause investigation (rule-based)",
       "Priority email support"
     ],
     ctaText: "Start Pro",

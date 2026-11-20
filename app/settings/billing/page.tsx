@@ -3,24 +3,13 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
-import { 
-  Check, 
-  ArrowRight, 
-  ShieldCheck, 
-  AlertCircle, 
-  CheckCircle2, 
-  Clock, 
-  CreditCard, 
-  Sparkles, 
-  Zap, 
-  Layers, 
-  RefreshCw,
-  ExternalLink,
-  ArrowLeft,
-  Building2
-} from "lucide-react";
-import { PLANS, PlanId, getPlanConfig } from "@/lib/plans";
+import { Check, ArrowRight, ShieldCheck, AlertCircle, CheckCircle2, Clock, CreditCard, RefreshCw, ArrowLeft, Mail, Loader2 } from "lucide-react";
+import { PageShell } from "@/components/ui/Page";
+import { Button, ButtonLink } from "@/components/ui/Button";
+import { Card, CardHeader, TableWrap, th, theadRow } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { InlineError } from "@/components/ui/States";
+import { PLANS, PlanId } from "@/lib/plans";
 
 interface BillingData {
   currentPlan: {
@@ -56,6 +45,9 @@ function BillingContent() {
   const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null);
   const [billingData, setBillingData] = useState<BillingData | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // Why the plan could not be loaded: 'signin' = not signed in (demo workspace
+  // or expired session), 'error' = the request failed. null = loaded fine.
+  const [loadProblem, setLoadProblem] = useState<'signin' | 'error' | null>(null);
 
   const statusParam = searchParams.get("status");
   const planParam = searchParams.get("plan");
@@ -70,10 +62,17 @@ function BillingContent() {
         const data = await res.json();
         if (data.success) {
           setBillingData(data);
+          setLoadProblem(null);
+          return;
         }
       }
+      // Do not pretend the account is on the Free plan when we could not read it.
+      setBillingData(null);
+      setLoadProblem(res.status === 401 ? 'signin' : 'error');
     } catch (err: any) {
       console.error("Failed to fetch billing info:", err);
+      setBillingData(null);
+      setLoadProblem('error');
     } finally {
       setLoading(false);
     }
@@ -194,356 +193,310 @@ function BillingContent() {
     }
   };
 
-  const currentPlan = billingData?.currentPlan || {
-    id: "FREE" as PlanId,
-    name: "Free",
-    displayPrice: "₹0",
-    status: "ACTIVE",
-    startedAt: null,
-    expiresAt: null,
-    limits: PLANS.FREE.limits,
-    features: PLANS.FREE.features,
-  };
+  // null until the plan has really been loaded from the server.
+  const currentPlan = billingData?.currentPlan ?? null;
+  const planName = currentPlan?.name ?? "your new plan";
+  const shownPlans = [PLANS.FREE, PLANS.PRO, PLANS.TEAM];
 
   return (
-    <div className="w-full min-h-[calc(100vh-2.5rem)] bg-canvas px-4 py-4 space-y-6 font-sans text-xs">
-      
-      {/* Top Breadcrumb Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-3">
-        <div className="flex items-center gap-3">
-          <Link 
-            href="/settings" 
-            className="flex items-center gap-1.5 text-ink-2 hover:text-ink transition-colors font-mono text-xs"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Settings</span>
-          </Link>
-          <span className="text-ink-3">/</span>
-          <h1 className="text-sm font-semibold text-ink uppercase tracking-wider font-mono">
-            Billing & Subscriptions
-          </h1>
-        </div>
+    <PageShell className="font-sans">
 
-        <div className="flex items-center gap-2">
-          <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-accent-ink border border-blue-500/20 font-mono text-2xs font-semibold flex items-center gap-1.5">
-            <CreditCard className="w-3.5 h-3.5 text-accent-ink" />
-            <span>INR Billing (One-Time Monthly)</span>
-          </span>
+      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line pb-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <ButtonLink href="/settings" size="sm">
+            <ArrowLeft aria-hidden /> Settings
+          </ButtonLink>
+          <h1 className="text-lg font-semibold tracking-tight text-ink">Billing &amp; plans</h1>
         </div>
-      </div>
+        <Badge tone="accent">
+          <CreditCard className="size-3" aria-hidden />
+          Billed in INR, one payment per month
+        </Badge>
+      </header>
 
-      {/* Status Alert Banners */}
+      {/* Status banners (set by the ?status= query parameter after checkout) */}
       {statusParam === "success" && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3 text-ok">
-          <CheckCircle2 className="w-5 h-5 text-ok shrink-0 mt-0.5" />
+        <div role="status" className="flex items-start gap-3 rounded-lg border border-ok/30 bg-ok/10 p-3.5">
+          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-ok" aria-hidden />
           <div className="space-y-1">
-            <div className="font-semibold text-sm">Payment Successful! Plan Activated.</div>
-            <p className="text-xs text-ok/90 leading-relaxed font-mono">
-              Thank you for subscribing to PathFlow {currentPlan.name}. Your account limits have been instantly updated and verified server-side.
+            <p className="text-sm font-semibold text-ink">Payment Successful! Plan Activated.</p>
+            <p className="text-xs leading-relaxed text-ink-2">
+              Thank you for subscribing to PathFlow {planName}. Your account limits have been instantly updated and verified server-side.
             </p>
           </div>
         </div>
       )}
 
       {statusParam === "failed" && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-3 text-bad">
-          <AlertCircle className="w-5 h-5 text-bad shrink-0 mt-0.5" />
+        <div role="alert" className="flex items-start gap-3 rounded-lg border border-bad/30 bg-bad/10 p-3.5">
+          <AlertCircle className="mt-0.5 size-4 shrink-0 text-bad" aria-hidden />
           <div className="space-y-1">
-            <div className="font-semibold text-sm">Payment Declined or Cancelled</div>
-            <p className="text-xs text-bad/90 leading-relaxed font-mono">
-              The transaction was not completed. You have not been charged. You can retry with UPI, Credit/Debit Card, or NetBanking below.
+            <p className="text-sm font-semibold text-ink">Payment declined or cancelled</p>
+            <p className="text-xs leading-relaxed text-ink-2">
+              The transaction was not completed and you have not been charged. You can try again below.
             </p>
           </div>
         </div>
       )}
 
+      {statusParam === "cancelled" && (
+        <div role="status" className="flex items-start gap-3 rounded-lg border border-line bg-surface p-3.5">
+          <AlertCircle className="mt-0.5 size-4 shrink-0 text-ink-3" aria-hidden />
+          <p className="text-xs leading-relaxed text-ink-2">Checkout was cancelled. Nothing was charged.</p>
+        </div>
+      )}
+
       {statusParam === "pending" && (
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 text-warn">
-          <Clock className="w-5 h-5 text-warn shrink-0 mt-0.5" />
+        <div role="status" className="flex items-start gap-3 rounded-lg border border-warn/30 bg-warn/10 p-3.5">
+          <Clock className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
           <div className="space-y-1">
-            <div className="font-semibold text-sm">Payment Pending Verification</div>
-            <p className="text-xs text-warn/90 leading-relaxed font-mono">
+            <p className="text-sm font-semibold text-ink">Payment pending verification</p>
+            <p className="text-xs leading-relaxed text-ink-2">
               Your payment is currently being processed by your bank. We will automatically update your subscription as soon as the gateway confirmation arrives.
             </p>
           </div>
         </div>
       )}
 
-      {errorMsg && (
-        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-bad flex items-center gap-2 font-mono">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{errorMsg}</span>
+      {errorMsg && <InlineError>{errorMsg}</InlineError>}
+
+      {loadProblem === 'error' && (
+        <InlineError onRetry={fetchBillingInfo}>
+          Your plan and payment history could not be loaded. Nothing below reflects your account until this works.
+        </InlineError>
+      )}
+
+      {loadProblem === 'signin' && (
+        <div role="note" className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface p-3.5 text-xs text-ink-2">
+          <AlertCircle className="size-4 shrink-0 text-ink-3" aria-hidden />
+          <span className="min-w-0 flex-1 basis-56">
+            Billing belongs to a signed-in account. You are not signed in (the demo workspace has no plan), so plans are shown for reference only.
+          </span>
+          <ButtonLink href="/login?callbackUrl=/app/settings/billing" variant="primary" size="sm">Sign in</ButtonLink>
         </div>
       )}
 
-      {/* Main Grid: Current Plan & Plan Upgrade Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Left Column: Current Active Plan & Usage Details */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="bg-surface border border-line rounded-2xl p-5 space-y-4">
-            
-            <div className="flex items-center justify-between border-b border-line pb-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+
+        {/* Left column: current plan */}
+        <div className="space-y-4 lg:col-span-4">
+          <Card className="space-y-4 p-4" aria-busy={loading}>
+            <div className="flex items-start justify-between gap-2 border-b border-line pb-3">
               <div>
-                <span className="text-2xs uppercase font-mono tracking-wider text-ink-2 font-semibold block">
-                  Current Plan
-                </span>
-                <span className="text-xl font-bold text-ink tracking-tight">
-                  {currentPlan.name}
-                </span>
+                <h2 className="font-mono text-2xs font-semibold uppercase tracking-wide text-ink-3">Current plan</h2>
+                {loading ? (
+                  <div className="mt-1.5 h-6 w-24 animate-pulse rounded bg-tint/10" />
+                ) : (
+                  <p className="text-xl font-semibold tracking-tight text-ink">{currentPlan ? currentPlan.name : "Not available"}</p>
+                )}
               </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-ok font-mono text-2xs font-bold border border-emerald-500/20">
-                {currentPlan.status}
-              </span>
+              {currentPlan && <Badge tone={currentPlan.status === "ACTIVE" ? "ok" : "warn"}>{currentPlan.status}</Badge>}
             </div>
 
-            <div className="space-y-2 text-xs font-mono text-ink-2">
-              <div className="flex justify-between py-1 border-b border-line">
-                <span className="text-ink-3">Price:</span>
-                <span className="text-ink font-semibold">{currentPlan.displayPrice} {currentPlan.id !== "FREE" ? "/ month" : ""}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-line">
-                <span className="text-ink-3">Monthly Runs:</span>
-                <span className="text-ink font-semibold">{currentPlan.limits.runsPerMonth.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-line">
-                <span className="text-ink-3">Trace Retention:</span>
-                <span className="text-ink font-semibold">{currentPlan.limits.retentionDays} Days</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-line">
-                <span className="text-ink-3">AI Root Cause:</span>
-                <span className={currentPlan.limits.aiRootCause ? "text-ok font-semibold" : "text-ink-3"}>
-                  {currentPlan.limits.aiRootCause ? "Enabled" : "Disabled"}
-                </span>
-              </div>
-              {currentPlan.expiresAt && (
-                <div className="flex justify-between py-1 border-b border-line">
-                  <span className="text-ink-3">Renews On:</span>
-                  <span className="text-accent-ink font-semibold">
-                    {new Date(currentPlan.expiresAt).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}
-                  </span>
+            {currentPlan ? (
+              <dl className="divide-y divide-line font-mono text-xs">
+                <div className="flex justify-between gap-3 py-1.5">
+                  <dt className="text-ink-3">Price</dt>
+                  <dd className="font-semibold text-ink">{currentPlan.displayPrice} {currentPlan.id !== "FREE" ? "/ month" : ""}</dd>
                 </div>
-              )}
-            </div>
-
-            {/* Transparent Billing Note */}
-            <div className="p-3 rounded-xl bg-tint/[0.02] border border-line space-y-1">
-              <div className="flex items-center gap-1.5 text-ink-2 font-semibold text-2xs">
-                <ShieldCheck className="w-3.5 h-3.5 text-ok" />
-                <span>Transparent Subscription Billing</span>
+                <div className="flex justify-between gap-3 py-1.5">
+                  <dt className="text-ink-3">Monthly runs</dt>
+                  <dd className="font-semibold text-ink">{currentPlan.limits.runsPerMonth.toLocaleString()}</dd>
+                </div>
+                <div className="flex justify-between gap-3 py-1.5">
+                  <dt className="text-ink-3">Trace retention</dt>
+                  <dd className="font-semibold text-ink">{currentPlan.limits.retentionDays} days</dd>
+                </div>
+                <div className="flex justify-between gap-3 py-1.5">
+                  <dt className="text-ink-3">Root cause (rule-based)</dt>
+                  <dd className={currentPlan.limits.aiRootCause ? "font-semibold text-ok" : "text-ink-3"}>
+                    {currentPlan.limits.aiRootCause ? "Included" : "Not included"}
+                  </dd>
+                </div>
+                {currentPlan.expiresAt && (
+                  <div className="flex justify-between gap-3 py-1.5">
+                    <dt className="text-ink-3">Renews on</dt>
+                    <dd className="font-semibold text-ink">
+                      {new Date(currentPlan.expiresAt).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            ) : !loading ? (
+              <p className="text-xs leading-relaxed text-ink-2">
+                {loadProblem === 'signin' ? "Sign in to see the plan on your account." : "The plan on your account could not be loaded."}
+              </p>
+            ) : (
+              <div className="space-y-2" aria-hidden>
+                <div className="h-3 w-full animate-pulse rounded bg-tint/10" />
+                <div className="h-3 w-4/5 animate-pulse rounded bg-tint/10" />
+                <div className="h-3 w-3/5 animate-pulse rounded bg-tint/10" />
               </div>
-              <p className="text-2xs text-ink-2 leading-relaxed">
+            )}
+
+            <div className="space-y-1 rounded-md border border-line bg-inset p-3">
+              <p className="flex items-center gap-1.5 text-2xs font-semibold text-ink-2">
+                <ShieldCheck className="size-3.5 text-ok" aria-hidden />
+                Transparent Subscription Billing
+              </p>
+              <p className="text-2xs leading-relaxed text-ink-2">
                 PathFlow billing uses one-time monthly payments with seamless manual renewal reminders. No hidden recurring auto-debits without your explicit approval.
               </p>
             </div>
+          </Card>
 
-          </div>
-
-          {/* Quick Support Card */}
-          <div className="bg-surface border border-line rounded-2xl p-4 space-y-2 text-xs">
-            <div className="font-semibold text-ink">Need a custom plan or GST invoice?</div>
-            <p className="text-ink-2 text-2xs leading-relaxed">
+          <Card className="space-y-2 p-4">
+            <h2 className="text-xs font-semibold text-ink">Need a custom plan or GST invoice?</h2>
+            <p className="text-2xs leading-relaxed text-ink-2">
               Email us with your company GSTIN and billing address for standard tax invoices.
             </p>
-            <a 
-              href="mailto:support@thepathflow.online?subject=PathFlow%20Invoice%20Inquiry" 
-              className="text-accent-ink hover:underline inline-flex items-center gap-1 text-2xs font-mono font-semibold pt-1"
+            <a
+              href="mailto:support@thepathflow.online?subject=PathFlow%20Invoice%20Inquiry"
+              className="inline-flex items-center gap-1 pt-1 font-mono text-2xs font-semibold text-accent-ink hover:underline"
             >
-              <span>Contact Billing Support</span>
-              <ExternalLink className="w-3 h-3" />
+              <Mail className="size-3" aria-hidden />
+              Contact billing support
             </a>
-          </div>
+          </Card>
         </div>
 
-        {/* Right Column: Available Plans Grid */}
-        <div className="lg:col-span-8 space-y-4">
-          <div className="flex items-center justify-between pb-1">
-            <h2 className="text-sm font-semibold text-ink uppercase font-mono tracking-wider">
-              Available Plans & Upgrades
-            </h2>
-            <span className="text-xs text-ink-2 font-mono">Billed in Indian Rupees (INR)</span>
+        {/* Right column: plans and history */}
+        <div className="space-y-4 lg:col-span-8">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-sm font-semibold text-ink">Plans</h2>
+            <span className="font-mono text-2xs text-ink-3">Prices in Indian Rupees (INR)</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            
-            {/* Free Tier */}
-            <div className={`rounded-2xl border p-4 flex flex-col justify-between ${currentPlan.id === "FREE" ? "bg-surface border-line-strong" : "bg-surface border-line"}`}>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-ink text-sm">Free</span>
-                  {currentPlan.id === "FREE" && (
-                    <span className="text-2xs font-mono px-2 py-0.5 rounded bg-tint/10 text-ink font-bold">CURRENT</span>
-                  )}
-                </div>
-                <div className="text-2xl font-black text-ink">₹0</div>
-                <p className="text-ink-2 text-2xs">For personal testing and small prototypes.</p>
-                <ul className="space-y-2 text-ink-2 font-mono text-2xs pt-2 border-t border-line">
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> 1 Project</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> 500 runs / mo</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> 7-day retention</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> Core traces</li>
-                </ul>
-              </div>
-              <div className="pt-4">
-                <button 
-                  disabled 
-                  className="w-full py-2 rounded-xl bg-tint/5 text-ink-3 text-xs font-semibold cursor-not-allowed"
+          {/* Plan cards come from lib/plans.ts, the same file the server uses for prices. */}
+          <ul className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            {shownPlans.map((plan) => {
+              const isCurrent = currentPlan?.id === plan.id;
+              const canBuyHere = plan.id === "PRO";
+              return (
+                <li
+                  key={plan.id}
+                  className={`relative flex flex-col justify-between rounded-lg border bg-surface p-4 ${
+                    plan.popular ? "border-accent/60" : isCurrent ? "border-line-strong" : "border-line"
+                  }`}
                 >
-                  {currentPlan.id === "FREE" ? "Active Plan" : "Included"}
-                </button>
-              </div>
-            </div>
-
-            {/* Pro Tier (Featured) */}
-            <div className={`rounded-2xl border-2 p-4 flex flex-col justify-between relative shadow-xl ${currentPlan.id === "PRO" ? "bg-blue-950/20 border-blue-500" : "bg-surface border-blue-500/50"}`}>
-              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-blue-600 text-white font-mono text-2xs font-bold uppercase tracking-wider">
-                RECOMMENDED
-              </div>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-ink text-sm">Pro</span>
-                  {currentPlan.id === "PRO" && (
-                    <span className="text-2xs font-mono px-2 py-0.5 rounded bg-blue-500/20 text-accent-ink font-bold">CURRENT</span>
+                  {plan.popular && (
+                    <span className="absolute -top-2.5 left-4 rounded bg-accent-strong px-2 py-0.5 font-mono text-2xs font-semibold uppercase tracking-wide text-white">
+                      Recommended
+                    </span>
                   )}
-                </div>
-                <div className="text-2xl font-black text-ink">
-                  ₹1,999 <span className="text-xs text-ink-2 font-mono font-normal">/ mo</span>
-                </div>
-                <p className="text-ink-2 text-2xs">For developers running production services.</p>
-                <ul className="space-y-2 text-ink font-mono text-2xs pt-2 border-t border-line">
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> Unlimited projects</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> 10,000 runs / mo</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> 30-day retention</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> AI Root Cause</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> Git diff analysis</li>
-                </ul>
-              </div>
-              <div className="pt-4">
-                {currentPlan.id === "PRO" ? (
-                  <button 
-                    disabled 
-                    className="w-full py-2 rounded-xl bg-blue-500/20 text-accent-ink text-xs font-semibold cursor-not-allowed"
-                  >
-                    Active Plan
-                  </button>
-                ) : (
-                  <button 
-                    onClick={() => handleInitiateCheckout("PRO")}
-                    disabled={upgradingPlan === "PRO"}
-                    className="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all shadow-md active:scale-[0.99] flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  >
-                    {upgradingPlan === "PRO" ? (
-                      <span>Redirecting to Checkout...</span>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-sm font-semibold text-ink">{plan.name}</h3>
+                      {isCurrent && <Badge tone="accent">Current</Badge>}
+                    </div>
+                    <p className="text-2xl font-bold tracking-tight text-ink">
+                      {plan.displayPrice}
+                      {plan.interval && <span className="ml-1 font-mono text-xs font-normal text-ink-2">{plan.interval}</span>}
+                    </p>
+                    <p className="text-xs leading-relaxed text-ink-2">{plan.description}</p>
+                    <ul className="space-y-2 border-t border-line pt-3 font-mono text-2xs text-ink-2">
+                      {plan.features.map((feature) => (
+                        <li key={feature} className="flex items-start gap-1.5">
+                          <Check className="mt-0.5 size-3 shrink-0 text-ok" aria-hidden />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="pt-4">
+                    {isCurrent ? (
+                      <Button className="w-full" disabled>Current plan</Button>
+                    ) : plan.id === "FREE" ? (
+                      <Button className="w-full" disabled>Included</Button>
+                    ) : canBuyHere ? (
+                      <Button
+                        variant="primary"
+                        className="w-full"
+                        onClick={() => handleInitiateCheckout(plan.id)}
+                        disabled={upgradingPlan === plan.id || loading || loadProblem === 'signin'}
+                      >
+                        {upgradingPlan === plan.id ? (
+                          <>
+                            <Loader2 className="animate-spin" aria-hidden /> Opening checkout…
+                          </>
+                        ) : loadProblem === 'signin' ? (
+                          "Sign in to upgrade"
+                        ) : (
+                          <>
+                            Upgrade to {plan.name} <ArrowRight aria-hidden />
+                          </>
+                        )}
+                      </Button>
                     ) : (
-                      <>
-                        <span>Upgrade to Pro</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </>
+                      <Button className="w-full" disabled>Coming soon</Button>
                     )}
-                  </button>
-                )}
-              </div>
-            </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
 
-            {/* Team Tier */}
-            <div className={`rounded-2xl border p-4 flex flex-col justify-between ${currentPlan.id === "TEAM" ? "bg-purple-950/20 border-purple-500" : "bg-surface border-line"}`}>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-ink text-sm">Team</span>
-                  {currentPlan.id === "TEAM" && (
-                    <span className="text-2xs font-mono px-2 py-0.5 rounded bg-purple-500/20 text-violet font-bold">CURRENT</span>
-                  )}
-                </div>
-                <div className="text-2xl font-black text-ink">
-                  ₹7,999 <span className="text-xs text-ink-2 font-mono font-normal">/ mo</span>
-                </div>
-                <p className="text-ink-2 text-2xs">For engineering teams debugging together.</p>
-                <ul className="space-y-2 text-ink-2 font-mono text-2xs pt-2 border-t border-line">
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> Everything in Pro</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> Shared workspace</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> 5 included seats</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> 90-day retention</li>
-                  <li className="flex items-center gap-1.5"><Check className="w-3 h-3 text-ok" /> Alert webhooks</li>
-                </ul>
-              </div>
-              <div className="pt-4">
-                <button 
-                  disabled 
-                  className="w-full py-2 rounded-xl bg-tint/5 text-ink-3 text-xs font-semibold cursor-not-allowed"
-                >
-                  Coming Soon
-                </button>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Payment Transaction History Table */}
-          <div className="bg-surface border border-line rounded-2xl p-5 space-y-3 mt-6">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-ink text-xs font-mono uppercase tracking-wider">
-                Payment History & Orders
-              </h3>
-              <button 
-                onClick={fetchBillingInfo} 
-                className="text-ink-2 hover:text-ink p-1 rounded transition-colors"
-                title="Refresh order history"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-              </button>
-            </div>
+          {/* Payment history */}
+          <Card className="overflow-hidden">
+            <CardHeader
+              title="Payment history"
+              actions={
+                <Button variant="ghost" size="icon" onClick={fetchBillingInfo} aria-label="Refresh payment history" disabled={loading}>
+                  <RefreshCw className={loading ? "animate-spin" : ""} aria-hidden />
+                </Button>
+              }
+            />
 
             {billingData?.orders && billingData.orders.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left font-mono text-2xs border-collapse">
+              <TableWrap label="Payment history table">
+                <table className="w-full min-w-[560px] border-collapse text-left font-mono text-2xs">
                   <thead>
-                    <tr className="border-b border-line text-ink-3 uppercase text-2xs">
-                      <th className="py-2 px-3">Date</th>
-                      <th className="py-2 px-3">Order ID</th>
-                      <th className="py-2 px-3">Plan</th>
-                      <th className="py-2 px-3">Amount</th>
-                      <th className="py-2 px-3">Status</th>
+                    <tr className={theadRow}>
+                      <th scope="col" className={th}>Date</th>
+                      <th scope="col" className={th}>Order ID</th>
+                      <th scope="col" className={th}>Plan</th>
+                      <th scope="col" className={th}>Amount</th>
+                      <th scope="col" className={th}>Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
                     {billingData.orders.map((ord) => (
-                      <tr key={ord.id} className="hover:bg-tint/[0.02] text-ink-2">
-                        <td className="py-2.5 px-3 text-ink-2">
+                      <tr key={ord.id} className="text-ink-2 hover:bg-tint/[0.03]">
+                        <td className="whitespace-nowrap px-3 py-2.5">
                           {new Date(ord.createdAt).toLocaleDateString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </td>
-                        <td className="py-2.5 px-3 font-semibold text-ink truncate max-w-[180px]">
-                          {ord.merchantOrderId}
-                        </td>
-                        <td className="py-2.5 px-3">{ord.plan}</td>
-                        <td className="py-2.5 px-3 font-semibold">₹{ord.amountINR.toLocaleString("en-IN")}</td>
-                        <td className="py-2.5 px-3">
-                          <span className={`px-2 py-0.5 rounded text-2xs font-bold ${ord.status === "SUCCESS" ? "bg-emerald-500/10 text-ok border border-emerald-500/20" : ord.status === "FAILED" ? "bg-red-500/10 text-bad border border-red-500/20" : "bg-amber-500/10 text-warn border border-amber-500/20"}`}>
-                            {ord.status}
-                          </span>
+                        <td className="max-w-[180px] truncate px-3 py-2.5 font-semibold text-ink">{ord.merchantOrderId}</td>
+                        <td className="px-3 py-2.5">{ord.plan}</td>
+                        <td className="px-3 py-2.5 font-semibold tabular-nums">₹{ord.amountINR.toLocaleString("en-IN")}</td>
+                        <td className="px-3 py-2.5">
+                          <Badge tone={ord.status === "SUCCESS" ? "ok" : ord.status === "FAILED" ? "bad" : "warn"}>{ord.status}</Badge>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TableWrap>
             ) : (
-              <div className="py-8 text-center text-ink-3 font-mono text-xs">
-                No past transactions recorded yet.
-              </div>
+              <p className="px-4 py-8 text-center text-xs text-ink-3">
+                {loading
+                  ? "Loading payment history…"
+                  : loadProblem === 'signin'
+                    ? "Sign in to see your payments."
+                    : loadProblem === 'error'
+                      ? "Payment history could not be loaded."
+                      : "No payments yet."}
+              </p>
             )}
-          </div>
-
+          </Card>
         </div>
-
       </div>
-
-    </div>
+    </PageShell>
   );
 }
 
 export default function BillingPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-ink font-mono text-xs">Loading billing dashboard...</div>}>
+    <Suspense fallback={<div role="status" className="p-8 font-sans text-xs text-ink-2">Loading billing…</div>}>
       <BillingContent />
     </Suspense>
   );
