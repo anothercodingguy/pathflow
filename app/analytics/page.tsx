@@ -1,17 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
-  BarChart3, TrendingUp, TrendingDown, DollarSign, Clock, Zap,
-  CheckCircle2, XCircle, Loader2, Activity, Cpu, Wrench, AlertTriangle,
-  ArrowUpRight
+  BarChart3, DollarSign, Clock, Zap, CheckCircle2, XCircle, Loader2, Activity, Cpu, Wrench,
+  ArrowUpRight, RefreshCw,
 } from 'lucide-react';
 import Link from 'next/link';
 
-import TiltCard from '@/components/ui/TiltCard';
 import NumberAnimation from '@/components/ui/NumberAnimation';
-import LoadingState from '@/components/ui/LoadingState';
-import { MOCK_ANALYTICS } from '@/lib/mockData';
+import { PageShell, PageHeader } from '@/components/ui/Page';
+import { Button, ButtonLink } from '@/components/ui/Button';
+import { Card, CardHeader, TableWrap, th, theadRow } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { DemoBadge, DemoNotice, EmptyState, ErrorState } from '@/components/ui/States';
+import { useApiData } from '@/lib/useApiData';
+import { DemoScope, isDemoAgentId, isDemoRunId, isDemoWorkspace } from '@/lib/demo';
 
 interface Analytics {
   kpis: {
@@ -39,113 +42,128 @@ interface Analytics {
   runVolume: Array<{ date: string; total: number; success: number; failed: number }>;
 }
 
-function KpiCard({ 
-  label, 
-  value, 
+function KpiCard({
+  label,
+  value,
   numValue,
   prefix = '',
   suffix = '',
   decimals = 0,
-  subValue, 
-  icon: Icon, 
-  color = 'text-ink' 
-}: { 
-  label: string; 
-  value?: string; 
+  subValue,
+  icon: Icon,
+  color = 'text-ink',
+}: {
+  label: string;
+  value?: string;
   numValue?: number;
   prefix?: string;
   suffix?: string;
   decimals?: number;
-  subValue?: string; 
-  icon: any; 
-  color?: string 
+  subValue?: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color?: string;
 }) {
   return (
-    <TiltCard maxTilt={8} className="p-4 bg-surface border-line flex flex-col justify-between h-full min-h-[114px]">
+    <Card className="flex min-h-[104px] flex-col justify-between p-3.5">
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <span className="text-2xs text-ink-2 uppercase font-bold tracking-wider font-mono">{label}</span>
-          <div className="flex size-6 items-center justify-center rounded-lg bg-tint/[0.04] border border-line">
-            <Icon className="h-3.5 w-3.5 text-ink-2" />
-          </div>
+        <div className="flex items-center justify-between gap-2">
+          <dt className="font-mono text-2xs font-semibold uppercase tracking-wide text-ink-2">{label}</dt>
+          <Icon className="size-3.5 shrink-0 text-ink-3" aria-hidden />
         </div>
-        <div className={`text-xl font-bold font-mono ${color}`}>
+        <dd className={`font-mono text-xl font-bold tabular-nums ${color}`}>
           {numValue !== undefined ? (
             <NumberAnimation value={numValue} prefix={prefix} suffix={suffix} decimals={decimals} />
           ) : (
             value
           )}
-        </div>
+        </dd>
       </div>
-      <div className="text-2xs text-ink-3 font-mono leading-tight min-h-[16px] mt-2">
-        {subValue || <span className="opacity-0 select-none">-</span>}
-      </div>
-    </TiltCard>
+      <dd className="mt-2 min-h-[16px] font-mono text-2xs leading-tight text-ink-3">{subValue}</dd>
+    </Card>
   );
 }
 
 function SkeletonCard() {
   return (
-    <div className="border border-line rounded-2xl bg-surface p-4 flex flex-col justify-between h-full min-h-[114px] animate-pulse">
+    <Card className="flex min-h-[104px] animate-pulse flex-col justify-between p-3.5" aria-hidden>
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="h-3 w-20 bg-tint/10 rounded" />
-          <div className="size-6 bg-tint/10 rounded-lg" />
-        </div>
-        <div className="h-6 w-16 bg-tint/10 rounded" />
+        <div className="h-3 w-20 rounded bg-tint/10" />
+        <div className="h-6 w-16 rounded bg-tint/10" />
       </div>
-      <div className="h-3 w-24 bg-tint/10 rounded min-h-[16px] mt-2" />
-    </div>
+      <div className="mt-2 h-3 w-24 rounded bg-tint/10" />
+    </Card>
   );
 }
 
+function StatusBadge({ status }: { status: string }) {
+  return status === 'failed' ? <Badge tone="bad">FAIL</Badge> : <Badge tone="ok">OK</Badge>;
+}
+
+const td = 'px-3 py-2.5';
+const tdNum = 'px-3 py-2.5 text-right font-mono tabular-nums text-ink-2 whitespace-nowrap';
+
 export default function AnalyticsPage() {
-  const [analytics, setAnalytics] = useState<Analytics | null>(MOCK_ANALYTICS as any);
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    async function loadAnalytics() {
-      try {
-        const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
-        const res = await fetch(`${apiBase}/api/v1/analytics`, { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.analytics) {
-            setAnalytics(data.analytics);
-          }
-        }
-      } catch (err: any) {
-        console.warn('Using mock analytics fallback:', err);
-      }
-    }
-    loadAnalytics();
-  }, []);
-
+  const { data: analytics, loading: isLoading, error, reload } = useApiData<Analytics | null>(
+    '/api/v1/analytics',
+    (json) => json.analytics ?? null
+  );
 
   const kpis = analytics?.kpis;
 
-  return (
-    <div className="w-full min-h-[calc(100vh-2.75rem)] bg-canvas px-4 py-4 space-y-5 font-mono text-xs">
-      
-      {/* Header */}
-      <div className="flex items-baseline justify-between border-b border-line pb-3">
-        <div>
-          <h1 className="text-xl font-bold text-ink font-sans tracking-tight uppercase">Analytics</h1>
-          <p className="text-xs text-ink-2 font-sans mt-0.5">Performance metrics and operational insights across all agent executions.</p>
-        </div>
-      </div>
+  // The analytics API aggregates the built-in sample runs together with your
+  // own, so check the run and agent ids it returns to know what is on screen.
+  let demo: DemoScope = 'none';
+  if (analytics) {
+    const flags = [
+      ...analytics.expensiveRuns.map((r) => isDemoRunId(r.id)),
+      ...analytics.slowestRuns.map((r) => isDemoRunId(r.id)),
+      ...analytics.agentStats.map((a) => isDemoAgentId(a.id)),
+    ];
+    if (isDemoWorkspace() || (flags.length > 0 && flags.every(Boolean))) demo = 'all';
+    else if (flags.some(Boolean)) demo = 'some';
+  }
 
+  const isEmpty = !!kpis && kpis.totalRuns === 0;
+
+  return (
+    <PageShell>
+      <PageHeader
+        title="Analytics"
+        badge={demo !== 'none' ? <DemoBadge scope={demo} /> : undefined}
+        description="Reliability, latency, token and cost totals across runs."
+        actions={
+          <Button onClick={reload} disabled={isLoading}>
+            {isLoading ? <Loader2 className="animate-spin" aria-hidden /> : <RefreshCw aria-hidden />}
+            Refresh
+          </Button>
+        }
+      />
+
+      <DemoNotice scope={demo} what="figures" />
+
+      {error ? (
+        <ErrorState title="Could not load analytics" message={error} onRetry={reload} />
+      ) : !isLoading && (!analytics || isEmpty) ? (
+        <EmptyState
+          icon={<BarChart3 />}
+          title="No runs to analyse yet"
+          action={<ButtonLink href="/settings" variant="primary">Set up the SDK</ButtonLink>}
+        >
+          Analytics are computed from your runs. They appear after the first trace arrives.
+        </EmptyState>
+      ) : (
+        <>
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 items-stretch">
+      <dl className="grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 lg:grid-cols-5" aria-busy={isLoading}>
         {isLoading ? (
           Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)
         ) : kpis ? (
           <>
-            <KpiCard 
-              label="Total Runs" 
-              numValue={kpis.totalRuns} 
-              subValue={kpis.runningRuns > 0 ? `${kpis.runningRuns} active` : 'Total executions'} 
-              icon={Activity} 
+            <KpiCard
+              label="Total Runs"
+              numValue={kpis.totalRuns}
+              subValue={kpis.runningRuns > 0 ? `${kpis.runningRuns} running` : 'All statuses'}
+              icon={Activity}
             />
             <KpiCard
               label="Success Rate"
@@ -168,7 +186,7 @@ export default function AnalyticsPage() {
               numValue={kpis.avgLatency / 1000}
               decimals={1}
               suffix="s"
-              subValue={`P95: ${(kpis.p95Latency / 1000).toFixed(1)}s`}
+              subValue={`p95 ${(kpis.p95Latency / 1000).toFixed(1)}s`}
               icon={Clock}
             />
             <KpiCard
@@ -176,7 +194,7 @@ export default function AnalyticsPage() {
               numValue={kpis.p99Latency / 1000}
               decimals={1}
               suffix="s"
-              subValue={`P50: ${(kpis.p50Latency / 1000).toFixed(1)}s`}
+              subValue={`p50 ${(kpis.p50Latency / 1000).toFixed(1)}s`}
               icon={Clock}
               color="text-ink-2"
             />
@@ -189,7 +207,7 @@ export default function AnalyticsPage() {
             <KpiCard
               label="Avg Tokens"
               numValue={kpis.avgTokens}
-              subValue="Per execution run"
+              subValue="Per run"
               icon={Zap}
               color="text-ink-2"
             />
@@ -200,105 +218,101 @@ export default function AnalyticsPage() {
               decimals={2}
               subValue={`Avg: $${kpis.avgCost.toFixed(4)}/run`}
               icon={DollarSign}
-              color="text-ok"
             />
             <KpiCard
               label="Avg Cost"
               numValue={kpis.avgCost}
               prefix="$"
               decimals={4}
-              subValue="Per execution run"
+              subValue="Per run"
               icon={DollarSign}
-              color="text-ok"
             />
             {kpis.avgQuality !== null && (
               <KpiCard
                 label="Avg Quality"
                 numValue={kpis.avgQuality}
-                subValue="PathFlow composite score"
+                subValue="Mean quality score"
                 icon={BarChart3}
                 color={kpis.avgQuality >= 80 ? 'text-ok' : kpis.avgQuality >= 60 ? 'text-warn' : 'text-bad'}
               />
             )}
           </>
         ) : null}
-      </div>
+      </dl>
 
       {/* Model Usage & Tool Performance */}
       {analytics && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           
           {/* Model Usage */}
-          <div className="border border-line rounded-lg bg-surface overflow-hidden">
-            <div className="px-4 py-3 border-b border-line flex items-center gap-2">
-              <Cpu className="h-3.5 w-3.5 text-accent-ink" />
-              <h3 className="text-xs font-bold text-ink font-sans uppercase">Model Usage</h3>
-            </div>
+          <Card className="overflow-hidden">
+            <CardHeader title="Model usage" icon={<Cpu className="size-3.5 text-ink-3" aria-hidden />} />
             {analytics.modelUsage.length > 0 ? (
-              <table className="w-full text-xs">
+              <TableWrap label="Model usage table">
+              <table className="w-full min-w-[460px] text-xs">
                 <thead>
-                  <tr className="border-b border-line text-2xs text-ink-3 uppercase font-bold">
-                    <th className="text-left px-4 py-2">Model</th>
-                    <th className="text-right px-4 py-2">Runs</th>
-                    <th className="text-right px-4 py-2">Tokens</th>
-                    <th className="text-right px-4 py-2">Cost</th>
-                    <th className="text-right px-4 py-2">Avg Latency</th>
+                  <tr className={theadRow}>
+                    <th scope="col" className={th}>Model</th>
+                    <th scope="col" className={`${th} text-right`}>Runs</th>
+                    <th scope="col" className={`${th} text-right`}>Tokens</th>
+                    <th scope="col" className={`${th} text-right`}>Cost</th>
+                    <th scope="col" className={`${th} text-right`}>Avg Latency</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
                   {analytics.modelUsage.map((m) => (
-                    <tr key={m.model} className="hover:bg-tint/[0.02]">
-                      <td className="px-4 py-2.5 text-ink font-semibold">{m.model}</td>
-                      <td className="px-4 py-2.5 text-right text-ink-2 font-mono">{m.runs}</td>
-                      <td className="px-4 py-2.5 text-right text-ink-2 font-mono">{m.tokens.toLocaleString()}</td>
-                      <td className="px-4 py-2.5 text-right text-ok font-mono font-bold">${m.cost.toFixed(3)}</td>
-                      <td className="px-4 py-2.5 text-right text-ink-2 font-mono">{(m.avgLatency / 1000).toFixed(1)}s</td>
+                    <tr key={m.model} className="hover:bg-tint/[0.03]">
+                      <td className={`${td} font-sans font-medium text-ink whitespace-nowrap`}>{m.model}</td>
+                      <td className={tdNum}>{m.runs}</td>
+                      <td className={tdNum}>{m.tokens.toLocaleString()}</td>
+                      <td className={`${tdNum} font-semibold text-ink`}>${m.cost.toFixed(3)}</td>
+                      <td className={tdNum}>{(m.avgLatency / 1000).toFixed(1)}s</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </TableWrap>
             ) : (
-              <div className="px-4 py-8 text-center text-ink-3 text-xs">No model data available yet.</div>
+              <p className="px-4 py-8 text-center font-sans text-xs text-ink-3">No model usage recorded yet.</p>
             )}
-          </div>
+          </Card>
 
           {/* Tool Performance */}
-          <div className="border border-line rounded-lg bg-surface overflow-hidden">
-            <div className="px-4 py-3 border-b border-line flex items-center gap-2">
-              <Wrench className="h-3.5 w-3.5 text-warn" />
-              <h3 className="text-xs font-bold text-ink font-sans uppercase">Tool Performance</h3>
-            </div>
+          <Card className="overflow-hidden">
+            <CardHeader title="Tool performance" icon={<Wrench className="size-3.5 text-ink-3" aria-hidden />} />
             {analytics.toolUsage.length > 0 ? (
-              <table className="w-full text-xs">
+              <TableWrap label="Tool performance table">
+              <table className="w-full min-w-[460px] text-xs">
                 <thead>
-                  <tr className="border-b border-line text-2xs text-ink-3 uppercase font-bold">
-                    <th className="text-left px-4 py-2">Tool</th>
-                    <th className="text-right px-4 py-2">Calls</th>
-                    <th className="text-right px-4 py-2">Success</th>
-                    <th className="text-right px-4 py-2">Avg Latency</th>
-                    <th className="text-right px-4 py-2">Cost</th>
+                  <tr className={theadRow}>
+                    <th scope="col" className={th}>Tool</th>
+                    <th scope="col" className={`${th} text-right`}>Calls</th>
+                    <th scope="col" className={`${th} text-right`}>Success</th>
+                    <th scope="col" className={`${th} text-right`}>Avg Latency</th>
+                    <th scope="col" className={`${th} text-right`}>Cost</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
                   {analytics.toolUsage.map((t) => (
                     <tr key={t.tool} className="hover:bg-tint/[0.02]">
-                      <td className="px-4 py-2.5 text-ink font-semibold truncate max-w-[200px]">{t.tool}</td>
-                      <td className="px-4 py-2.5 text-right text-ink-2 font-mono">{t.calls}</td>
-                      <td className="px-4 py-2.5 text-right font-mono">
+                      <td className={`${td} max-w-[220px] truncate font-sans font-medium text-ink`}>{t.tool}</td>
+                      <td className={tdNum}>{t.calls}</td>
+                      <td className={tdNum}>
                         <span className={t.successRate >= 90 ? 'text-ok' : t.successRate >= 70 ? 'text-warn' : 'text-bad'}>
                           {t.successRate}%
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-right text-ink-2 font-mono">{t.avgLatency < 1000 ? `${t.avgLatency}ms` : `${(t.avgLatency / 1000).toFixed(1)}s`}</td>
-                      <td className="px-4 py-2.5 text-right text-ok font-mono">${t.totalCost.toFixed(4)}</td>
+                      <td className={tdNum}>{t.avgLatency < 1000 ? `${t.avgLatency}ms` : `${(t.avgLatency / 1000).toFixed(1)}s`}</td>
+                      <td className={tdNum}>${t.totalCost.toFixed(4)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </TableWrap>
             ) : (
-              <div className="px-4 py-8 text-center text-ink-3 text-xs">No tool data available yet.</div>
+              <p className="px-4 py-8 text-center font-sans text-xs text-ink-3">No tool calls recorded yet.</p>
             )}
-          </div>
+          </Card>
         </div>
       )}
 
@@ -307,88 +321,85 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           
           {/* Most Expensive */}
-          <div className="border border-line rounded-lg bg-surface overflow-hidden">
-            <div className="px-4 py-3 border-b border-line flex items-center gap-2">
-              <DollarSign className="h-3.5 w-3.5 text-ok" />
-              <h3 className="text-xs font-bold text-ink font-sans uppercase">Most Expensive Runs</h3>
-            </div>
-            <div className="divide-y divide-line">
+          <Card className="overflow-hidden">
+            <CardHeader title="Most expensive runs" icon={<DollarSign className="size-3.5 text-ink-3" aria-hidden />} />
+            <ul className="divide-y divide-line">
               {analytics.expensiveRuns.slice(0, 5).map((r) => (
-                <Link key={r.id} href={`/runs/${r.id}`} className="flex items-center justify-between px-4 py-2.5 hover:bg-tint/[0.02] transition-colors group">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className={`inline-block text-2xs font-bold px-1 py-0.5 rounded border uppercase ${r.status === 'failed' ? 'bg-red-500/10 text-bad border-red-500/20' : 'bg-emerald-500/10 text-ok border-emerald-500/20'}`}>
-                      {r.status === 'failed' ? 'FAIL' : 'OK'}
-                    </span>
-                    <span className="text-ink-2 text-xs truncate group-hover:text-ink transition-colors">{r.title}</span>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0 font-mono">
-                    <span className="text-ok font-bold">${r.cost.toFixed(3)}</span>
-                    <ArrowUpRight className="h-3 w-3 text-ink-3 group-hover:text-accent-ink" />
-                  </div>
+                <li key={r.id}>
+                <Link href={`/runs/${r.id}`} className="group flex items-center justify-between gap-3 px-3 py-2.5 transition-colors hover:bg-tint/[0.03]">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <StatusBadge status={r.status} />
+                    <span className="truncate font-sans text-xs text-ink-2 transition-colors group-hover:text-ink">{r.title}</span>
+                    {demo === 'some' && isDemoRunId(r.id) && <Badge tone="warn">Demo</Badge>}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2 font-mono tabular-nums">
+                    <span className="text-ink font-bold">${r.cost.toFixed(3)}</span>
+                    <ArrowUpRight className="size-3 text-ink-3 group-hover:text-accent-ink" aria-hidden />
+                  </span>
                 </Link>
+                </li>
               ))}
-            </div>
-          </div>
+            </ul>
+          </Card>
 
           {/* Slowest Runs */}
-          <div className="border border-line rounded-lg bg-surface overflow-hidden">
-            <div className="px-4 py-3 border-b border-line flex items-center gap-2">
-              <Clock className="h-3.5 w-3.5 text-warn" />
-              <h3 className="text-xs font-bold text-ink font-sans uppercase">Slowest Runs</h3>
-            </div>
-            <div className="divide-y divide-line">
+          <Card className="overflow-hidden">
+            <CardHeader title="Slowest runs" icon={<Clock className="size-3.5 text-ink-3" aria-hidden />} />
+            <ul className="divide-y divide-line">
               {analytics.slowestRuns.slice(0, 5).map((r) => (
-                <Link key={r.id} href={`/runs/${r.id}`} className="flex items-center justify-between px-4 py-2.5 hover:bg-tint/[0.02] transition-colors group">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className={`inline-block text-2xs font-bold px-1 py-0.5 rounded border uppercase ${r.status === 'failed' ? 'bg-red-500/10 text-bad border-red-500/20' : 'bg-emerald-500/10 text-ok border-emerald-500/20'}`}>
-                      {r.status === 'failed' ? 'FAIL' : 'OK'}
-                    </span>
-                    <span className="text-ink-2 text-xs truncate group-hover:text-ink transition-colors">{r.title}</span>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0 font-mono">
+                <li key={r.id}>
+                <Link href={`/runs/${r.id}`} className="group flex items-center justify-between gap-3 px-3 py-2.5 transition-colors hover:bg-tint/[0.03]">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <StatusBadge status={r.status} />
+                    <span className="truncate font-sans text-xs text-ink-2 transition-colors group-hover:text-ink">{r.title}</span>
+                    {demo === 'some' && isDemoRunId(r.id) && <Badge tone="warn">Demo</Badge>}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2 font-mono tabular-nums">
                     <span className="text-ink font-bold">{(r.duration / 1000).toFixed(1)}s</span>
-                    <ArrowUpRight className="h-3 w-3 text-ink-3 group-hover:text-accent-ink" />
-                  </div>
+                    <ArrowUpRight className="size-3 text-ink-3 group-hover:text-accent-ink" aria-hidden />
+                  </span>
                 </Link>
+                </li>
               ))}
-            </div>
-          </div>
+            </ul>
+          </Card>
         </div>
       )}
 
       {/* Agent Stats */}
       {analytics && analytics.agentStats.length > 0 && (
-        <div className="border border-line rounded-lg bg-surface overflow-hidden">
-          <div className="px-4 py-3 border-b border-line flex items-center gap-2">
-            <Activity className="h-3.5 w-3.5 text-accent-ink" />
-            <h3 className="text-xs font-bold text-ink font-sans uppercase">Agent Performance</h3>
-          </div>
-          <table className="w-full text-xs">
+        <Card className="overflow-hidden">
+          <CardHeader title="Agent performance" icon={<Activity className="size-3.5 text-ink-3" aria-hidden />} />
+          <TableWrap label="Agent performance table">
+          <table className="w-full min-w-[640px] text-xs">
             <thead>
-              <tr className="border-b border-line text-2xs text-ink-3 uppercase font-bold">
-                <th className="text-left px-4 py-2">Agent</th>
-                <th className="text-right px-4 py-2">Runs</th>
-                <th className="text-right px-4 py-2">Success Rate</th>
-                <th className="text-right px-4 py-2">Avg Latency</th>
-                <th className="text-right px-4 py-2">Avg Cost</th>
-                <th className="text-right px-4 py-2">Total Cost</th>
-                <th className="text-right px-4 py-2">Quality</th>
+              <tr className={theadRow}>
+                <th scope="col" className={th}>Agent</th>
+                <th scope="col" className={`${th} text-right`}>Runs</th>
+                <th scope="col" className={`${th} text-right`}>Success Rate</th>
+                <th scope="col" className={`${th} text-right`}>Avg Latency</th>
+                <th scope="col" className={`${th} text-right`}>Avg Cost</th>
+                <th scope="col" className={`${th} text-right`}>Total Cost</th>
+                <th scope="col" className={`${th} text-right`}>Quality</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
               {analytics.agentStats.map((a) => (
                 <tr key={a.id} className="hover:bg-tint/[0.02]">
-                  <td className="px-4 py-2.5 text-ink font-semibold">{a.name}</td>
-                  <td className="px-4 py-2.5 text-right text-ink-2 font-mono">{a.runs}</td>
-                  <td className="px-4 py-2.5 text-right font-mono">
+                  <td className={`${td} font-sans font-medium text-ink whitespace-nowrap`}>
+                    {a.name}
+                    {demo === 'some' && isDemoAgentId(a.id) && <Badge tone="warn" className="ml-2">Demo</Badge>}
+                  </td>
+                  <td className={tdNum}>{a.runs}</td>
+                  <td className={tdNum}>
                     <span className={a.successRate >= 90 ? 'text-ok' : a.successRate >= 70 ? 'text-warn' : 'text-bad'}>
                       {a.successRate}%
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-right text-ink-2 font-mono">{(a.avgLatency / 1000).toFixed(1)}s</td>
-                  <td className="px-4 py-2.5 text-right text-ok font-mono">${a.avgCost.toFixed(3)}</td>
-                  <td className="px-4 py-2.5 text-right text-ink-2 font-mono">${a.totalCost.toFixed(3)}</td>
-                  <td className="px-4 py-2.5 text-right font-mono">
+                  <td className={tdNum}>{(a.avgLatency / 1000).toFixed(1)}s</td>
+                  <td className={tdNum}>${a.avgCost.toFixed(3)}</td>
+                  <td className={tdNum}>${a.totalCost.toFixed(3)}</td>
+                  <td className={tdNum}>
                     {a.avgQuality !== null ? (
                       <span className={a.avgQuality >= 80 ? 'text-ok' : a.avgQuality >= 60 ? 'text-warn' : 'text-bad'}>
                         {a.avgQuality}
@@ -401,9 +412,11 @@ export default function AnalyticsPage() {
               ))}
             </tbody>
           </table>
-        </div>
+          </TableWrap>
+        </Card>
       )}
-
-    </div>
+        </>
+      )}
+    </PageShell>
   );
 }

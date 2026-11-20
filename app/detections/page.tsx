@@ -1,14 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle, Shield, XCircle, Clock, DollarSign, Zap,
-  ChevronRight, Loader2, Filter, ArrowUpRight, Bug
+  ChevronRight, ArrowUpRight, Bug, RefreshCw, Loader2,
 } from 'lucide-react';
 import FilterPills from '@/components/ui/FilterPills';
-import LoadingState from '@/components/ui/LoadingState';
-import { MOCK_DETECTIONS } from '@/lib/mockData';
+import { PageShell, PageHeader } from '@/components/ui/Page';
+import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Field';
+import { Badge, BadgeTone } from '@/components/ui/Badge';
+import { DemoBadge, DemoNotice, EmptyState, ErrorState, LoadingBlock } from '@/components/ui/States';
+import { useApiData } from '@/lib/useApiData';
+import { demoScope, isDemoRunId } from '@/lib/demo';
 
 interface DetectionItem {
   runId: string;
@@ -27,15 +32,23 @@ interface DetectionItem {
   };
 }
 
-const severityColors: Record<string, { bg: string; text: string; border: string }> = {
-  CRITICAL: { bg: 'bg-red-500/10', text: 'text-bad', border: 'border-red-500/30' },
-  HIGH: { bg: 'bg-amber-500/10', text: 'text-warn', border: 'border-amber-500/30' },
-  MEDIUM: { bg: 'bg-yellow-500/10', text: 'text-warn', border: 'border-yellow-500/30' },
-  LOW: { bg: 'bg-blue-500/10', text: 'text-accent-ink', border: 'border-blue-500/30' },
-  INFO: { bg: 'bg-zinc-500/10', text: 'text-ink-2', border: 'border-zinc-500/30' },
+const severityTone: Record<string, BadgeTone> = {
+  CRITICAL: 'bad',
+  HIGH: 'warn',
+  MEDIUM: 'warn',
+  LOW: 'accent',
+  INFO: 'neutral',
 };
 
-const typeIcons: Record<string, any> = {
+const severityBorder: Record<string, string> = {
+  CRITICAL: 'border-bad/40',
+  HIGH: 'border-warn/40',
+  MEDIUM: 'border-warn/25',
+  LOW: 'border-accent/30',
+  INFO: 'border-line',
+};
+
+const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   TOOL_LOOP: Bug,
   EXCESSIVE_RETRY: AlertTriangle,
   TIMEOUT: Clock,
@@ -48,192 +61,163 @@ const typeIcons: Record<string, any> = {
 };
 
 export default function DetectionsPage() {
-  const [detections, setDetections] = useState<DetectionItem[]>(MOCK_DETECTIONS as any);
-  const [isLoading, setIsLoading] = useState(false);
   const [selectedSeverity, setSelectedSeverity] = useState<string>('');
   const [selectedType, setSelectedType] = useState<string>('');
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadDetections() {
-      try {
-        const params = new URLSearchParams();
-        if (selectedSeverity) params.append('severity', selectedSeverity);
-        if (selectedType) params.append('type', selectedType);
-        const apiBase = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
-        const res = await fetch(`${apiBase}/api/v1/detections?${params.toString()}`, { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.detections && data.detections.length > 0) {
-            setDetections(data.detections);
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to load detections, using mock data fallback:', err);
-      }
-    }
-    loadDetections();
-  }, [selectedSeverity, selectedType]);
+  // Detections are produced by fixed rules in lib/detections.ts (loops, retries,
+  // timeouts, cost and token thresholds). The filters are applied by the API.
+  const params = new URLSearchParams();
+  if (selectedSeverity) params.append('severity', selectedSeverity);
+  if (selectedType) params.append('type', selectedType);
+  const query = params.toString();
 
+  const { data, loading, error, reload } = useApiData<DetectionItem[]>(
+    `/api/v1/detections${query ? `?${query}` : ''}`,
+    (json) => (Array.isArray(json.detections) ? json.detections : [])
+  );
+  const detections = data ?? [];
 
   const severityCounts: Record<string, number> = {};
   detections.forEach(d => {
     severityCounts[d.detection.severity] = (severityCounts[d.detection.severity] || 0) + 1;
   });
 
-  const types = [...new Set(detections.map(d => d.detection.type))];
+  const types = [...new Set([...detections.map(d => d.detection.type), ...(selectedType ? [selectedType] : [])])];
+  const demo = demoScope(detections, (d) => isDemoRunId(d.runId));
+  const hasFilters = !!selectedSeverity || !!selectedType;
 
   return (
-    <div className="w-full min-h-[calc(100vh-2.75rem)] bg-canvas px-4 py-3 space-y-4 font-mono text-xs">
-      
-      {/* Header */}
-      <div className="flex items-baseline justify-between border-b border-line pb-2.5">
-        <div>
-          <h1 className="text-xl font-bold text-ink font-sans tracking-tight uppercase">Detections</h1>
-          <p className="text-xs text-ink-2 font-sans mt-0.5">Automatically detected execution issues across all agent runs.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map(sev => {
-            const count = severityCounts[sev] || 0;
-            const colors = severityColors[sev];
-            return (
-              <span key={sev} className={`px-2 py-0.5 rounded border text-2xs font-bold ${colors.bg} ${colors.text} ${colors.border}`}>
-                {count} {sev}
-              </span>
-            );
-          })}
-        </div>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Detections"
+        badge={demo !== 'none' ? <DemoBadge scope={demo} /> : undefined}
+        description="Issues found by PathFlow's detection rules across recent runs: loops, retries, timeouts, cost and token spikes."
+        actions={
+          <Button onClick={reload} disabled={loading}>
+            {loading ? <Loader2 className="animate-spin" aria-hidden /> : <RefreshCw aria-hidden />}
+            Refresh
+          </Button>
+        }
+      />
 
-      {/* Beautiful UI Filters */}
-      <div className="flex flex-wrap items-center gap-3">
+      <DemoNotice scope={demo} what="detections" />
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <FilterPills
+          label="Filter by severity"
           items={[
-            { id: '', label: 'All Severities', count: detections.length },
-            { id: 'CRITICAL', label: 'Critical', count: severityCounts.CRITICAL || 0, dotColor: '#EF4444' },
-            { id: 'HIGH', label: 'High', count: severityCounts.HIGH || 0, dotColor: '#F59E0B' },
-            { id: 'MEDIUM', label: 'Medium', count: severityCounts.MEDIUM || 0, dotColor: '#EAB308' },
-            { id: 'LOW', label: 'Low', count: severityCounts.LOW || 0, dotColor: '#3B82F6' },
+            { id: '', label: 'All', count: selectedSeverity ? undefined : detections.length },
+            { id: 'CRITICAL', label: 'Critical', count: selectedSeverity && selectedSeverity !== 'CRITICAL' ? undefined : severityCounts.CRITICAL || 0, dotColor: '#EF4444' },
+            { id: 'HIGH', label: 'High', count: selectedSeverity && selectedSeverity !== 'HIGH' ? undefined : severityCounts.HIGH || 0, dotColor: '#F59E0B' },
+            { id: 'MEDIUM', label: 'Medium', count: selectedSeverity && selectedSeverity !== 'MEDIUM' ? undefined : severityCounts.MEDIUM || 0, dotColor: '#EAB308' },
+            { id: 'LOW', label: 'Low', count: selectedSeverity && selectedSeverity !== 'LOW' ? undefined : severityCounts.LOW || 0, dotColor: '#3B82F6' },
           ]}
           selectedId={selectedSeverity}
           onSelect={(id) => setSelectedSeverity(id)}
         />
 
-        <div className="w-px h-4 bg-tint/[0.07]" />
-
-        <div className="flex items-center gap-1.5">
-          <span className="text-2xs text-ink-3 uppercase font-bold">Type:</span>
-        </div>
-        <select
-          value={selectedType}
-          onChange={(e) => setSelectedType(e.target.value)}
-          className="px-2 py-1 rounded-lg border border-line bg-surface text-2xs text-ink-2 font-mono focus:border-blue-500"
-        >
-          <option value="">All Types</option>
-          {types.map(t => (
-            <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
-          ))}
-        </select>
+        <label className="flex items-center gap-2 font-mono text-2xs font-semibold uppercase text-ink-3">
+          Type
+          <Select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="max-w-[14rem] font-mono normal-case text-ink">
+            <option value="">All types</option>
+            {types.map(t => (
+              <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
+            ))}
+          </Select>
+        </label>
       </div>
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex flex-col items-center justify-center py-20 space-y-3">
-          <LoadingState label="Running AI anomaly detection engine…" variant="Drive" />
-          <span className="text-ink-3 text-xs font-mono">Analyzing loops, timeouts, hallucination risks, and retry spikes</span>
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!isLoading && detections.length === 0 && (
-        <div className="border border-line rounded-lg bg-surface py-16 text-center">
-          <Shield className="h-8 w-8 text-ok mx-auto mb-3" />
-          <h3 className="text-sm font-bold text-ink font-sans">All Clear</h3>
-          <p className="text-xs text-ink-2 mt-1">No issues detected in recent runs.</p>
-        </div>
-      )}
-
-      {/* Detection Cards */}
-      {!isLoading && detections.length > 0 && (
-        <div className="space-y-2">
+      {loading ? (
+        <LoadingBlock label="Running detection rules…" />
+      ) : error ? (
+        <ErrorState title="Could not load detections" message={error} onRetry={reload} />
+      ) : detections.length === 0 ? (
+        <EmptyState
+          icon={<Shield />}
+          title={hasFilters ? 'No detections match these filters' : 'No issues detected'}
+          action={hasFilters ? <Button onClick={() => { setSelectedSeverity(''); setSelectedType(''); }}>Clear filters</Button> : undefined}
+        >
+          {hasFilters ? 'Try another severity or type.' : 'None of the detection rules fired on your recent runs.'}
+        </EmptyState>
+      ) : (
+        <ul className="space-y-2">
           {detections.map((item, i) => {
-            const colors = severityColors[item.detection.severity] || severityColors.INFO;
+            const sev = item.detection.severity;
             const TypeIcon = typeIcons[item.detection.type] || AlertTriangle;
-            const isExpanded = expandedIndex === i;
+            const key = `${item.runId}-${item.detection.type}-${i}`;
+            const isExpanded = expandedKey === key;
+            const panelId = `detection-${i}`;
 
             return (
-              <div
-                key={`${item.runId}-${item.detection.type}-${i}`}
-                className={`border rounded-lg bg-surface overflow-hidden transition-all ${colors.border}`}
-              >
-                <button
-                  onClick={() => setExpandedIndex(isExpanded ? null : i)}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-tint/[0.02] transition-colors text-left"
-                >
-                  <div className={`p-1.5 rounded ${colors.bg}`}>
-                    <TypeIcon className={`h-3.5 w-3.5 ${colors.text}`} />
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-2xs font-bold px-1.5 py-0.5 rounded border uppercase ${colors.bg} ${colors.text} ${colors.border}`}>
-                        {item.detection.severity}
+              <li key={key} className={`overflow-hidden rounded-lg border bg-surface ${severityBorder[sev] || severityBorder.INFO}`}>
+                {/* The expand button and the run link are siblings: a link inside a button is invalid HTML. */}
+                <div className="flex flex-wrap items-stretch">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedKey(isExpanded ? null : key)}
+                    aria-expanded={isExpanded}
+                    aria-controls={panelId}
+                    className="flex min-w-0 flex-1 basis-64 items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-tint/[0.03] sm:px-4"
+                  >
+                    <ChevronRight className={`size-3.5 shrink-0 text-ink-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} aria-hidden />
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded bg-tint/[0.05] text-ink-2">
+                      <TypeIcon className="size-3.5" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <Badge tone={severityTone[sev] || 'neutral'}>{sev}</Badge>
+                        <span className="font-mono text-2xs uppercase text-ink-3">{item.detection.type.replace(/_/g, ' ')}</span>
+                        {demo === 'some' && isDemoRunId(item.runId) && <Badge tone="warn">Demo</Badge>}
                       </span>
-                      <span className="text-2xs font-mono text-ink-3 uppercase">
-                        {item.detection.type.replace(/_/g, ' ')}
-                      </span>
-                    </div>
-                    <p className="text-xs text-ink font-semibold mt-0.5 truncate font-sans">{item.detection.title}</p>
-                  </div>
+                      <span className="mt-1 block font-sans text-xs font-semibold text-ink">{item.detection.title}</span>
+                    </span>
+                  </button>
 
                   <Link
                     href={`/runs/${item.runId}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex items-center gap-1 text-2xs text-ink-2 hover:text-accent-ink transition-colors shrink-0 font-mono"
+                    className="flex min-w-0 items-center gap-1 border-t border-line px-3 py-2 font-mono text-2xs text-ink-2 transition-colors hover:text-accent-ink sm:border-l sm:border-t-0 sm:px-4 max-sm:basis-full"
                   >
-                    <span className="truncate max-w-[120px]">{item.runTitle.replace('', '')}</span>
-                    <ArrowUpRight className="h-3 w-3" />
+                    <span className="sr-only">Open run: </span>
+                    <span className="truncate sm:max-w-[14rem]">{item.runTitle}</span>
+                    <ArrowUpRight className="size-3 shrink-0" aria-hidden />
                   </Link>
-
-                  <ChevronRight className={`h-3.5 w-3.5 text-ink-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                </button>
+                </div>
 
                 {isExpanded && (
-                  <div className="px-4 pb-4 space-y-3 border-t border-line">
-                    <div className="pt-3 text-xs text-ink-2 font-sans leading-relaxed">
-                      {item.detection.description}
-                    </div>
-                    
+                  <div id={panelId} className="space-y-3 border-t border-line px-3 pb-4 sm:px-4">
+                    <p className="pt-3 font-sans text-xs leading-relaxed text-ink-2">{item.detection.description}</p>
+
                     <div>
-                      <span className="text-2xs text-ink-3 uppercase font-bold block mb-1">Evidence</span>
-                      <div className="space-y-1">
+                      <h3 className="mb-1 font-mono text-2xs font-semibold uppercase text-ink-3">Evidence</h3>
+                      <ul className="space-y-1">
                         {item.detection.evidence.map((ev, ei) => (
-                          <div key={ei} className="flex items-start gap-1.5 text-2xs text-ink-2 font-mono">
-                            <span className={`${colors.text} mt-0.5`}>•</span>
-                            <span>{ev}</span>
-                          </div>
+                          <li key={ei} className="flex items-start gap-1.5 font-mono text-2xs text-ink-2">
+                            <span aria-hidden className="mt-0.5 text-ink-3">•</span>
+                            <span className="min-w-0 break-words">{ev}</span>
+                          </li>
                         ))}
-                      </div>
+                      </ul>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                       <div>
-                        <span className="text-2xs text-ink-3 uppercase font-bold block mb-1">Impact</span>
-                        <p className="text-2xs text-amber-600 dark:text-amber-300/80 font-mono">{item.detection.impact}</p>
+                        <h3 className="mb-1 font-mono text-2xs font-semibold uppercase text-ink-3">Impact</h3>
+                        <p className="font-mono text-2xs text-warn">{item.detection.impact}</p>
                       </div>
                       <div>
-                        <span className="text-2xs text-ink-3 uppercase font-bold block mb-1">Recommendation</span>
-                        <p className="text-2xs text-emerald-600 dark:text-emerald-300/80 font-mono">{item.detection.recommendation}</p>
+                        <h3 className="mb-1 font-mono text-2xs font-semibold uppercase text-ink-3">Recommendation</h3>
+                        <p className="font-mono text-2xs text-ok">{item.detection.recommendation}</p>
                       </div>
                     </div>
                   </div>
                 )}
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
-
-    </div>
+    </PageShell>
   );
 }

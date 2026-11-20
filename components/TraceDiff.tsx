@@ -1,7 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { PathData, fetchRunsFromApi } from '@/lib/data';
+import { PageShell, PageHeader } from '@/components/ui/Page';
+import { DemoBadge, DemoNotice, EmptyState, ErrorState, LoadingBlock } from '@/components/ui/States';
+import { ButtonLink } from '@/components/ui/Button';
+import { demoScope, isDemoRun } from '@/lib/demo';
 import {
   TrendingUp,
   TrendingDown,
@@ -25,20 +29,31 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
   const [rightId, setRightId] = useState<string>(initialRightId || '');
   const [activeTab, setActiveTab] = useState<'metrics' | 'timeline' | 'spans'>('metrics');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadData() {
-      setIsLoading(true);
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
       const data = await fetchRunsFromApi();
       setRuns(data);
       if (data.length > 0) {
-        if (!leftId || !data.some(r => r.id === leftId)) setLeftId(data[0].id);
-        if (!rightId || !data.some(r => r.id === rightId)) setRightId(data[1]?.id || data[0].id);
+        setLeftId((current) => (current && data.some(r => r.id === current) ? current : data[0].id));
+        setRightId((current) => (current && data.some(r => r.id === current) ? current : data[1]?.id || data[0].id));
       }
+    } catch (err) {
+      setRuns([]);
+      setError(err instanceof Error ? err.message : 'The request failed.');
+    } finally {
       setIsLoading(false);
     }
-    loadData();
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const demo = demoScope(runs, isDemoRun);
 
   const leftTrace = useMemo(() => {
     return runs.find(t => t.id === leftId) || runs[0] || null;
@@ -129,25 +144,29 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
   }, [leftTrace, rightTrace, latencyPct, costPct, structuralChanges]);
 
   return (
-    <div className="w-full min-h-[calc(100vh-2.5rem)] bg-canvas px-4 py-3 space-y-4 font-mono text-xs">
-      
-      {/* 1. Header Bar */}
-      <div className="flex items-baseline justify-between border-b border-line pb-2.5">
-        <h1 className="text-dev-title text-ink font-sans uppercase">Compare Runs</h1>
-        <span className="text-xs text-ink-3 font-mono">
-          {isLoading ? 'Loading database traces...' : 'Trace Diff & Performance Regression Engine'}
-        </span>
-      </div>
+    <PageShell className="font-mono">
+      <PageHeader
+        title="Compare runs"
+        badge={demo !== 'none' ? <DemoBadge scope={demo} /> : undefined}
+        description="Diff two runs side by side: duration, cost, tokens and span structure."
+      />
 
-      {runs.length > 0 && leftTrace && rightTrace ? (
+      <DemoNotice scope={demo} what="runs" />
+
+      {isLoading ? (
+        <LoadingBlock label="Loading runs…" />
+      ) : error ? (
+        <ErrorState title="Could not load runs" message={error} onRetry={loadData} />
+      ) : runs.length > 0 && leftTrace && rightTrace ? (
         <>
           {/* 2. Run Selectors (Baseline vs Comparison) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="border border-line rounded bg-surface p-2.5">
-              <label className="text-2xs font-mono text-ink-3 uppercase tracking-wider block mb-1">
-                Baseline Execution (Run A)
+              <label htmlFor="compare-run-a" className="text-2xs font-mono text-ink-3 uppercase tracking-wider block mb-1">
+                Baseline (run A)
               </label>
               <select
+                id="compare-run-a"
                 value={leftId}
                 onChange={(e) => setLeftId(e.target.value)}
                 className="w-full rounded border border-line bg-canvas px-2.5 py-1 text-xs font-mono text-ink focus:border-blue-500"
@@ -161,10 +180,11 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
             </div>
 
             <div className="border border-line rounded bg-surface p-2.5">
-              <label className="text-2xs font-mono text-ink-3 uppercase tracking-wider block mb-1">
-                Comparison Execution (Run B)
+              <label htmlFor="compare-run-b" className="text-2xs font-mono text-ink-3 uppercase tracking-wider block mb-1">
+                Comparison (run B)
               </label>
               <select
+                id="compare-run-b"
                 value={rightId}
                 onChange={(e) => setRightId(e.target.value)}
                 className="w-full rounded border border-line bg-canvas px-2.5 py-1 text-xs font-mono text-ink focus:border-blue-500"
@@ -182,15 +202,15 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
           {regressionSummary && (
             <div className={`p-3.5 rounded border font-sans text-xs ${
               regressionSummary.hasRegression
-                ? 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200'
-                : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200'
+                ? 'border-amber-500/40 bg-amber-500/10 text-ink'
+                : 'border-emerald-500/40 bg-emerald-500/10 text-ink'
             }`}>
-              <div className="flex items-center justify-between mb-1.5 font-mono text-2xs">
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mb-1.5 font-mono text-2xs">
                 <div className="flex items-center gap-2 font-bold uppercase tracking-wider">
                   <Sparkles className="h-4 w-4 text-warn" />
-                  <span>AUTOMATED REGRESSION ANALYSIS</span>
+                  <span>Regression summary (computed from the two runs)</span>
                 </div>
-                <div className="flex items-center gap-2 font-telemetry">
+                <div className="flex flex-wrap items-center gap-2 font-telemetry">
                   <span>Latency: <strong className={regressionSummary.latencyPct > 0 ? 'text-warn' : 'text-ok'}>
                     {regressionSummary.latencyPct > 0 ? `+${regressionSummary.latencyPct}%` : `${regressionSummary.latencyPct}%`}
                   </strong></span>
@@ -201,7 +221,7 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
                 </div>
               </div>
 
-              <div className="space-y-1 font-mono text-2xs text-zinc-700 dark:text-zinc-300">
+              <div className="space-y-1 font-mono text-2xs text-ink-2">
                 {regressionSummary.reasons.map((reason, i) => (
                   <div key={i} className="flex items-start gap-1.5">
                     <span className="text-warn">•</span>
@@ -220,8 +240,8 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
               </h2>
               <span className={`px-2.5 py-0.5 rounded text-2xs font-mono font-bold border ${
                 latencyPct <= 0
-                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/40'
-                  : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/40'
+                  ? 'bg-emerald-500/10 text-ok border-emerald-500/40'
+                  : 'bg-amber-500/10 text-warn border-amber-500/40'
               }`}>
                 {latencyPct <= 0 ? 'Performance Improved' : 'Performance Regression'}
               </span>
@@ -338,11 +358,11 @@ export default function TraceDiff({ initialLeftId, initialRightId }: TraceDiffPr
           </div>
         </>
       ) : (
-        <div className="p-8 border border-line rounded bg-surface text-center space-y-2">
-          <p className="text-xs text-ink-2">At least 2 database traces required to compute execution diffs.</p>
-        </div>
+        <EmptyState title="Nothing to compare yet" action={<ButtonLink href="/runs">Go to runs</ButtonLink>}>
+          Comparing needs at least two runs. Send traces with the SDK and come back.
+        </EmptyState>
       )}
 
-    </div>
+    </PageShell>
   );
 }
