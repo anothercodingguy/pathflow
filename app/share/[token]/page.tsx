@@ -31,7 +31,7 @@ export default async function PublicSharePage({ params }: PublicSharePageProps) 
   const detections = runDetections(pathData);
 
   return (
-    <div className="min-h-screen bg-canvas text-ink p-4 sm:p-6 font-sans text-xs space-y-6">
+    <div className="min-h-[calc(100dvh-2.75rem)] bg-canvas text-ink p-3 sm:p-6 font-sans text-xs space-y-4 sm:space-y-6">
       
       {/* Top Banner */}
       <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4 bg-surface border border-line rounded-xl px-4 py-3 shadow-xl">
@@ -52,7 +52,7 @@ export default async function PublicSharePage({ params }: PublicSharePageProps) 
 
         <Link
           href="/"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors shadow-lg shadow-blue-900/20"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-accent-strong hover:bg-accent text-white font-semibold transition-colors"
         >
           <span>Open in PathFlow</span>
           <ExternalLink className="w-3.5 h-3.5" />
@@ -66,8 +66,8 @@ export default async function PublicSharePage({ params }: PublicSharePageProps) 
         <div className="bg-surface border border-line rounded-xl p-5 space-y-4 shadow-xl">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-ink tracking-tight">{run.title}</h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="min-w-0 break-words text-lg font-semibold text-ink tracking-tight">{run.title}</h1>
                 {run.status === "completed" ? (
                   <span className="flex items-center gap-1 text-2xs text-ok font-mono bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                     <CheckCircle2 className="w-3 h-3" /> COMPLETED
@@ -81,7 +81,7 @@ export default async function PublicSharePage({ params }: PublicSharePageProps) 
               <p className="text-ink-2 text-xs">{run.description || "Production agent execution trace"}</p>
             </div>
 
-            <div className="flex items-center gap-4 text-xs font-mono bg-black/40 border border-line px-4 py-2 rounded-lg">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono bg-inset border border-line px-3 sm:px-4 py-2 rounded-lg">
               <div className="text-center">
                 <div className="text-ink-3 text-2xs">WALL CLOCK</div>
                 <div className="text-ink font-bold font-sans">{(run.wallClockMs / 1000).toFixed(2)}s</div>
@@ -127,7 +127,7 @@ export default async function PublicSharePage({ params }: PublicSharePageProps) 
             </div>
             <div className="space-y-1.5 font-mono text-xs">
               {run.spans.map((s, idx) => (
-                <div key={s.id} className="p-3 bg-black/30 border border-line rounded-lg flex items-center justify-between">
+                <div key={s.id} className="p-3 bg-inset border border-line rounded-lg flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-3">
                     <span className="text-ink-3 text-2xs">#{idx + 1}</span>
                     <div>
@@ -135,7 +135,7 @@ export default async function PublicSharePage({ params }: PublicSharePageProps) 
                       <div className="text-2xs text-ink-3">{s.type} • {s.model || run.modelFamily}</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-2xs text-ink-2">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-2xs text-ink-2">
                     <span>{s.latencyMs}ms</span>
                     <span>{s.tokens} tok</span>
                     <span className="text-ink-2 font-semibold">${s.cost.toFixed(4)}</span>

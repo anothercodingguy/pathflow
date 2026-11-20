@@ -3,7 +3,19 @@
 import React, { useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
-import { Key, ArrowRight, ShieldCheck, AlertCircle, Sparkles } from 'lucide-react';
+import { Key, ArrowRight, ShieldCheck, AlertCircle, FlaskConical, ChevronDown, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Input, Label } from '@/components/ui/Field';
+
+function Divider({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3" role="separator">
+      <span className="h-px flex-1 bg-line" />
+      <span className="font-mono text-2xs uppercase tracking-wide text-ink-3">{children}</span>
+      <span className="h-px flex-1 bg-line" />
+    </div>
+  );
+}
 
 function LoginContent() {
   const searchParams = useSearchParams();
@@ -44,156 +56,117 @@ function LoginContent() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-canvas flex items-center justify-center p-4 sm:p-8 font-sans selection:bg-blue-500/30 selection:text-ink">
-      
-      {/* Main Auth Card Container (Max Width 440px) */}
-      <main className="w-full max-w-[440px] border border-line bg-surface rounded-2xl p-6 sm:p-8 shadow-2xl transition-all duration-200 hover:border-line-strong space-y-6">
-        
-        {/* Branding & Heading */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="font-extrabold tracking-tight text-ink text-base uppercase font-sans">
-              PATH<span className="text-blue-500">FLOW</span>
-            </span>
-          </div>
+    <div className="flex min-h-dvh w-full items-center justify-center bg-canvas p-4 font-sans sm:p-8">
+      <div className="w-full max-w-[420px] space-y-6 rounded-xl border border-line bg-surface p-5 shadow-2xl sm:p-7">
 
+        {/* Branding & heading */}
+        <div className="space-y-3">
+          <span className="text-sm font-black uppercase tracking-tight text-ink">
+            PATH<span className="text-accent">FLOW</span>
+          </span>
           <div className="space-y-1">
-            <h1 className="text-2xl sm:text-[30px] font-bold text-ink tracking-tight leading-tight font-sans">
-              Sign in to PathFlow
-            </h1>
-            <p className="text-ink-2 text-sm leading-relaxed">
-              Execution intelligence & profiler platform for AI agents.
-            </p>
+            <h1 className="text-2xl font-semibold leading-tight tracking-tight text-ink">Sign in to PathFlow</h1>
+            <p className="text-sm leading-relaxed text-ink-2">Trace, profile and debug AI agent runs.</p>
           </div>
         </div>
 
-        {/* Error Alert */}
         {errorParam && (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-bad flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 shrink-0 text-bad" />
-            <span>Authentication failed. Please check your Google OAuth credentials.</span>
+          <div role="alert" className="flex items-start gap-2 rounded-md border border-bad/30 bg-bad/10 p-3 text-xs text-bad">
+            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>Sign-in failed. Try again, or use the demo workspace below.</span>
           </div>
         )}
 
-        {/* 1-Click Instant Demo Workspace */}
+        {/* Demo workspace */}
         <div className="space-y-2">
-          <button
-            type="button"
-            onClick={handleDemoGuestAccess}
-            className="w-full h-12 flex items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-blue-600/25 active:scale-[0.99] transition-all duration-200 cursor-pointer"
-          >
-            <Sparkles className="h-4 w-4 text-blue-200 animate-pulse" />
-            <span>Launch Instant Demo Workspace</span>
-            <ArrowRight className="h-4 w-4 ml-0.5" />
-          </button>
-          <p className="text-2xs text-center text-ink-3 font-mono">
-            Explore live traces, DAGs, flame graphs & detections with zero setup
+          <Button variant="primary" size="lg" className="w-full" onClick={handleDemoGuestAccess}>
+            <FlaskConical aria-hidden />
+            Launch Instant Demo Workspace
+            <ArrowRight aria-hidden />
+          </Button>
+          <p className="text-center text-xs leading-relaxed text-ink-2">
+            No account needed. The demo workspace shows built-in sample runs, not your own data.
           </p>
         </div>
 
-        {/* Subtle Divider */}
-        <div className="relative flex items-center justify-center my-4">
-          <div className="w-full border-t border-zinc-200 dark:border-white/10" />
-          <span className="absolute bg-white dark:bg-[#111113] px-3 text-xs text-ink-3 font-medium">
-            or Sign in with Account
-          </span>
-        </div>
+        <Divider>or sign in</Divider>
 
-        {/* Primary CTA: Continue with Google */}
-        <div className="space-y-3">
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            disabled={isLoading}
-            className="w-full h-12 flex items-center justify-center gap-3 rounded-xl bg-white hover:bg-zinc-100 border border-zinc-200 dark:border-transparent px-4 text-sm font-semibold text-zinc-900 active:scale-[0.99] transition-all duration-200 shadow-sm disabled:opacity-50 font-sans cursor-pointer"
-          >
-            {isLoading ? (
-              <span className="text-zinc-700 font-medium">Signing in with Google...</span>
-            ) : (
-              <>
-                <svg className="h-5 w-5" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                  />
-                </svg>
-                <span>Continue with Google</span>
-              </>
-            )}
-          </button>
-        </div>
+        {/* Google */}
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={isLoading}
+          className="flex h-11 w-full items-center justify-center gap-3 rounded-md border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-100 disabled:opacity-60"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              <span>Redirecting to Google…</span>
+            </>
+          ) : (
+            <>
+              <svg className="size-5" viewBox="0 0 24 24" aria-hidden>
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+              </svg>
+              <span>Continue with Google</span>
+            </>
+          )}
+        </button>
 
-        {/* Subtle Divider */}
-        <div className="relative flex items-center justify-center my-4">
-          <div className="w-full border-t border-zinc-200 dark:border-white/10" />
-          <span className="absolute bg-white dark:bg-[#111113] px-3 text-xs text-ink-3 font-medium">
-            or API Key Authentication
-          </span>
-        </div>
-
-        {/* API Key Developer Fallback */}
-        <div className="space-y-3">
+        {/* API key sign-in */}
+        <div className="space-y-3 border-t border-line pt-4">
           <button
             type="button"
             onClick={() => setIsApiKeyLoginOpen(!isApiKeyLoginOpen)}
-            className="w-full flex items-center justify-between text-xs font-semibold text-ink-2 hover:text-ink transition-colors py-1 px-1 font-mono cursor-pointer"
+            aria-expanded={isApiKeyLoginOpen}
+            aria-controls="api-key-form"
+            className="flex w-full items-center justify-between rounded px-1 py-1 text-xs font-medium text-ink-2 transition-colors hover:text-ink"
           >
             <span className="flex items-center gap-1.5">
-              <Key className="h-3.5 w-3.5 text-ink-3" />
-              <span>Developer API Key Sign In</span>
+              <Key className="size-3.5 text-ink-3" aria-hidden />
+              Sign in with an API key
             </span>
-            <span className="text-2xs text-ink-3 uppercase">{isApiKeyLoginOpen ? 'Hide' : 'Show'}</span>
+            <ChevronDown className={`size-3.5 transition-transform ${isApiKeyLoginOpen ? 'rotate-180' : ''}`} aria-hidden />
           </button>
 
           {isApiKeyLoginOpen && (
-            <form onSubmit={handleApiKeySubmit} className="space-y-3 pt-1 text-xs font-mono">
+            <form id="api-key-form" onSubmit={handleApiKeySubmit} className="space-y-3">
               <div className="space-y-1">
-                <input
-                  type="text"
-                  placeholder="Paste Bearer API Key (pf_live_...)"
+                <Label htmlFor="api-key">API key</Label>
+                <Input
+                  id="api-key"
+                  type="password"
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="pf_live_…"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  className="w-full h-11 rounded-xl border border-zinc-300 dark:border-white/10 bg-zinc-50 dark:bg-white/5 px-3.5 text-xs text-zinc-900 dark:text-white placeholder:text-ink-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-mono"
+                  controlSize="lg"
+                  className="font-mono"
                   required
                 />
               </div>
-
-              <button
-                type="submit"
-                className="w-full h-10 flex items-center justify-center gap-2 rounded-xl border border-zinc-300 dark:border-white/15 bg-tint/10 text-ink dark:bg-white/10 dark:text-white hover:bg-tint/10 dark:hover:bg-white/15 active:scale-[0.99] transition-all duration-200 font-sans cursor-pointer"
-              >
-                <span>Authenticate Session</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </button>
+              <Button type="submit" size="lg" className="w-full">
+                Continue with API key
+                <ArrowRight aria-hidden />
+              </Button>
             </form>
           )}
         </div>
 
-        {/* Security Assurance */}
-        <div className="rounded-xl border border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/[0.02] p-3 text-center space-y-1">
-          <p className="text-xs text-ink-3 dark:text-zinc-400 font-sans flex items-center justify-center gap-1.5">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+        <div className="space-y-1 rounded-md border border-line bg-inset p-3 text-center">
+          <p className="flex items-center justify-center gap-1.5 text-xs text-ink-2">
+            <ShieldCheck className="size-3.5 text-ok" aria-hidden />
             <span>Secure Google OAuth Authentication</span>
           </p>
-          <p className="text-2xs text-ink-3 font-sans">
+          <p className="text-2xs leading-relaxed text-ink-3">
             PathFlow isolates execution telemetry and traces strictly to your account.
           </p>
         </div>
-
-      </main>
-
+      </div>
     </div>
   );
 }
@@ -201,8 +174,8 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="w-full min-h-screen bg-canvas flex items-center justify-center text-ink-2 font-sans text-xs">
-        Loading Authentication...
+      <div role="status" className="flex min-h-dvh w-full items-center justify-center bg-canvas font-sans text-xs text-ink-2">
+        Loading sign-in…
       </div>
     }>
       <LoginContent />

@@ -20,11 +20,11 @@ interface ContextCardsProps {
 }
 
 const fileTypeColors: Record<string, { bg: string; text: string }> = {
-  PDF: { bg: 'bg-red-500', text: 'text-ink' },
-  CSV: { bg: 'bg-emerald-500', text: 'text-ink' },
-  JSON: { bg: 'bg-amber-500', text: 'text-ink' },
-  DOC: { bg: 'bg-blue-500', text: 'text-ink' },
-  VECTOR: { bg: 'bg-purple-500', text: 'text-ink' },
+  PDF: { bg: 'bg-red-600', text: 'text-white' },
+  CSV: { bg: 'bg-emerald-600', text: 'text-white' },
+  JSON: { bg: 'bg-amber-600', text: 'text-white' },
+  DOC: { bg: 'bg-blue-600', text: 'text-white' },
+  VECTOR: { bg: 'bg-purple-600', text: 'text-white' },
   CODE: { bg: 'bg-cyan-500', text: 'text-ink' },
 };
 
