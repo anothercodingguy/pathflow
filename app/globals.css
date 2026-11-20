@@ -85,20 +85,21 @@
    * for keyboard users (:focus-visible), not on mouse clicks. Never add
    * `outline-none` to a component without giving it another visible focus style.
    */
-  :focus-visible {
+  :focus-visible:not(.focus-bare) {
     outline: 2px solid rgb(var(--accent-ink));
     outline-offset: 2px;
   }
 
   /* Text inputs show focus on their border instead of a floating ring. */
-  input:not([type='checkbox']):not([type='radio']):not([type='range']):focus-visible,
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not(.focus-bare):focus-visible,
   select:focus-visible,
   textarea:focus-visible {
     outline: 2px solid rgb(var(--accent-ink));
     outline-offset: 0;
   }
 
-  /* For an input that sits inside a wrapper which draws the focus style itself. */
+  /* `focus-bare`: for an input inside a wrapper that draws the focus style itself
+     (the wrapper uses focus-within:). Both rules above skip it. */
   .focus-bare:focus-visible {
     outline: none;
   }

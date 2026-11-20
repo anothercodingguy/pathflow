@@ -76,7 +76,12 @@ export default function DetectionsPage() {
     `/api/v1/detections${query ? `?${query}` : ''}`,
     (json) => (Array.isArray(json.detections) ? json.detections : [])
   );
-  const detections = data ?? [];
+  // Most severe first. (The API's own sort treats CRITICAL's rank of 0 as
+  // "missing" and puts critical items last, so the order is fixed here.)
+  const severityRank: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3, INFO: 4 };
+  const detections = [...(data ?? [])].sort(
+    (x, y) => (severityRank[x.detection.severity] ?? 5) - (severityRank[y.detection.severity] ?? 5)
+  );
 
   const severityCounts: Record<string, number> = {};
   detections.forEach(d => {
